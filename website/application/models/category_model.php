@@ -1,0 +1,186 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class category_model extends CI_Model {
+
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public function get_all($active_only = TRUE)
+    {
+        if ($active_only) {
+            $this->db->where('status', 'active');
+        }
+        $categories = $this->db->order_by('sort_order', 'ASC')
+                               ->order_by('name', 'ASC')
+                               ->get('categories')
+                               ->result_array();
+
+        $cat_map = [];
+        foreach ($categories as $c) {
+            $cat_map[$c['id']] = $c;
+        }
+
+        foreach ($categories as &$c) {
+            $descendants = $this->get_descendant_ids($c['id']);
+            $all_ids     = array_merge([(int) $c['id']], $descendants);
+            $c['product_count'] = $this->db->where_in('category_id', $all_ids)
+                                           ->where('status', 'published')
+                                           ->count_all_results('products');
+            $c['breadcrumb_path'] = $this->build_path_string($c['id'], $cat_map);
+        }
+        return $categories;
+    }
+
+    public function get_root_categories()
+    {
+        $categories = $this->db->where('parent_id', 0)
+                               ->where('status', 'active')
+                               ->order_by('sort_order', 'ASC')
+                               ->order_by('name', 'ASC')
+                               ->get('categories')
+                               ->result_array();
+
+        foreach ($categories as &$c) {
+            $descendants = $this->get_descendant_ids($c['id']);
+            $all_ids     = array_merge([(int) $c['id']], $descendants);
+            $c['product_count'] = $this->db->where_in('category_id', $all_ids)
+                                           ->where('status', 'published')
+                                           ->count_all_results('products');
+        }
+        return $categories;
+    }
+
+    public function get_subcategories($parent_id)
+    {
+        $categories = $this->db->where('parent_id', (int) $parent_id)
+                               ->where('status', 'active')
+                               ->order_by('sort_order', 'ASC')
+                               ->order_by('name', 'ASC')
+                               ->get('categories')
+                               ->result_array();
+
+        foreach ($categories as &$c) {
+            $descendants = $this->get_descendant_ids($c['id']);
+            $all_ids     = array_merge([(int) $c['id']], $descendants);
+            $c['product_count'] = $this->db->where_in('category_id', $all_ids)
+                                           ->where('status', 'published')
+                                           ->count_all_results('products');
+        }
+        return $categories;
+    }
+
+    public function get_featured()
+    {
+        $categories = $this->db->where('status', 'active')
+                               ->where('is_featured', 1)
+                               ->order_by('sort_order', 'ASC')
+                               ->get('categories')
+                               ->result_array();
+
+        foreach ($categories as &$c) {
+            $descendants = $this->get_descendant_ids($c['id']);
+            $all_ids     = array_merge([(int) $c['id']], $descendants);
+            $c['product_count'] = $this->db->where_in('category_id', $all_ids)
+                                           ->where('status', 'published')
+                                           ->count_all_results('products');
+        }
+        return $categories;
+    }
+
+    public function get_by_slug($slug)
+    {
+        return $this->db->where('slug', $slug)
+                        ->where('status', 'active')
+                        ->get('categories')
+                        ->row_array();
+    }
+
+    public function get_by_id($id)
+    {
+        return $this->db->where('id', (int) $id)
+                        ->where('status', 'active')
+                        ->get('categories')
+                        ->row_array();
+    }
+
+    public function get_breadcrumbs($category_id)
+    {
+        $trail = [];
+        $curr_id = (int) $category_id;
+        $seen = [];
+
+        while ($curr_id > 0 && !isset($seen[$curr_id])) {
+            $seen[$curr_id] = true;
+            $cat = $this->db->where('id', $curr_id)->get('categories')->row_array();
+            if (!$cat) {
+                break;
+            }
+            array_unshift($trail, $cat);
+            $curr_id = (int) ($cat['parent_id'] ?? 0);
+        }
+        return $trail;
+    }
+
+    public function get_descendant_ids($parent_id)
+    {
+        $descendants = [];
+        $children = $this->db->select('id')->where('parent_id', (int) $parent_id)->get('categories')->result_array();
+        foreach ($children as $child) {
+            $descendants[] = (int) $child['id'];
+            $sub = $this->get_descendant_ids((int) $child['id']);
+            if (!empty($sub)) {
+                $descendants = array_merge($descendants, $sub);
+            }
+        }
+        return $descendants;
+    }
+
+    public function get_all_category_ids_including_descendants($category_id)
+    {
+        $descendants = $this->get_descendant_ids($category_id);
+        return array_merge([(int) $category_id], $descendants);
+    }
+
+    public function build_path_string($category_id, array $cat_map)
+    {
+        $trail = [];
+        $curr_id = (int) $category_id;
+        $seen = [];
+        while ($curr_id > 0 && isset($cat_map[$curr_id]) && !isset($seen[$curr_id])) {
+            $seen[$curr_id] = true;
+            array_unshift($trail, $cat_map[$curr_id]['name']);
+            $curr_id = (int) ($cat_map[$curr_id]['parent_id'] ?? 0);
+        }
+        return !empty($trail) ? implode(' > ', $trail) : '';
+    }
+
+    public function get_tree()
+    {
+        $all = $this->db->where('status', 'active')
+                        ->order_by('sort_order', 'ASC')
+                        ->order_by('name', 'ASC')
+                        ->get('categories')
+                        ->result_array();
+
+        $by_parent = [];
+        foreach ($all as $c) {
+            $by_parent[$c['parent_id']][] = $c;
+        }
+
+        $build = function($parent_id) use (&$build, &$by_parent) {
+            $branch = [];
+            if (isset($by_parent[$parent_id])) {
+                foreach ($by_parent[$parent_id] as $item) {
+                    $item['children'] = $build($item['id']);
+                    $branch[] = $item;
+                }
+            }
+            return $branch;
+        };
+
+        return $build(0);
+    }
+}
