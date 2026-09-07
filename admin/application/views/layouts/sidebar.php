@@ -31,63 +31,60 @@
             <?php endif; ?>
 
             <!-- Catalog -->
-            <?php if ($this->can('products.view') || $this->can('categories.manage') || $this->can('brands.manage')): ?>
+            <?php if ($this->can('products.view') || $this->can('categories.manage') || $this->can('brands.manage') || $this->can('products.manage') || $this->can('reviews.manage')): ?>
             <li class="menu-header mt-3">
               <span class="menu-header-text">Catalog</span>
             </li>
 
-            <li class="menu-item <?= ($active_menu === 'products') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <!-- Products (Merged All Products & Add Product) -->
+            <?php if ($this->can('products.view')): ?>
+            <li class="menu-item <?= ($active_menu === 'products' && in_array($active_submenu, ['products_list', 'products_add', ''])) ? 'active' : ''; ?>">
+              <a href="<?= site_url('products'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-shopping-bag-3-line"></i>
-                <div data-i18n="Catalog">Catalog</div>
+                <div data-i18n="Products">Products</div>
               </a>
-              <ul class="menu-sub">
-                <?php if ($this->can('products.view')): ?>
-                <li class="menu-item <?= ($active_submenu === 'products_list') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('products'); ?>" class="menu-link">
-                    <div data-i18n="All Products">All Products</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('products.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'products_add') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('products/add'); ?>" class="menu-link">
-                    <div data-i18n="Add Product">Add Product</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'attributes') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('attributes'); ?>" class="menu-link">
-                    <div data-i18n="Attributes & Values">Attributes & Values</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('categories.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'categories') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('categories'); ?>" class="menu-link">
-                    <div data-i18n="Categories">Categories</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('brands.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'brands') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('brands'); ?>" class="menu-link">
-                    <div data-i18n="Brands">Brands</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('products.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'reviews') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reviews'); ?>" class="menu-link">
-                    <div data-i18n="Product Reviews">Product Reviews</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-              </ul>
             </li>
+            <?php endif; ?>
+
+            <!-- Attributes & Values -->
+            <?php if ($this->can('products.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'products' && $active_submenu === 'attributes') ? 'active' : ''; ?>">
+              <a href="<?= site_url('attributes'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-price-tag-3-line"></i>
+                <div data-i18n="Attributes & Values">Attributes & Values</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Categories -->
+            <?php if ($this->can('categories.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'products' && $active_submenu === 'categories') ? 'active' : ''; ?>">
+              <a href="<?= site_url('categories'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-folder-3-line"></i>
+                <div data-i18n="Categories">Categories</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Brands -->
+            <?php if ($this->can('brands.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'products' && $active_submenu === 'brands') ? 'active' : ''; ?>">
+              <a href="<?= site_url('brands'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-award-line"></i>
+                <div data-i18n="Brands">Brands</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Product Reviews -->
+            <?php if ($this->can('products.manage') || $this->can('reviews.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'products' && $active_submenu === 'reviews') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reviews'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-feedback-line"></i>
+                <div data-i18n="Product Reviews">Product Reviews</div>
+              </a>
+            </li>
+            <?php endif; ?>
             <?php endif; ?>
 
             <!-- Sales & Orders -->
