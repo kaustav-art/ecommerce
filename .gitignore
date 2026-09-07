@@ -102,6 +102,7 @@ yarn-error.log*
 # Database & Dumps
 # ==========================================
 *.sql
+!database/*.sql
 *.sqlite
 *.db
 tests/mocks/database/ci_test.sqlite
