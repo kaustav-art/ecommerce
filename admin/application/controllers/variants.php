@@ -26,6 +26,17 @@ class variants extends MY_Controller {
 
             if ($this->form_validation->run() === TRUE) {
                 $id = $this->input->post('id');
+
+                // Handle variant image file upload
+                $uploaded_image = $this->upload_image_file('image_file', 'products', 'var');
+                if ($uploaded_image === false) {
+                    $this->session->set_flashdata('error', 'Variant image upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('variants/product/' . $product_id);
+                    return;
+                }
+
+                $image_path = $uploaded_image ?: ($this->input->post('current_image', TRUE) ?: $product['main_image']);
+
                 $data = [
                     'product_id'     => (int) $product_id,
                     'title'          => $this->input->post('title', TRUE) ?: ($product['title'] . ' Variant'),
@@ -34,7 +45,7 @@ class variants extends MY_Controller {
                     'sale_price'     => $this->input->post('sale_price') ? (float) $this->input->post('sale_price') : NULL,
                     'stock_quantity' => (int) $this->input->post('stock_quantity'),
                     'stock_status'   => $this->input->post('stock_quantity') > 0 ? 'in_stock' : 'out_of_stock',
-                    'image'          => $this->input->post('image', TRUE) ?: $product['main_image']
+                    'image'          => $image_path
                 ];
 
                 $attr_vals = $this->input->post('attr_vals') ?: [];

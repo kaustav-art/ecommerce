@@ -6,7 +6,7 @@
     </a>
   </div>
 
-  <form action="<?= site_url('products/edit/' . $product['id']); ?>" method="POST">
+  <form action="<?= site_url('products/edit/' . $product['id']); ?>" method="POST" enctype="multipart/form-data">
     <div class="row">
       <div class="col-12 col-lg-8">
         <div class="card mb-4">
@@ -71,18 +71,56 @@
             <h5 class="card-title mb-0">Organization & Image</h5>
           </div>
           <div class="card-body">
-            <div class="mb-3 text-center">
-              <img
-                src="<?= base_url('../website/assets/images/' . $product['main_image']); ?>"
-                alt="Product Preview"
-                class="rounded img-fluid mb-2 border"
-                style="max-height: 160px;"
-                onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'" />
+            <?php $existing_gallery = json_decode($product['gallery_images'], true) ?: []; ?>
+            <!-- Main Product Image -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
+              <div class="border rounded p-2 mb-2 bg-light text-center">
+                <img
+                  id="main_product_preview"
+                  src="<?= base_url('../website/assets/images/' . $product['main_image']); ?>"
+                  alt="Product Preview"
+                  class="rounded img-fluid"
+                  style="max-height: 150px; object-fit: contain;"
+                  onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'" />
+              </div>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                id="main_image_file"
+                name="main_image_file"
+                accept="image/*"
+                onchange="previewProductMainImage(this)" />
+              <input type="hidden" name="current_main_image" value="<?= html_escape($product['main_image']); ?>" />
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Upload a new image to replace the current main image.</small>
             </div>
 
+            <!-- Additional Gallery Images -->
             <div class="mb-3">
-              <label class="form-label" for="main_image">Image Path</label>
-              <input type="text" class="form-control" id="main_image" name="main_image" value="<?= html_escape($product['main_image']); ?>" />
+              <label class="form-label fw-semibold" for="gallery_files">Upload Gallery Images</label>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                id="gallery_files"
+                name="gallery_files[]"
+                accept="image/*"
+                multiple
+                onchange="previewGalleryFiles(this)" />
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select additional images for product gallery.</small>
+              <div id="gallery_preview_container" class="d-flex flex-wrap gap-2 mt-2"></div>
+
+              <?php if (!empty($existing_gallery)): ?>
+                <label class="form-label small fw-semibold text-secondary mt-3 mb-1">Existing Gallery (<?= count($existing_gallery); ?>):</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <?php foreach ($existing_gallery as $g_idx => $g_file): ?>
+                    <div class="position-relative border rounded p-1 bg-white shadow-sm" id="gal_item_<?= $g_idx; ?>" style="width: 50px; height: 50px;">
+                      <img src="<?= base_url('../website/assets/images/' . $g_file); ?>" class="w-100 h-100 object-fit-cover rounded" alt="Gallery" onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'">
+                      <input type="hidden" name="existing_gallery[]" value="<?= html_escape($g_file); ?>" id="gal_input_<?= $g_idx; ?>">
+                      <button type="button" class="btn btn-danger btn-xs position-absolute top-0 end-0 p-0 rounded-circle" style="width: 16px; height: 16px; line-height: 1; transform: translate(30%, -30%);" onclick="removeExistingGallery(<?= $g_idx; ?>)" title="Remove from gallery">&times;</button>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
             </div>
 
             <div class="mb-3">
@@ -141,3 +179,41 @@
     </div>
   </form>
 </div>
+
+<script>
+function previewProductMainImage(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('main_product_preview').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function previewGalleryFiles(input) {
+  var container = document.getElementById('gallery_preview_container');
+  container.innerHTML = '';
+  if (input.files) {
+    Array.from(input.files).forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var thumb = document.createElement('div');
+        thumb.className = 'border rounded p-1 bg-white shadow-sm';
+        thumb.style.width = '48px';
+        thumb.style.height = '48px';
+        thumb.innerHTML = '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="Gallery Preview">';
+        container.appendChild(thumb);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+
+function removeExistingGallery(idx) {
+  var item = document.getElementById('gal_item_' + idx);
+  var input = document.getElementById('gal_input_' + idx);
+  if (item) item.remove();
+  if (input) input.remove();
+}
+</script>

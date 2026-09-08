@@ -79,7 +79,8 @@
 
           <!-- Content wrapper -->
           <div class="content-wrapper">
-            <!-- Flash Message Banner -->
+            <!-- Flash Message Banner (Settings pages render this directly under their title) -->
+            <?php if (($active_menu ?? '') !== 'settings' && ($this->router->fetch_class() ?? '') !== 'settings'): ?>
             <div class="container-xxl mt-3">
               <?php if ($this->session->flashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -96,3 +97,4 @@
                 </div>
               <?php endif; ?>
             </div>
+            <?php endif; ?>

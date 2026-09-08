@@ -9,7 +9,12 @@
                     </div>
                     <div class="col-xl-3 col-md-4 col-6">
                         <a href="<?= site_url('home'); ?>" class="logo-header">
-                            <img src="<?= base_url('assets/images/logo/logo.svg'); ?>" alt="Modave" class="logo" style="max-height: 40px;">
+                            <?php
+                              $web_logo = !empty($store_settings['site_logo'])
+                                ? base_url('assets/images/logo/' . $store_settings['site_logo'])
+                                : base_url('assets/images/logo/logo.webp');
+                            ?>
+                            <img src="<?= $web_logo; ?>" alt="<?= html_escape($store_settings['site_name'] ?? 'Codeulas'); ?>" class="logo" style="max-height: 44px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
                         </a>
                     </div>
                     <div class="col-xl-6 d-none d-xl-block">

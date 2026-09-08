@@ -23,7 +23,7 @@
           <small class="text-muted">Configure variant-specific title, SKU, price, stock, and attributes.</small>
         </div>
         <div class="card-body pt-3">
-          <form action="<?= site_url('variants/product/' . $product['id']); ?>" method="POST">
+          <form action="<?= site_url('variants/product/' . $product['id']); ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="var_id" value="">
 
             <div class="mb-3">
@@ -53,8 +53,30 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="var_image">Variant Image Path</label>
-              <input type="text" class="form-control" id="var_image" name="image" value="<?= html_escape($product['main_image']); ?>" placeholder="products/womens/women-1.jpg">
+              <label class="form-label fw-semibold" for="var_image_file">Variant Image</label>
+              <div class="d-flex align-items-center gap-3">
+                <div class="border rounded p-1 bg-white shadow-sm" style="width: 58px; height: 58px; flex-shrink: 0;">
+                  <img
+                    id="var_preview_img"
+                    src="<?= base_url('../website/assets/images/' . ($product['main_image'] ?: 'products/womens/women-1.jpg')); ?>"
+                    class="w-100 h-100 rounded object-fit-cover"
+                    alt="Preview"
+                    onerror="this.src='<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>'"
+                  />
+                </div>
+                <div class="flex-grow-1">
+                  <input
+                    type="file"
+                    class="form-control form-control-sm"
+                    id="var_image_file"
+                    name="image_file"
+                    accept="image/*"
+                    onchange="previewVarImage(this)"
+                  />
+                  <input type="hidden" name="current_image" id="var_current_image" value="<?= html_escape($product['main_image']); ?>">
+                  <small class="text-muted d-block" style="font-size: 11px;">Upload photo for this variant (Max 10MB)</small>
+                </div>
+              </div>
             </div>
 
             <!-- Dynamic Attributes selector -->
@@ -163,6 +185,16 @@
 </div>
 
 <script>
+function previewVarImage(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('var_preview_img').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
 function editVar(v) {
   document.getElementById('variant-form-title').innerText = 'Edit Variant: ' + v.title;
   document.getElementById('var_id').value = v.id;
@@ -171,7 +203,11 @@ function editVar(v) {
   document.getElementById('var_price').value = v.price;
   document.getElementById('var_sale_price').value = v.sale_price || '';
   document.getElementById('var_stock').value = v.stock_quantity;
-  document.getElementById('var_image').value = v.image || '';
+  document.getElementById('var_current_image').value = v.image || '<?= html_escape($product['main_image']); ?>';
+  
+  var imgSrc = v.image ? ('<?= base_url('../website/assets/images/'); ?>' + v.image) : ('<?= base_url('../website/assets/images/' . $product['main_image']); ?>');
+  document.getElementById('var_preview_img').src = imgSrc;
+  document.getElementById('var_image_file').value = '';
 
   // Set attribute values
   if (v.values && v.values.length > 0) {
@@ -193,7 +229,9 @@ function resetVarForm() {
   document.getElementById('var_price').value = '<?= $product['price']; ?>';
   document.getElementById('var_sale_price').value = '<?= $product['sale_price'] ?: ''; ?>';
   document.getElementById('var_stock').value = '10';
-  document.getElementById('var_image').value = '<?= html_escape($product['main_image']); ?>';
+  document.getElementById('var_current_image').value = '<?= html_escape($product['main_image']); ?>';
+  document.getElementById('var_preview_img').src = '<?= base_url('../website/assets/images/' . ($product['main_image'] ?: 'products/womens/women-1.jpg')); ?>';
+  document.getElementById('var_image_file').value = '';
   var selects = document.querySelectorAll('select[id^="attr_val_"]');
   selects.forEach(function(s) { s.value = ''; });
 }

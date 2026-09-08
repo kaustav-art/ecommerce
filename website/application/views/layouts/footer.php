@@ -5,7 +5,14 @@
                     <!-- Brand info -->
                     <div class="col-lg-4 col-md-6">
                         <div class="footer-logo mb-3">
-                            <h4 class="text-white fw-bold mb-1"><?= html_escape($store_settings['site_name'] ?? 'Modave'); ?></h4>
+                            <a href="<?= site_url('home'); ?>" class="d-inline-block mb-3">
+                                <?php
+                                  $footer_logo = !empty($store_settings['site_logo'])
+                                    ? base_url('assets/images/logo/' . $store_settings['site_logo'])
+                                    : base_url('assets/images/logo/logo.webp');
+                                ?>
+                                <img src="<?= $footer_logo; ?>" alt="<?= html_escape($store_settings['site_name'] ?? 'Codeulas'); ?>" style="max-height: 42px; width: auto; background: #ffffff; padding: 5px 12px; border-radius: 6px;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
+                            </a>
                             <p class="text-white-50 small">Multipurpose eCommerce Platform powered by CodeIgniter 3 MVC</p>
                         </div>
                         <ul class="list-unstyled text-white-50 small">
@@ -87,7 +94,7 @@
     <script type="text/javascript" src="<?= base_url('assets/js/lazysize.min.js'); ?>"></script>
     <script type="text/javascript" src="<?= base_url('assets/js/count-down.js'); ?>"></script>
     <script type="text/javascript" src="<?= base_url('assets/js/wow.min.js'); ?>"></script>
-    <script type="text/javascript" src="<?= base_url('assets/js/main.js'); ?>"></script>
+    <script type="text/javascript" src="<?= base_url('assets/js/main.js?v=' . (file_exists(FCPATH . 'assets/js/main.js') ? filemtime(FCPATH . 'assets/js/main.js') : '1.1')); ?>"></script>
     <script>
         if (typeof WOW !== 'undefined') {
             new WOW().init();

@@ -482,35 +482,20 @@
     /* Header Sticky
   -------------------------------------------------------------------------*/
     var headerSticky = function () {
-        let lastScrollTop = 0;
-        let delta = 5;
-        let navbarHeight = $("header").outerHeight();
-        let didScroll = false;
+        var header = $("#header, header");
+        if (!header.length) return;
 
-        $(window).scroll(function () {
-            didScroll = true;
-        });
-
-        setInterval(function () {
-            if (didScroll) {
-                let st = $(window).scrollTop();
-                navbarHeight = $("header").outerHeight();
-
-                if (st > navbarHeight) {
-                    if (st > lastScrollTop + delta) {
-                        $("header").css("top", `-${navbarHeight}px`);
-                    } else if (st < lastScrollTop - delta) {
-                        $("header").css("top", "0");
-                        $("header").addClass("header-bg");
-                    }
-                } else {
-                    $("header").css("top", "unset");
-                    $("header").removeClass("header-bg");
-                }
-                lastScrollTop = st;
-                didScroll = false;
+        var onScroll = function () {
+            var st = $(window).scrollTop();
+            if (st > 10) {
+                header.addClass("header-bg is-sticky");
+            } else {
+                header.removeClass("header-bg is-sticky");
             }
-        }, 250);
+        };
+
+        $(window).on("scroll", onScroll);
+        onScroll();
     };
 
     /* Auto Popup

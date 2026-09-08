@@ -65,6 +65,11 @@ class MY_Controller extends CI_Controller {
         $data['active_submenu'] = isset($data['active_submenu']) ? $data['active_submenu'] : '';
         $data['current_admin']  = $this->current_admin;
 
+        if (!isset($data['store_settings'])) {
+            $this->load->model('setting_model');
+            $data['store_settings'] = $this->setting_model->get_all();
+        }
+
         if ($return) {
             $content  = $this->load->view('layouts/header', $data, TRUE);
             $content .= $this->load->view('layouts/sidebar', $data, TRUE);
@@ -84,6 +89,11 @@ class MY_Controller extends CI_Controller {
     public function render_blank($view, $data = [], $return = FALSE)
     {
         $data['title'] = isset($data['title']) ? $data['title'] : 'Admin Panel';
+
+        if (!isset($data['store_settings'])) {
+            $this->load->model('setting_model');
+            $data['store_settings'] = $this->setting_model->get_all();
+        }
 
         if ($return) {
             $content  = $this->load->view('layouts/auth_header', $data, TRUE);
@@ -105,5 +115,76 @@ class MY_Controller extends CI_Controller {
              ->set_output(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
              ->_display();
         exit;
+    }
+
+    public function upload_image_file($field_name, $subfolder = 'products', $prefix = 'img')
+    {
+        if (empty($_FILES[$field_name]['name'])) {
+            return null;
+        }
+
+        $target_dir = FCPATH . '../website/assets/images/' . trim($subfolder, '/') . '/';
+        if (!is_dir($target_dir)) {
+            @mkdir($target_dir, 0777, TRUE);
+        }
+
+        $config = [];
+        $config['upload_path']   = $target_dir;
+        $config['allowed_types'] = 'gif|jpg|jpeg|png|webp|svg';
+        $config['max_size']      = 10240; // 10MB
+        $config['file_name']     = $prefix . '_' . time() . '_' . rand(100, 999);
+
+        $this->load->library('upload');
+        $this->upload->initialize($config);
+
+        if ($this->upload->do_upload($field_name)) {
+            $data = $this->upload->data();
+            return trim($subfolder, '/') . '/' . $data['file_name'];
+        }
+
+        return false;
+    }
+
+    public function upload_multiple_images($field_name, $subfolder = 'products', $prefix = 'gallery')
+    {
+        if (empty($_FILES[$field_name]['name']) || !is_array($_FILES[$field_name]['name'])) {
+            return [];
+        }
+
+        $target_dir = FCPATH . '../website/assets/images/' . trim($subfolder, '/') . '/';
+        if (!is_dir($target_dir)) {
+            @mkdir($target_dir, 0777, TRUE);
+        }
+
+        $uploaded_files = [];
+        $files_count = count($_FILES[$field_name]['name']);
+
+        $this->load->library('upload');
+
+        for ($i = 0; $i < $files_count; $i++) {
+            if (empty($_FILES[$field_name]['name'][$i])) {
+                continue;
+            }
+
+            $_FILES['single_upload']['name']     = $_FILES[$field_name]['name'][$i];
+            $_FILES['single_upload']['type']     = $_FILES[$field_name]['type'][$i];
+            $_FILES['single_upload']['tmp_name'] = $_FILES[$field_name]['tmp_name'][$i];
+            $_FILES['single_upload']['error']    = $_FILES[$field_name]['error'][$i];
+            $_FILES['single_upload']['size']     = $_FILES[$field_name]['size'][$i];
+
+            $config = [];
+            $config['upload_path']   = $target_dir;
+            $config['allowed_types'] = 'gif|jpg|jpeg|png|webp|svg';
+            $config['max_size']      = 10240;
+            $config['file_name']     = $prefix . '_' . time() . '_' . $i . '_' . rand(100, 999);
+
+            $this->upload->initialize($config);
+            if ($this->upload->do_upload('single_upload')) {
+                $data = $this->upload->data();
+                $uploaded_files[] = trim($subfolder, '/') . '/' . $data['file_name'];
+            }
+        }
+
+        return $uploaded_files;
     }
 }

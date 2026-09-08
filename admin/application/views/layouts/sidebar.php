@@ -1,15 +1,12 @@
         <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
           <div class="app-brand demo">
             <a href="<?= site_url('dashboard'); ?>" class="app-brand-link">
-              <span class="app-brand-logo demo">
-                <span class="text-primary">
-                  <svg width="32" height="18" viewBox="0 0 38 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.8804 20.1721 35.6746 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z" fill="currentColor" />
-                    <path d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z" fill="currentColor" />
-                  </svg>
-                </span>
-              </span>
-              <span class="app-brand-text demo menu-text fw-bold ms-2 fs-4">Modave Admin</span>
+              <?php
+                $sidebar_logo = (!empty($store_settings['site_logo']))
+                  ? base_url('../website/assets/images/logo/' . $store_settings['site_logo'])
+                  : base_url('assets/img/branding/logo.webp');
+              ?>
+              <img src="<?= $sidebar_logo; ?>" alt="Logo" style="max-height: 40px; width: auto; max-width: 180px; object-fit: contain;" onerror="this.src='<?= base_url('assets/img/branding/logo.webp'); ?>'">
             </a>
 
             <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
@@ -352,12 +349,52 @@
               <span class="menu-header-text">Settings</span>
             </li>
 
-            <!-- System & Store Settings -->
+            <!-- General Settings -->
             <?php if ($this->can('settings.manage')): ?>
-            <li class="menu-item <?= ($active_menu === 'settings' && ($active_submenu === 'store_settings' || empty($active_submenu))) ? 'active' : ''; ?>">
-              <a href="<?= site_url('settings'); ?>" class="menu-link">
+            <li class="menu-item <?= ($active_menu === 'settings' && ($active_submenu === 'general' || empty($active_submenu))) ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/general'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-settings-3-line"></i>
-                <div data-i18n="Store Settings">System & Store Settings</div>
+                <div data-i18n="General Settings">General Settings</div>
+              </a>
+            </li>
+
+            <!-- Shipping Settings -->
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'shipping') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/shipping'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-truck-line"></i>
+                <div data-i18n="Shipping Settings">Shipping Settings</div>
+              </a>
+            </li>
+
+            <!-- Tax Settings -->
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'tax') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/tax'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-percent-line"></i>
+                <div data-i18n="Tax Settings">Tax Settings</div>
+              </a>
+            </li>
+
+            <!-- Email Settings -->
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'email') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/email'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-mail-settings-line"></i>
+                <div data-i18n="Email Settings">Email (SMTP) Settings</div>
+              </a>
+            </li>
+
+            <!-- SMS Settings -->
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'sms') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/sms'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-message-3-line"></i>
+                <div data-i18n="SMS Settings">SMS Settings</div>
+              </a>
+            </li>
+
+            <!-- SEO & Meta Settings -->
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'seo') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/seo'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-global-line"></i>
+                <div data-i18n="SEO Settings">SEO & Meta Settings</div>
               </a>
             </li>
             <?php endif; ?>

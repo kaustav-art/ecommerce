@@ -11,16 +11,37 @@
           <h5 class="card-title mb-0" id="brand-form-title">Add Brand</h5>
         </div>
         <div class="card-body">
-          <form action="<?= site_url('brands'); ?>" method="POST">
+          <form action="<?= site_url('brands'); ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="brand_id" value="" />
             <div class="mb-3">
               <label class="form-label" for="brand_name">Brand Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="brand_name" name="name" required placeholder="e.g. Nike" />
             </div>
             <div class="mb-3">
-              <label class="form-label" for="brand_logo">Logo Path</label>
-              <input type="text" class="form-control" id="brand_logo" name="logo" placeholder="brand/brand-01.svg" />
-              <small class="text-muted">Relative path in website/assets/images/</small>
+              <label class="form-label fw-semibold" for="brand_logo_file">Brand Logo</label>
+              <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="border rounded p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;">
+                  <img
+                    id="brand_preview_img"
+                    src="<?= base_url('../website/assets/images/brand/brand-01.svg'); ?>"
+                    class="w-100 h-100 object-fit-contain"
+                    alt="Brand Logo Preview"
+                    onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'"
+                  />
+                </div>
+                <div class="flex-grow-1">
+                  <input
+                    type="file"
+                    class="form-control form-control-sm"
+                    id="brand_logo_file"
+                    name="logo_file"
+                    accept="image/*,.svg"
+                    onchange="previewBrandLogo(this)"
+                  />
+                  <input type="hidden" name="current_logo" id="brand_current_logo" value="brand/brand-01.svg" />
+                  <small class="text-muted d-block mt-1" style="font-size: 11px;">Upload brand logo (SVG, PNG, JPG, WEBP)</small>
+                </div>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Save Brand</button>
             <button type="button" class="btn btn-outline-secondary w-100 mt-2" onclick="resetBrandForm()">Reset</button>
@@ -80,17 +101,31 @@
 </div>
 
 <script>
+function previewBrandLogo(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('brand_preview_img').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
 function editBrand(b) {
   document.getElementById('brand-form-title').innerText = 'Edit Brand: ' + b.name;
   document.getElementById('brand_id').value = b.id;
   document.getElementById('brand_name').value = b.name;
-  document.getElementById('brand_logo').value = b.logo || '';
+  document.getElementById('brand_current_logo').value = b.logo || 'brand/brand-01.svg';
+  document.getElementById('brand_preview_img').src = '<?= base_url('../website/assets/images/'); ?>' + (b.logo || 'brand/brand-01.svg');
+  document.getElementById('brand_logo_file').value = '';
 }
 
 function resetBrandForm() {
   document.getElementById('brand-form-title').innerText = 'Add Brand';
   document.getElementById('brand_id').value = '';
   document.getElementById('brand_name').value = '';
-  document.getElementById('brand_logo').value = '';
+  document.getElementById('brand_current_logo').value = 'brand/brand-01.svg';
+  document.getElementById('brand_preview_img').src = '<?= base_url('../website/assets/images/brand/brand-01.svg'); ?>';
+  document.getElementById('brand_logo_file').value = '';
 }
 </script>

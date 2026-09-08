@@ -16,7 +16,12 @@
     <title><?= isset($title) ? html_escape($title) : 'Modave Admin Panel'; ?></title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/favicon/favicon.ico'); ?>" />
+    <?php
+      $admin_favicon = (!empty($store_settings['site_favicon']))
+        ? base_url('../website/assets/images/logo/' . $store_settings['site_favicon'])
+        : base_url('assets/img/favicon/codeulas_logo_small.webp');
+    ?>
+    <link rel="icon" type="image/webp" href="<?= $admin_favicon; ?>" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

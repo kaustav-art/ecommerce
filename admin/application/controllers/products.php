@@ -56,10 +56,17 @@ class products extends MY_Controller {
                     $slug = $orig_slug . '-' . $i++;
                 }
 
-                $main_image = $this->input->post('main_image', TRUE);
-                if (empty($main_image)) {
-                    $main_image = 'products/womens/women-1.jpg';
+                // Handle Main Product Image upload
+                $uploaded_main = $this->upload_image_file('main_image_file', 'products', 'prod');
+                if ($uploaded_main === false) {
+                    $this->session->set_flashdata('error', 'Main image upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('products/add');
+                    return;
                 }
+                $main_image = $uploaded_main ?: ($this->input->post('default_main_image', TRUE) ?: 'products/womens/women-1.jpg');
+
+                // Handle Additional Gallery Images upload
+                $gallery_images = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
 
                 $insert_data = [
                     'category_id'         => (int) $this->input->post('category_id'),
@@ -77,6 +84,7 @@ class products extends MY_Controller {
                     'short_description'   => $this->input->post('short_description', TRUE),
                     'description'         => $this->input->post('description'),
                     'main_image'          => $main_image,
+                    'gallery_images'      => json_encode($gallery_images),
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
                     'is_trending'         => $this->input->post('is_trending') ? 1 : 0,
                     'is_new'              => $this->input->post('is_new') ? 1 : 0,
@@ -134,7 +142,23 @@ class products extends MY_Controller {
             $this->form_validation->set_rules('stock_quantity', 'Stock Quantity', 'required|numeric');
 
             if ($this->form_validation->run() === TRUE) {
-                $main_image = $this->input->post('main_image', TRUE) ?: $product['main_image'];
+                // Handle Main Product Image upload
+                $uploaded_main = $this->upload_image_file('main_image_file', 'products', 'prod');
+                if ($uploaded_main === false) {
+                    $this->session->set_flashdata('error', 'Main image upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('products/edit/' . $id);
+                    return;
+                }
+                $main_image = $uploaded_main ?: ($this->input->post('current_main_image', TRUE) ?: $product['main_image']);
+
+                // Handle Additional Gallery Images upload
+                $new_gallery = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
+                $existing_gallery = $this->input->post('existing_gallery');
+                if ($existing_gallery === null) {
+                    $existing_gallery = json_decode($product['gallery_images'], true) ?: [];
+                }
+                $final_gallery = array_merge((array) $existing_gallery, $new_gallery);
+                $final_gallery = array_values(array_unique(array_filter($final_gallery)));
 
                 $update_data = [
                     'category_id'         => (int) $this->input->post('category_id'),
@@ -150,6 +174,7 @@ class products extends MY_Controller {
                     'short_description'   => $this->input->post('short_description', TRUE),
                     'description'         => $this->input->post('description'),
                     'main_image'          => $main_image,
+                    'gallery_images'      => json_encode($final_gallery),
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
                     'is_trending'         => $this->input->post('is_trending') ? 1 : 0,
                     'is_new'              => $this->input->post('is_new') ? 1 : 0,

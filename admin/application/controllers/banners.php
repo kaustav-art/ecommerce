@@ -29,23 +29,19 @@ class banners extends MY_Controller {
                 ];
 
                 // Check for file upload
-                if (!empty($_FILES['image_file']['name'])) {
-                    $config['upload_path']   = FCPATH . '../website/assets/images/slider/';
-                    $config['allowed_types'] = 'gif|jpg|jpeg|png|webp|svg';
-                    $config['max_size']      = 5120; // 5MB
-                    $config['file_name']     = 'slider_' . time() . '_' . rand(100, 999);
+                $uploaded_banner = $this->upload_image_file('image_file', 'slider', 'slider');
+                if ($uploaded_banner === false) {
+                    $this->session->set_flashdata('error', 'Banner image upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('banners');
+                    return;
+                }
 
-                    $this->load->library('upload', $config);
-                    if ($this->upload->do_upload('image_file')) {
-                        $upload_data = $this->upload->data();
-                        $data['image'] = 'slider/' . $upload_data['file_name'];
-                    } else {
-                        $this->session->set_flashdata('error', $this->upload->display_errors('', ''));
-                        redirect('banners');
-                        return;
-                    }
-                } elseif ($this->input->post('image_path')) {
-                    $data['image'] = trim($this->input->post('image_path', TRUE));
+                if ($uploaded_banner) {
+                    $data['image'] = $uploaded_banner;
+                } elseif ($this->input->post('current_image')) {
+                    $data['image'] = trim($this->input->post('current_image', TRUE));
+                } else {
+                    $data['image'] = 'slider/slider-women1.jpg';
                 }
 
                 if (!empty($id)) {

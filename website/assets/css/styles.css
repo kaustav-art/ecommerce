@@ -2729,20 +2729,27 @@ a:focus, a:hover {
   padding-left: 60px;
 }
 
-header {
-  position: sticky;
-  position: -webkit-sticky;
-  left: 0;
-  right: 0;
+header,
+#header,
+.header-default {
+  position: sticky !important;
+  position: -webkit-sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100%;
   -webkit-transition: 0.2s ease-out;
   -o-transition: 0.2s ease-out;
   transition: 0.2s ease-out;
-  z-index: 888;
-  background-color: var(--white);
+  z-index: 1000 !important;
+  background-color: var(--white, #ffffff) !important;
 }
-header.header-bg {
-  background-color: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+header.header-bg,
+header.is-sticky,
+#header.header-bg,
+#header.is-sticky {
+  background-color: var(--white, #ffffff) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
 }
 
 .header-scroll-white .dark-logo {

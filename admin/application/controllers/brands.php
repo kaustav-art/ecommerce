@@ -21,10 +21,19 @@ class brands extends MY_Controller {
                 $name = $this->input->post('name', TRUE);
                 $slug = url_title($name, 'dash', TRUE);
 
+                // Handle brand logo file upload
+                $uploaded_logo = $this->upload_image_file('logo_file', 'brand', 'brand');
+                if ($uploaded_logo === false) {
+                    $this->session->set_flashdata('error', 'Brand logo upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('brands');
+                    return;
+                }
+                $logo = $uploaded_logo ?: ($this->input->post('current_logo', TRUE) ?: 'brand/brand-01.svg');
+
                 $data = [
                     'name'   => $name,
                     'slug'   => $slug,
-                    'logo'   => $this->input->post('logo', TRUE) ?: 'brand/brand-01.svg',
+                    'logo'   => $logo,
                     'status' => $this->input->post('status', TRUE) ?: 'active'
                 ];
 

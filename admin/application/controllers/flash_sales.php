@@ -22,15 +22,31 @@ class flash_sales extends MY_Controller {
             if ($this->form_validation->run() === TRUE) {
                 $id = $this->input->post('id');
                 $title = $this->input->post('title', TRUE);
+                $uploaded_banner = $this->upload_image_file('banner_file', 'collections', 'fs');
+                if ($uploaded_banner === false) {
+                    $this->session->set_flashdata('error', 'Banner upload error: ' . $this->upload->display_errors('', ''));
+                    redirect('flash_sales');
+                    return;
+                }
+
+                $banner = null;
+                if ($uploaded_banner) {
+                    $banner = $uploaded_banner;
+                } elseif ($this->input->post('current_banner')) {
+                    $banner = trim($this->input->post('current_banner', TRUE));
+                }
+
                 $data = [
                     'title'            => $title,
                     'slug'             => url_title($title, 'dash', TRUE),
                     'discount_percent' => (float) $this->input->post('discount_percent'),
-                    'banner'           => $this->input->post('banner', TRUE),
                     'start_time'       => $this->input->post('start_time'),
                     'end_time'         => $this->input->post('end_time'),
                     'status'           => $this->input->post('status', TRUE) ?: 'active'
                 ];
+                if ($banner !== null) {
+                    $data['banner'] = $banner;
+                }
 
                 $product_ids = $this->input->post('product_ids') ?: [];
                 $sale_prices = $this->input->post('sale_prices') ?: [];

@@ -3,9 +3,14 @@
         <div class="authentication-inner py-6 mx-4">
           <div class="card p-7">
             <!-- Logo -->
-            <div class="app-brand justify-content-center mt-5">
-              <a href="<?= site_url('auth/login'); ?>" class="app-brand-link gap-3">
-                <span class="app-brand-text demo text-heading fw-semibold fs-3">Modave Admin</span>
+            <div class="app-brand justify-content-center mt-5 mb-2">
+              <?php
+                $login_logo = (!empty($store_settings['site_logo']))
+                  ? base_url('../website/assets/images/logo/' . $store_settings['site_logo'])
+                  : base_url('assets/img/branding/logo.webp');
+              ?>
+              <a href="<?= site_url('auth/login'); ?>" class="app-brand-link">
+                <img src="<?= $login_logo; ?>" alt="Logo" style="max-height: 50px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/img/branding/logo.webp'); ?>'">
               </a>
             </div>
             <!-- /Logo -->

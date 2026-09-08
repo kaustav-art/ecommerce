@@ -120,4 +120,30 @@ class product_model extends CI_Model {
     {
         return $this->db->where('stock_quantity <=', $threshold)->count_all_results('products');
     }
+
+    public function get_top_selling($limit = 5)
+    {
+        return $this->db->select('p.id, p.title, p.sku, p.price, p.sale_price, p.main_image, p.stock_quantity, p.stock_status, c.name as category_name, COALESCE(SUM(oi.quantity), 0) as units_sold, COALESCE(SUM(oi.total), 0) as total_revenue')
+                        ->from('products p')
+                        ->join('categories c', 'c.id = p.category_id', 'left')
+                        ->join('order_items oi', 'oi.product_id = p.id', 'left')
+                        ->group_by('p.id')
+                        ->order_by('units_sold', 'DESC')
+                        ->order_by('p.id', 'ASC')
+                        ->limit($limit)
+                        ->get()
+                        ->result_array();
+    }
+
+    public function get_low_stock_items($threshold = 10, $limit = 5)
+    {
+        return $this->db->select('p.*, c.name as category_name')
+                        ->from('products p')
+                        ->join('categories c', 'c.id = p.category_id', 'left')
+                        ->where('p.stock_quantity <=', (int) $threshold)
+                        ->order_by('p.stock_quantity', 'ASC')
+                        ->limit($limit)
+                        ->get()
+                        ->result_array();
+    }
 }

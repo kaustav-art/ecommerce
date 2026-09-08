@@ -40,14 +40,14 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label" for="banner_file">Upload New Banner Image</label>
-              <input type="file" class="form-control" id="banner_file" name="image_file" accept="image/*" />
-              <small class="text-muted">Recommended: 1920x800px or similar slider aspect ratio.</small>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="banner_image_path">Or Existing Image Path</label>
-              <input type="text" class="form-control" id="banner_image_path" name="image_path" placeholder="e.g. slider/slider-women1.jpg" />
+              <label class="form-label" for="banner_file">Banner Image <span class="text-danger">*</span></label>
+              <input type="file" class="form-control" id="banner_file" name="image_file" accept="image/*" onchange="previewBannerFile(this)" />
+              <input type="hidden" name="current_image" id="banner_current_image" value="" />
+              <small class="text-muted">Recommended: 1920x800px or wide aspect ratio.</small>
+              <div class="mt-2" id="banner_preview_box" style="display: none;">
+                <small class="text-muted d-block mb-1">Preview:</small>
+                <img id="banner_preview_img" src="" alt="Banner Preview" class="rounded border" style="max-width: 100%; max-height: 120px; object-fit: cover;">
+              </div>
             </div>
 
             <div class="row">
@@ -154,6 +154,17 @@
 </div>
 
 <script>
+function previewBannerFile(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('banner_preview_img').src = e.target.result;
+      document.getElementById('banner_preview_box').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
 function editBanner(b) {
   document.getElementById('form-title').innerText = 'Edit Slider: ' + b.title;
   document.getElementById('banner_id').value = b.id;
@@ -161,7 +172,18 @@ function editBanner(b) {
   document.getElementById('banner_subtitle').value = b.subtitle || '';
   document.getElementById('banner_btn_text').value = b.button_text || 'Explore Collection';
   document.getElementById('banner_btn_link').value = b.button_link || 'shop';
-  document.getElementById('banner_image_path').value = b.image || '';
+  document.getElementById('banner_current_image').value = b.image || '';
+  document.getElementById('banner_file').value = '';
+
+  const prevBox = document.getElementById('banner_preview_box');
+  const prevImg = document.getElementById('banner_preview_img');
+  if (b.image) {
+    prevImg.src = '<?= base_url('../website/assets/images/'); ?>' + b.image;
+    prevBox.style.display = 'block';
+  } else {
+    prevBox.style.display = 'none';
+  }
+
   document.getElementById('banner_sort').value = b.sort_order || 0;
   document.getElementById('banner_status').value = b.status || 'active';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -174,7 +196,10 @@ function resetForm() {
   document.getElementById('banner_subtitle').value = '';
   document.getElementById('banner_btn_text').value = 'Explore Collection';
   document.getElementById('banner_btn_link').value = 'shop';
-  document.getElementById('banner_image_path').value = '';
+  document.getElementById('banner_current_image').value = '';
+  document.getElementById('banner_file').value = '';
+  document.getElementById('banner_preview_box').style.display = 'none';
+  document.getElementById('banner_preview_img').src = '';
   document.getElementById('banner_sort').value = 0;
   document.getElementById('banner_status').value = 'active';
 }

@@ -12,7 +12,7 @@
           <small class="text-muted">Set up time-limited flash promotions with countdown timers.</small>
         </div>
         <div class="card-body pt-3">
-          <form action="<?= site_url('flash_sales'); ?>" method="POST">
+          <form action="<?= site_url('flash_sales'); ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="fs_id" value="">
 
             <div class="mb-3">
@@ -47,7 +47,13 @@
 
             <div class="mb-3">
               <label class="form-label" for="fs_banner">Campaign Banner Image</label>
-              <input type="text" class="form-control" id="fs_banner" name="banner" placeholder="collections/cls-banner.jpg">
+              <input type="file" class="form-control" id="fs_banner" name="banner_file" accept="image/*" onchange="previewFsBanner(this)">
+              <input type="hidden" name="current_banner" id="fs_current_banner" value="">
+              <small class="text-muted">Recommended: Wide banner (e.g. 1200x400px).</small>
+              <div class="mt-2" id="fs_preview_box" style="display: none;">
+                <small class="text-muted d-block mb-1">Preview:</small>
+                <img id="fs_preview_img" src="" alt="Campaign Banner" class="rounded border" style="max-width: 100%; max-height: 100px; object-fit: cover;">
+              </div>
             </div>
 
             <!-- Products Multi-select -->
@@ -118,6 +124,13 @@
                       <?php endif; ?>
                     </td>
                     <td>
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-outline-primary me-1"
+                        onclick="editFlashSale(<?= htmlspecialchars(json_encode($fs), ENT_QUOTES, 'UTF-8'); ?>)"
+                        title="Edit Flash Sale">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
                       <a href="<?= site_url('flash_sales/delete/' . $fs['id']); ?>" class="btn btn-xs btn-outline-danger" onclick="return confirm('Delete this campaign?');">
                         <i class="fa-solid fa-trash-can"></i>
                       </a>
@@ -138,12 +151,52 @@
 </div>
 
 <script>
+function previewFsBanner(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('fs_preview_img').src = e.target.result;
+      document.getElementById('fs_preview_box').style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function editFlashSale(fs) {
+  document.getElementById('fs-form-title').innerText = 'Edit Campaign: ' + fs.title;
+  document.getElementById('fs_id').value = fs.id;
+  document.getElementById('fs_title').value = fs.title;
+  document.getElementById('fs_disc').value = fs.discount_percent || '30.00';
+  document.getElementById('fs_status').value = fs.status || 'active';
+  if (fs.start_time) {
+    document.getElementById('fs_start').value = fs.start_time.replace(' ', 'T').substring(0, 16);
+  }
+  if (fs.end_time) {
+    document.getElementById('fs_end').value = fs.end_time.replace(' ', 'T').substring(0, 16);
+  }
+  document.getElementById('fs_current_banner').value = fs.banner || '';
+  document.getElementById('fs_banner').value = '';
+
+  const prevBox = document.getElementById('fs_preview_box');
+  const prevImg = document.getElementById('fs_preview_img');
+  if (fs.banner) {
+    prevImg.src = '<?= base_url('../website/assets/images/'); ?>' + fs.banner;
+    prevBox.style.display = 'block';
+  } else {
+    prevBox.style.display = 'none';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function resetFsForm() {
   document.getElementById('fs-form-title').innerText = 'Create Flash Sale Event';
   document.getElementById('fs_id').value = '';
   document.getElementById('fs_title').value = '';
   document.getElementById('fs_disc').value = '30.00';
+  document.getElementById('fs_current_banner').value = '';
   document.getElementById('fs_banner').value = '';
+  document.getElementById('fs_preview_box').style.display = 'none';
+  document.getElementById('fs_preview_img').src = '';
   document.querySelectorAll('input[name="product_ids[]"]').forEach(function(c) { c.checked = false; });
 }
 </script>

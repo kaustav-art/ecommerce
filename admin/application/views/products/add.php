@@ -6,7 +6,7 @@
     </a>
   </div>
 
-  <form action="<?= site_url('products/add'); ?>" method="POST">
+  <form action="<?= site_url('products/add'); ?>" method="POST" enctype="multipart/form-data">
     <div class="row">
       <!-- Left Column: Main info -->
       <div class="col-12 col-lg-8">
@@ -101,10 +101,44 @@
               </select>
             </div>
 
+            <!-- Main Product Image File Upload -->
             <div class="mb-3">
-              <label class="form-label" for="main_image">Image Path</label>
-              <input type="text" class="form-control" id="main_image" name="main_image" value="products/womens/women-1.jpg" placeholder="e.g. products/womens/women-1.jpg" />
-              <small class="text-muted">Relative path within website/assets/images/</small>
+              <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
+              <div class="border rounded p-2 mb-2 bg-light text-center">
+                <img
+                  id="main_product_preview"
+                  src="<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>"
+                  class="rounded img-fluid"
+                  style="max-height: 150px; object-fit: contain;"
+                  alt="Product Image Preview"
+                />
+              </div>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                id="main_image_file"
+                name="main_image_file"
+                accept="image/*"
+                onchange="previewMainProductFile(this)"
+              />
+              <input type="hidden" name="default_main_image" value="products/womens/women-1.jpg" />
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Recommended: 800x1000px, JPG, PNG, WEBP (Max 10MB)</small>
+            </div>
+
+            <!-- Additional Gallery Images File Upload -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="gallery_files">Additional Gallery Images</label>
+              <input
+                type="file"
+                class="form-control form-control-sm"
+                id="gallery_files"
+                name="gallery_files[]"
+                accept="image/*"
+                multiple
+                onchange="previewGalleryFiles(this)"
+              />
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery</small>
+              <div id="gallery_preview_container" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
 
             <div class="border-top pt-3">
@@ -132,3 +166,34 @@
     </div>
   </form>
 </div>
+
+<script>
+function previewMainProductFile(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('main_product_preview').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function previewGalleryFiles(input) {
+  var container = document.getElementById('gallery_preview_container');
+  container.innerHTML = '';
+  if (input.files) {
+    Array.from(input.files).forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var thumb = document.createElement('div');
+        thumb.className = 'border rounded p-1 bg-white shadow-sm';
+        thumb.style.width = '48px';
+        thumb.style.height = '48px';
+        thumb.innerHTML = '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="Gallery Preview">';
+        container.appendChild(thumb);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+</script>
