@@ -29,22 +29,6 @@
                                         <!-- Left Sidebar: Main Categories (Top to Bottom) -->
                                         <ul class="cat-flyout-sidebar">
                                             <?php 
-                                            $cat_icons = [
-                                                'womens-clothing'            => 'fa-solid fa-person-dress',
-                                                'mens-clothing'              => 'fa-solid fa-shirt',
-                                                'phones-accessories'         => 'fa-solid fa-mobile-screen-button',
-                                                'computer-office-security'   => 'fa-solid fa-laptop',
-                                                'consumer-electronics'       => 'fa-solid fa-camera',
-                                                'jewelry-watches'            => 'fa-solid fa-ring',
-                                                'home-garden-appliance'      => 'fa-solid fa-couch',
-                                                'bags-shoes'                 => 'fa-solid fa-bag-shopping',
-                                                'toys-kids-baby'             => 'fa-solid fa-baby',
-                                                'sports-outdoors'            => 'fa-solid fa-basketball',
-                                                'beauty-health-hair'         => 'fa-solid fa-spa',
-                                                'automobiles-motorcycles'    => 'fa-solid fa-car',
-                                                'home-improvement-tools'     => 'fa-solid fa-wrench',
-                                            ];
-
                                             $default_active_slug = 'phones-accessories';
                                             $slugs_present = !empty($category_tree) ? array_column($category_tree, 'slug') : [];
                                             if (!in_array($default_active_slug, $slugs_present) && !empty($slugs_present)) {
@@ -53,13 +37,16 @@
 
                                             if (!empty($category_tree)): 
                                                 foreach ($category_tree as $root_c): 
-                                                    $slug = $root_c['slug'];
-                                                    $icon = $cat_icons[$slug] ?? 'fa-solid fa-tag';
-                                                    $is_active = ($slug === $default_active_slug);
+                                                    $is_active = ($root_c['slug'] === $default_active_slug);
+                                                    $cat_img = !empty($root_c['image']) 
+                                                        ? base_url('assets/images/' . $root_c['image']) 
+                                                        : base_url('assets/images/collections/collection-circle/cls-circle1.jpg');
                                             ?>
                                                 <li class="cat-sidebar-item <?= $is_active ? 'active' : ''; ?>" data-cat-id="<?= $root_c['id']; ?>">
                                                     <a href="<?= site_url('shop/' . $root_c['slug']); ?>" class="cat-sidebar-link">
-                                                        <span class="cat-icon"><i class="<?= $icon; ?>"></i></span>
+                                                        <span class="cat-thumb">
+                                                            <img src="<?= $cat_img; ?>" alt="<?= html_escape($root_c['name']); ?>" class="cat-thumb-img" onerror="this.src='<?= base_url('assets/images/collections/collection-circle/cls-circle1.jpg'); ?>'">
+                                                        </span>
                                                         <span class="cat-name"><?= html_escape($root_c['name']); ?></span>
                                                         <i class="fa-solid fa-chevron-right cat-arrow"></i>
                                                     </a>
@@ -135,8 +122,8 @@
                                                             </div>
                                                         <?php else: ?>
                                                             <div class="text-center py-5 text-muted">
-                                                                <div class="mb-3" style="font-size: 38px; color: #f05a5b;">
-                                                                    <i class="<?= $cat_icons[$root_c['slug']] ?? 'fa-solid fa-tag'; ?>"></i>
+                                                                <div class="mb-3">
+                                                                    <img src="<?= !empty($root_c['image']) ? base_url('assets/images/' . $root_c['image']) : base_url('assets/images/collections/collection-circle/cls-circle1.jpg'); ?>" alt="<?= html_escape($root_c['name']); ?>" style="width: 64px; height: 64px; object-fit: cover; border-radius: 50%; border: 2px solid #f05a5b;" onerror="this.src='<?= base_url('assets/images/collections/collection-circle/cls-circle1.jpg'); ?>'">
                                                                 </div>
                                                                 <h5 class="fw-bold text-dark mb-2"><?= html_escape($root_c['name']); ?></h5>
                                                                 <p class="small text-muted mb-4">Discover the best products and latest collections in <?= html_escape($root_c['name']); ?>.</p>
@@ -321,15 +308,27 @@
             transition: all 0.15s ease;
         }
 
-        .cat-sidebar-link .cat-icon {
+        .cat-sidebar-link .cat-thumb {
             width: 24px;
-            font-size: 14px;
-            color: #777777;
+            height: 24px;
+            min-width: 24px;
+            border-radius: 50%;
+            overflow: hidden;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-right: 10px;
-            transition: color 0.15s ease;
+            margin-right: 11px;
+            background: #f1f1f1;
+            border: 1px solid #e9e9e9;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+
+        .cat-sidebar-link .cat-thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .cat-sidebar-link .cat-name {
@@ -360,9 +359,10 @@
             font-weight: 600;
         }
 
-        .cat-sidebar-item:hover .cat-icon,
-        .cat-sidebar-item.active .cat-icon {
-            color: #f05a5b;
+        .cat-sidebar-item:hover .cat-thumb,
+        .cat-sidebar-item.active .cat-thumb {
+            border-color: #f05a5b;
+            box-shadow: 0 0 0 1px #f05a5b;
         }
 
         .cat-sidebar-item:hover .cat-arrow,

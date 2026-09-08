@@ -39,28 +39,85 @@
                             </a>
                         <?php endif; ?>
                     </div>
-                    <div dir="ltr" class="swiper tf-sw-categories" data-preview="6" data-tablet="4" data-mobile-sm="3" data-mobile="2" data-space-lg="20" data-space-md="20" data-space="15" data-pagination="2" data-pagination-md="2" data-pagination-lg="1">
-                        <div class="swiper-wrapper">
-                            <?php foreach ($top_subcategories as $sub): ?>
-                                <?php $is_sub_active = ($selected_category && $selected_category['id'] == $sub['id']); ?>
-                                <div class="swiper-slide">
-                                    <div class="collection-circle hover-img <?= $is_sub_active ? 'is-active' : ''; ?>">
-                                        <a href="<?= site_url('shop/' . $sub['slug']); ?>" class="img-style <?= $is_sub_active ? 'is-active' : ''; ?>">
-                                            <img class="lazyload" data-src="<?= base_url('assets/images/' . ($sub['image'] ?: 'collections/collection-circle/cls-circle1.jpg')); ?>" src="<?= base_url('assets/images/' . ($sub['image'] ?: 'collections/collection-circle/cls-circle1.jpg')); ?>" alt="<?= html_escape($sub['name']); ?>" onerror="this.src='<?= base_url('assets/images/collections/collection-circle/cls-circle1.jpg'); ?>'">
-                                        </a>
-                                        <div class="collection-content text-center">
-                                            <a href="<?= site_url('shop/' . $sub['slug']); ?>" class="cls-title">
-                                                <h6 class="text text-truncate <?= $is_sub_active ? 'text-primary fw-bold' : ''; ?>"><?= html_escape($sub['name']); ?></h6>
+                    <div class="shop-categories-slider">
+                        <div dir="ltr" class="swiper tf-sw-categories" data-preview="6" data-tablet="4" data-mobile-sm="3" data-mobile="2" data-space-lg="20" data-space-md="20" data-space="15" data-pagination="1" data-pagination-md="1" data-pagination-lg="1">
+                            <div class="swiper-wrapper">
+                                <?php foreach ($top_subcategories as $sub): ?>
+                                    <?php $is_sub_active = ($selected_category && $selected_category['id'] == $sub['id']); ?>
+                                    <div class="swiper-slide">
+                                        <div class="collection-circle hover-img <?= $is_sub_active ? 'is-active' : ''; ?>">
+                                            <a href="<?= site_url('shop/' . $sub['slug']); ?>" class="img-style <?= $is_sub_active ? 'is-active' : ''; ?>">
+                                                <img class="lazyload" data-src="<?= base_url('assets/images/' . ($sub['image'] ?: 'collections/collection-circle/cls-circle1.jpg')); ?>" src="<?= base_url('assets/images/' . ($sub['image'] ?: 'collections/collection-circle/cls-circle1.jpg')); ?>" alt="<?= html_escape($sub['name']); ?>" onerror="this.src='<?= base_url('assets/images/collections/collection-circle/cls-circle1.jpg'); ?>'">
                                             </a>
-                                            <div class="count text-secondary small"><?= $sub['product_count'] ?? 0; ?> items</div>
+                                            <div class="collection-content text-center">
+                                                <a href="<?= site_url('shop/' . $sub['slug']); ?>" class="cls-title">
+                                                    <h6 class="text text-truncate <?= $is_sub_active ? 'text-primary fw-bold' : ''; ?>"><?= html_escape($sub['name']); ?></h6>
+                                                </a>
+                                                <div class="count text-secondary small"><?= $sub['product_count'] ?? 0; ?> items</div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
-                        <div class="sw-pagination-categories sw-dots type-circle justify-content-center mt-3"></div>
+                        <div class="nav-prev-categories nav-sw nav-sw-left" title="Previous"><i class="fa-solid fa-chevron-left"></i></div>
+                        <div class="nav-next-categories nav-sw nav-sw-right" title="Next"><i class="fa-solid fa-chevron-right"></i></div>
                     </div>
                 </div>
+
+                <style>
+                .shop-categories-slider {
+                    position: relative;
+                    padding: 0 16px;
+                }
+                .shop-categories-slider .nav-sw {
+                    position: absolute;
+                    top: 38%;
+                    transform: translateY(-50%);
+                    z-index: 25;
+                    width: 36px;
+                    height: 36px;
+                    background: #ffffff;
+                    border: 1px solid #e2e2e2;
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
+                    color: #222222;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-size: 13px;
+                }
+                .shop-categories-slider .nav-sw:hover {
+                    background: #f05a5b;
+                    border-color: #f05a5b;
+                    color: #ffffff;
+                }
+                .shop-categories-slider .nav-sw-left {
+                    left: -12px;
+                }
+                .shop-categories-slider .nav-sw-right {
+                    right: -12px;
+                }
+                .shop-categories-slider .nav-sw.swiper-button-disabled {
+                    opacity: 0.3;
+                    cursor: default;
+                    pointer-events: none;
+                    box-shadow: none;
+                }
+                @media (max-width: 767px) {
+                    .shop-categories-slider {
+                        padding: 0 8px;
+                    }
+                    .shop-categories-slider .nav-sw-left {
+                        left: -6px;
+                    }
+                    .shop-categories-slider .nav-sw-right {
+                        right: -6px;
+                    }
+                }
+                </style>
             </section>
         <?php endif; ?>
         <!-- /Categories -->
