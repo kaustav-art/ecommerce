@@ -88,49 +88,75 @@
             <?php endif; ?>
 
             <!-- Sales & Orders -->
-            <?php if ($this->can('orders.view')): ?>
+            <?php if ($this->can('orders.view') || $this->can('orders.manage')): ?>
             <li class="menu-header mt-3">
               <span class="menu-header-text">Sales</span>
             </li>
 
-            <li class="menu-item <?= ($active_menu === 'orders' || $active_menu === 'sales') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <?php 
+              $order_status_filter = $this->input->get('status'); 
+              $is_orders_page = ($active_menu === 'orders' && $active_submenu !== 'returns');
+            ?>
+
+            <!-- All Orders -->
+            <?php if ($this->can('orders.view')): ?>
+            <li class="menu-item <?= ($is_orders_page && empty($order_status_filter)) ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-file-list-3-line"></i>
-                <div data-i18n="Sales">Sales & Orders</div>
+                <div data-i18n="All Orders">All Orders</div>
               </a>
-              <ul class="menu-sub">
-                <li class="menu-item <?= ($active_submenu === 'all_orders' || empty($active_submenu) && $active_menu === 'orders') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('orders'); ?>" class="menu-link">
-                    <div data-i18n="All Orders">All Orders</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="<?= site_url('orders?status=pending'); ?>" class="menu-link">
-                    <div data-i18n="Pending Orders">Pending Orders</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="<?= site_url('orders?status=processing'); ?>" class="menu-link">
-                    <div data-i18n="Processing Orders">Processing Orders</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="<?= site_url('orders?status=shipped'); ?>" class="menu-link">
-                    <div data-i18n="Shipped Orders">Shipped Orders</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="<?= site_url('orders?status=delivered'); ?>" class="menu-link">
-                    <div data-i18n="Delivered Orders">Delivered Orders</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'returns') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('returns'); ?>" class="menu-link">
-                    <div data-i18n="Returns & Refunds">Returns & Refunds</div>
-                  </a>
-                </li>
-              </ul>
             </li>
+
+            <!-- Pending Orders -->
+            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'pending') ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders?status=pending'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-time-line"></i>
+                <div data-i18n="Pending Orders">Pending Orders</div>
+              </a>
+            </li>
+
+            <!-- Processing Orders -->
+            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'processing') ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders?status=processing'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-loader-2-line"></i>
+                <div data-i18n="Processing Orders">Processing Orders</div>
+              </a>
+            </li>
+
+            <!-- Shipped Orders -->
+            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'shipped') ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders?status=shipped'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-truck-line"></i>
+                <div data-i18n="Shipped Orders">Shipped Orders</div>
+              </a>
+            </li>
+
+            <!-- Delivered Orders -->
+            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'delivered') ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders?status=delivered'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-checkbox-circle-line"></i>
+                <div data-i18n="Delivered Orders">Delivered Orders</div>
+              </a>
+            </li>
+
+            <!-- Cancelled Orders -->
+            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'cancelled') ? 'active' : ''; ?>">
+              <a href="<?= site_url('orders?status=cancelled'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-close-circle-line"></i>
+                <div data-i18n="Cancelled Orders">Cancelled Orders</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Returns & Refunds -->
+            <?php if ($this->can('orders.manage')): ?>
+            <li class="menu-item <?= ($active_submenu === 'returns' || $active_menu === 'returns') ? 'active' : ''; ?>">
+              <a href="<?= site_url('returns'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-refund-2-line"></i>
+                <div data-i18n="Returns & Refunds">Returns & Refunds</div>
+              </a>
+            </li>
+            <?php endif; ?>
             <?php endif; ?>
 
             <!-- Customers -->
@@ -139,136 +165,159 @@
               <span class="menu-header-text">Customers</span>
             </li>
 
-            <li class="menu-item <?= ($active_menu === 'customers') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <!-- Customer List -->
+            <li class="menu-item <?= ($active_menu === 'customers' && $active_submenu !== 'customer_groups') ? 'active' : ''; ?>">
+              <a href="<?= site_url('customers'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-user-line"></i>
-                <div data-i18n="Customers">Customers</div>
+                <div data-i18n="Customer List">Customer List</div>
               </a>
-              <ul class="menu-sub">
-                <li class="menu-item <?= ($active_submenu === 'customers_list' || empty($active_submenu)) ? 'active' : ''; ?>">
-                  <a href="<?= site_url('customers'); ?>" class="menu-link">
-                    <div data-i18n="Customer List">Customer List</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'customer_groups') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('customer_groups'); ?>" class="menu-link">
-                    <div data-i18n="Customer Groups">Customer Groups</div>
-                  </a>
-                </li>
-              </ul>
+            </li>
+
+            <!-- Customer Groups -->
+            <li class="menu-item <?= ($active_menu === 'customers' && $active_submenu === 'customer_groups') ? 'active' : ''; ?>">
+              <a href="<?= site_url('customer_groups'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-group-line"></i>
+                <div data-i18n="Customer Groups">Customer Groups</div>
+              </a>
             </li>
             <?php endif; ?>
 
             <!-- Marketing -->
+            <?php if ($this->can('settings.manage') || $this->can('banners.manage') || $this->can('marketing.manage')): ?>
             <li class="menu-header mt-3">
               <span class="menu-header-text">Marketing</span>
             </li>
-            <li class="menu-item <?= ($active_menu === 'marketing') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon icon-base ri ri-megaphone-line"></i>
-                <div data-i18n="Marketing">Marketing</div>
+
+            <!-- Coupons & Discounts -->
+            <li class="menu-item <?= ($active_menu === 'marketing' && $active_submenu === 'coupons') ? 'active' : ''; ?>">
+              <a href="<?= site_url('coupons'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-coupon-3-line"></i>
+                <div data-i18n="Coupons & Discounts">Coupons & Discounts</div>
               </a>
-              <ul class="menu-sub">
-                <li class="menu-item <?= ($active_submenu === 'coupons') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('coupons'); ?>" class="menu-link">
-                    <div data-i18n="Coupons & Discounts">Coupons & Discounts</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'flash_sales') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('flash_sales'); ?>" class="menu-link">
-                    <div data-i18n="Flash Sales">Flash Sales</div>
-                  </a>
-                </li>
-                <?php if ($this->can('banners.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'banners') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('banners'); ?>" class="menu-link">
-                    <div data-i18n="Banners & Sliders">Banners & Sliders</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-                <li class="menu-item <?= ($active_submenu === 'newsletter') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('marketing/newsletter'); ?>" class="menu-link">
-                    <div data-i18n="Newsletter">Newsletter Subscribers</div>
-                  </a>
-                </li>
-              </ul>
             </li>
 
+            <!-- Flash Sales -->
+            <li class="menu-item <?= ($active_menu === 'marketing' && $active_submenu === 'flash_sales') ? 'active' : ''; ?>">
+              <a href="<?= site_url('flash_sales'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-fire-line"></i>
+                <div data-i18n="Flash Sales">Flash Sales</div>
+              </a>
+            </li>
+
+            <!-- Banners & Sliders -->
+            <?php if ($this->can('banners.manage')): ?>
+            <li class="menu-item <?= ($active_submenu === 'banners') ? 'active' : ''; ?>">
+              <a href="<?= site_url('banners'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-image-2-line"></i>
+                <div data-i18n="Banners & Sliders">Banners & Sliders</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Newsletter Subscribers -->
+            <li class="menu-item <?= ($active_menu === 'marketing' && $active_submenu === 'newsletter') ? 'active' : ''; ?>">
+              <a href="<?= site_url('marketing/newsletter'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-mail-send-line"></i>
+                <div data-i18n="Newsletter">Newsletter Subscribers</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
             <!-- Inventory -->
+            <?php if ($this->can('products.view') || $this->can('inventory.view') || $this->can('inventory.manage')): ?>
             <li class="menu-header mt-3">
               <span class="menu-header-text">Inventory</span>
             </li>
-            <li class="menu-item <?= ($active_menu === 'inventory') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+
+            <!-- Current Stock -->
+            <li class="menu-item <?= ($active_menu === 'inventory' && ($active_submenu === 'stock_list' || empty($active_submenu))) ? 'active' : ''; ?>">
+              <a href="<?= site_url('inventory'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-archive-line"></i>
-                <div data-i18n="Inventory">Inventory</div>
+                <div data-i18n="Current Stock">Current Stock</div>
               </a>
-              <ul class="menu-sub">
-                <li class="menu-item <?= ($active_submenu === 'stock_list') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('inventory'); ?>" class="menu-link">
-                    <div data-i18n="Current Stock">Current Stock</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'low_stock') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('inventory/low_stock'); ?>" class="menu-link">
-                    <div data-i18n="Low Stock">Low Stock Alerts</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'stock_adjust') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('inventory/adjust'); ?>" class="menu-link">
-                    <div data-i18n="Stock Adjustments">Stock Adjustments</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'stock_history') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('inventory/history'); ?>" class="menu-link">
-                    <div data-i18n="Stock History">Stock History</div>
-                  </a>
-                </li>
-              </ul>
             </li>
 
+            <!-- Low Stock Alerts -->
+            <li class="menu-item <?= ($active_menu === 'inventory' && $active_submenu === 'low_stock') ? 'active' : ''; ?>">
+              <a href="<?= site_url('inventory/low_stock'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-alarm-warning-line"></i>
+                <div data-i18n="Low Stock">Low Stock Alerts</div>
+              </a>
+            </li>
+
+            <!-- Stock Adjustments -->
+            <?php if ($this->can('products.manage') || $this->can('inventory.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'inventory' && $active_submenu === 'stock_adjust') ? 'active' : ''; ?>">
+              <a href="<?= site_url('inventory/adjust'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-equalizer-line"></i>
+                <div data-i18n="Stock Adjustments">Stock Adjustments</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
+            <!-- Stock History -->
+            <li class="menu-item <?= ($active_menu === 'inventory' && $active_submenu === 'stock_history') ? 'active' : ''; ?>">
+              <a href="<?= site_url('inventory/history'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-history-line"></i>
+                <div data-i18n="Stock History">Stock History</div>
+              </a>
+            </li>
+            <?php endif; ?>
+
             <!-- Reports -->
+            <?php if ($this->can('dashboard.view') || $this->can('reports.view')): ?>
             <li class="menu-header mt-3">
               <span class="menu-header-text">Reports</span>
             </li>
-            <li class="menu-item <?= ($active_menu === 'reports') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon icon-base ri ri-bar-chart-box-line"></i>
-                <div data-i18n="Reports">Reports & Analytics</div>
+
+            <!-- Sales Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'sales_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/sales'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-line-chart-line"></i>
+                <div data-i18n="Sales Report">Sales Report</div>
               </a>
-              <ul class="menu-sub">
-                <li class="menu-item <?= ($active_submenu === 'sales_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/sales'); ?>" class="menu-link">
-                    <div data-i18n="Sales Report">Sales Report</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'order_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/orders'); ?>" class="menu-link">
-                    <div data-i18n="Order Report">Order Report</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'product_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/products'); ?>" class="menu-link">
-                    <div data-i18n="Product Report">Product Report</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'customer_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/customers'); ?>" class="menu-link">
-                    <div data-i18n="Customer Report">Customer Report</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'tax_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/tax'); ?>" class="menu-link">
-                    <div data-i18n="Tax Report">Tax Report</div>
-                  </a>
-                </li>
-                <li class="menu-item <?= ($active_submenu === 'inventory_report') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('reports/inventory'); ?>" class="menu-link">
-                    <div data-i18n="Inventory Report">Inventory Report</div>
-                  </a>
-                </li>
-              </ul>
             </li>
+
+            <!-- Order Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'order_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/orders'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-bar-chart-2-line"></i>
+                <div data-i18n="Order Report">Order Report</div>
+              </a>
+            </li>
+
+            <!-- Product Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'product_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/products'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-pie-chart-line"></i>
+                <div data-i18n="Product Report">Product Report</div>
+              </a>
+            </li>
+
+            <!-- Customer Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'customer_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/customers'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-user-3-line"></i>
+                <div data-i18n="Customer Report">Customer Report</div>
+              </a>
+            </li>
+
+            <!-- Tax Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'tax_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/tax'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-percent-line"></i>
+                <div data-i18n="Tax Report">Tax Report</div>
+              </a>
+            </li>
+
+            <!-- Inventory Report -->
+            <li class="menu-item <?= ($active_menu === 'reports' && $active_submenu === 'inventory_report') ? 'active' : ''; ?>">
+              <a href="<?= site_url('reports/inventory'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-database-2-line"></i>
+                <div data-i18n="Inventory Report">Inventory Report</div>
+              </a>
+            </li>
+            <?php endif; ?>
 
             <!-- RBAC & Staff Administration -->
             <?php if ($this->can('admins.manage') || $this->can('roles.manage')): ?>
@@ -276,29 +325,25 @@
               <span class="menu-header-text">Staff & Access Control</span>
             </li>
 
-            <li class="menu-item <?= ($active_menu === 'users_management') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <!-- Admin Operators -->
+            <?php if ($this->can('admins.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'users_management' && in_array($active_submenu, ['admins_list', 'admins_add'])) ? 'active' : ''; ?>">
+              <a href="<?= site_url('admins'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-shield-user-line"></i>
-                <div data-i18n="Operators & Roles">Operators & Roles</div>
+                <div data-i18n="Admin Staff">Admin Staff</div>
               </a>
-              <ul class="menu-sub">
-                <?php if ($this->can('admins.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'admins_list') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('admins'); ?>" class="menu-link">
-                    <div data-i18n="Admin Operators">Admin Staff</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('roles.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'roles') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('roles'); ?>" class="menu-link">
-                    <div data-i18n="Roles & Permissions">Roles & Permissions</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-              </ul>
             </li>
+            <?php endif; ?>
+
+            <!-- Roles & Permissions -->
+            <?php if ($this->can('roles.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'users_management' && $active_submenu === 'roles') ? 'active' : ''; ?>">
+              <a href="<?= site_url('roles'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-shield-keyhole-line"></i>
+                <div data-i18n="Roles & Permissions">Roles & Permissions</div>
+              </a>
+            </li>
+            <?php endif; ?>
             <?php endif; ?>
 
             <!-- Settings -->
@@ -307,29 +352,25 @@
               <span class="menu-header-text">Settings</span>
             </li>
 
-            <li class="menu-item <?= ($active_menu === 'settings') ? 'active open' : ''; ?>">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <!-- System & Store Settings -->
+            <?php if ($this->can('settings.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'settings' && ($active_submenu === 'store_settings' || empty($active_submenu))) ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings'); ?>" class="menu-link">
                 <i class="menu-icon icon-base ri ri-settings-3-line"></i>
-                <div data-i18n="Settings">Settings</div>
+                <div data-i18n="Store Settings">System & Store Settings</div>
               </a>
-              <ul class="menu-sub">
-                <?php if ($this->can('settings.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'store_settings') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('settings'); ?>" class="menu-link">
-                    <div data-i18n="Store Settings">System & Store Settings</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if ($this->can('gateways.manage')): ?>
-                <li class="menu-item <?= ($active_submenu === 'payment_gateways') ? 'active' : ''; ?>">
-                  <a href="<?= site_url('settings/payment'); ?>" class="menu-link">
-                    <div data-i18n="Payment Gateways">Payment Gateways</div>
-                  </a>
-                </li>
-                <?php endif; ?>
-              </ul>
             </li>
+            <?php endif; ?>
+
+            <!-- Payment Gateways -->
+            <?php if ($this->can('gateways.manage')): ?>
+            <li class="menu-item <?= ($active_menu === 'settings' && $active_submenu === 'payment_gateways') ? 'active' : ''; ?>">
+              <a href="<?= site_url('settings/payment'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-bank-card-line"></i>
+                <div data-i18n="Payment Gateways">Payment Gateways</div>
+              </a>
+            </li>
+            <?php endif; ?>
             <?php endif; ?>
 
             <!-- Website Shortcut -->

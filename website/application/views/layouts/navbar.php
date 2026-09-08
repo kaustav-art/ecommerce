@@ -21,39 +21,137 @@
                                 <li class="menu-item <?= ($active_page === 'shop') ? 'active' : ''; ?>">
                                     <a href="<?= site_url('shop'); ?>" class="item-link">Shop</a>
                                 </li>
-                                <li class="menu-item has-item">
-                                    <a href="javascript:void(0);" class="item-link">Categories <i class="fa-solid fa-chevron-down ms-1" style="font-size: 11px;"></i></a>
-                                    <div class="sub-menu">
-                                        <ul class="menu-list">
-                                            <?php if (!empty($category_tree)): ?>
-                                                <?php foreach ($category_tree as $root_c): ?>
-                                                    <li class="mb-2">
-                                                        <a href="<?= site_url('shop/' . $root_c['slug']); ?>" class="menu-link-text fw-bold">
-                                                            <?= html_escape($root_c['name']); ?>
-                                                        </a>
-                                                        <?php if (!empty($root_c['children'])): ?>
-                                                            <ul class="list-unstyled ms-3 my-1">
-                                                                <?php foreach ($root_c['children'] as $ch1): ?>
-                                                                    <li>
-                                                                        <a href="<?= site_url('shop/' . $ch1['slug']); ?>" class="text-secondary text-decoration-none small py-1 d-block">
-                                                                            &bull; <?= html_escape($ch1['name']); ?>
-                                                                        </a>
-                                                                    </li>
-                                                                <?php endforeach; ?>
-                                                            </ul>
-                                                        <?php endif; ?>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            <?php elseif (!empty($nav_categories)): ?>
-                                                <?php foreach ($nav_categories as $cat): ?>
-                                                    <li>
-                                                        <a href="<?= site_url('shop/' . $cat['slug']); ?>" class="menu-link-text">
-                                                            <?= html_escape($cat['name']); ?>
-                                                        </a>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
+                                <li class="menu-item has-item category-mega-menu-item">
+                                    <a href="<?= site_url('shop'); ?>" class="item-link">Categories <i class="fa-solid fa-chevron-down ms-1" style="font-size: 11px;"></i></a>
+                                    
+                                    <!-- Category Flyout Mega Menu Dropdown (Structured like category.PNG) -->
+                                    <div class="category-flyout-wrapper shadow-lg">
+                                        <!-- Left Sidebar: Main Categories (Top to Bottom) -->
+                                        <ul class="cat-flyout-sidebar">
+                                            <?php 
+                                            $cat_icons = [
+                                                'womens-clothing'            => 'fa-solid fa-person-dress',
+                                                'mens-clothing'              => 'fa-solid fa-shirt',
+                                                'phones-accessories'         => 'fa-solid fa-mobile-screen-button',
+                                                'computer-office-security'   => 'fa-solid fa-laptop',
+                                                'consumer-electronics'       => 'fa-solid fa-camera',
+                                                'jewelry-watches'            => 'fa-solid fa-ring',
+                                                'home-garden-appliance'      => 'fa-solid fa-couch',
+                                                'bags-shoes'                 => 'fa-solid fa-bag-shopping',
+                                                'toys-kids-baby'             => 'fa-solid fa-baby',
+                                                'sports-outdoors'            => 'fa-solid fa-basketball',
+                                                'beauty-health-hair'         => 'fa-solid fa-spa',
+                                                'automobiles-motorcycles'    => 'fa-solid fa-car',
+                                                'home-improvement-tools'     => 'fa-solid fa-wrench',
+                                            ];
+
+                                            $default_active_slug = 'phones-accessories';
+                                            $slugs_present = !empty($category_tree) ? array_column($category_tree, 'slug') : [];
+                                            if (!in_array($default_active_slug, $slugs_present) && !empty($slugs_present)) {
+                                                $default_active_slug = $slugs_present[0];
+                                            }
+
+                                            if (!empty($category_tree)): 
+                                                foreach ($category_tree as $root_c): 
+                                                    $slug = $root_c['slug'];
+                                                    $icon = $cat_icons[$slug] ?? 'fa-solid fa-tag';
+                                                    $is_active = ($slug === $default_active_slug);
+                                            ?>
+                                                <li class="cat-sidebar-item <?= $is_active ? 'active' : ''; ?>" data-cat-id="<?= $root_c['id']; ?>">
+                                                    <a href="<?= site_url('shop/' . $root_c['slug']); ?>" class="cat-sidebar-link">
+                                                        <span class="cat-icon"><i class="<?= $icon; ?>"></i></span>
+                                                        <span class="cat-name"><?= html_escape($root_c['name']); ?></span>
+                                                        <i class="fa-solid fa-chevron-right cat-arrow"></i>
+                                                    </a>
+                                                </li>
+                                            <?php 
+                                                endforeach; 
+                                            endif; 
+                                            ?>
                                         </ul>
+
+                                        <!-- Right Content Area: Subcategories Grid for Active Category -->
+                                        <div class="cat-flyout-content">
+                                            <!-- Top Header Bar with Tags (as seen in category.PNG) -->
+                                            <div class="cat-topbar-nav">
+                                                <div class="ms-auto">
+                                                    <a href="<?= site_url('shop'); ?>" class="text-decoration-none text-danger fw-bold small">
+                                                        View All Categories <i class="fa-solid fa-arrow-right ms-1"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            <!-- Subcategory Panels for each main category -->
+                                            <div class="cat-sub-panels">
+                                                <?php 
+                                                if (!empty($category_tree)): 
+                                                    foreach ($category_tree as $root_c): 
+                                                        $is_active = ($root_c['slug'] === $default_active_slug);
+                                                        $sub_children = $root_c['children'] ?? [];
+                                                        $total_subs = count($sub_children);
+
+                                                        // Organize into 3 columns
+                                                        $cols = [[], [], []];
+                                                        if ($total_subs > 0) {
+                                                            if ($total_subs == 6) {
+                                                                // Exact match to category.PNG: 2 groups per column
+                                                                $cols[0] = [$sub_children[0], $sub_children[1]];
+                                                                $cols[1] = [$sub_children[2], $sub_children[3]];
+                                                                $cols[2] = [$sub_children[4], $sub_children[5]];
+                                                            } else {
+                                                                $per_col = (int) ceil($total_subs / 3);
+                                                                $chunked = array_chunk($sub_children, $per_col);
+                                                                $cols[0] = $chunked[0] ?? [];
+                                                                $cols[1] = $chunked[1] ?? [];
+                                                                $cols[2] = $chunked[2] ?? [];
+                                                            }
+                                                        }
+                                                ?>
+                                                    <div class="cat-panel <?= $is_active ? 'active' : ''; ?>" id="cat-panel-<?= $root_c['id']; ?>">
+                                                        <?php if ($total_subs > 0): ?>
+                                                            <div class="cat-grid-3col">
+                                                                <?php foreach ($cols as $col_items): ?>
+                                                                    <div class="cat-col">
+                                                                        <?php foreach ($col_items as $sub): ?>
+                                                                            <div class="cat-group">
+                                                                                <a href="<?= site_url('shop/' . $sub['slug']); ?>" class="cat-group-heading">
+                                                                                    <?= html_escape($sub['name']); ?>
+                                                                                </a>
+                                                                                <?php if (!empty($sub['children'])): ?>
+                                                                                    <ul class="cat-children-list">
+                                                                                        <?php foreach ($sub['children'] as $child): ?>
+                                                                                            <li class="cat-child-item">
+                                                                                                <a href="<?= site_url('shop/' . $child['slug']); ?>" class="cat-child-link">
+                                                                                                    <?= html_escape($child['name']); ?>
+                                                                                                </a>
+                                                                                            </li>
+                                                                                        <?php endforeach; ?>
+                                                                                    </ul>
+                                                                                <?php endif; ?>
+                                                                            </div>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="text-center py-5 text-muted">
+                                                                <div class="mb-3" style="font-size: 38px; color: #f05a5b;">
+                                                                    <i class="<?= $cat_icons[$root_c['slug']] ?? 'fa-solid fa-tag'; ?>"></i>
+                                                                </div>
+                                                                <h5 class="fw-bold text-dark mb-2"><?= html_escape($root_c['name']); ?></h5>
+                                                                <p class="small text-muted mb-4">Discover the best products and latest collections in <?= html_escape($root_c['name']); ?>.</p>
+                                                                <a href="<?= site_url('shop/' . $root_c['slug']); ?>" class="btn btn-sm btn-outline-danger px-4 rounded-pill">
+                                                                    Explore Collection <i class="fa-solid fa-arrow-right ms-1"></i>
+                                                                </a>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php 
+                                                    endforeach; 
+                                                endif; 
+                                                ?>
+                                            </div>
+                                        </div>
                                     </div>
                                 </li>
                                 <li class="menu-item <?= ($active_page === 'about') ? 'active' : ''; ?>">
@@ -146,3 +244,272 @@
                 </div>
             <?php endif; ?>
         </div>
+
+        <style>
+        /* Category Flyout Mega Menu Styles (Matching category.PNG) */
+        #header .container {
+            position: relative !important;
+        }
+
+        .box-nav-ul .category-mega-menu-item {
+            position: static !important;
+        }
+
+        .category-flyout-wrapper {
+            position: absolute;
+            top: 100%;
+            left: 15px;
+            right: 15px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 16px 45px rgba(0, 0, 0, 0.14);
+            border: 1px solid #e7e7e7;
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(10px);
+            transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+            display: flex;
+            min-height: 520px;
+            max-height: 580px;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .category-mega-menu-item:hover .category-flyout-wrapper {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        /* Left Sidebar (Main categories top to bottom) */
+        .cat-flyout-sidebar {
+            width: 270px;
+            min-width: 270px;
+            background: #fdfdfd;
+            border-right: 1px solid #eeeeee;
+            overflow-y: auto;
+            padding: 10px 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .cat-flyout-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .cat-flyout-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e2e2;
+            border-radius: 4px;
+        }
+
+        .cat-sidebar-item {
+            position: relative;
+            border-left: 3px solid transparent;
+            transition: all 0.15s ease;
+        }
+
+        .cat-sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 18px 10px 16px;
+            color: #3b3b3b;
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .cat-sidebar-link .cat-icon {
+            width: 24px;
+            font-size: 14px;
+            color: #777777;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            transition: color 0.15s ease;
+        }
+
+        .cat-sidebar-link .cat-name {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cat-sidebar-link .cat-arrow {
+            font-size: 10px;
+            color: #c0c0c0;
+            opacity: 0;
+            transform: translateX(-4px);
+            transition: all 0.15s ease;
+        }
+
+        /* Active & Hover state for sidebar item */
+        .cat-sidebar-item:hover,
+        .cat-sidebar-item.active {
+            background: #ffffff;
+            border-left-color: #f05a5b;
+        }
+
+        .cat-sidebar-item:hover .cat-sidebar-link,
+        .cat-sidebar-item.active .cat-sidebar-link {
+            color: #f05a5b;
+            font-weight: 600;
+        }
+
+        .cat-sidebar-item:hover .cat-icon,
+        .cat-sidebar-item.active .cat-icon {
+            color: #f05a5b;
+        }
+
+        .cat-sidebar-item:hover .cat-arrow,
+        .cat-sidebar-item.active .cat-arrow {
+            opacity: 1;
+            color: #f05a5b;
+            transform: translateX(0);
+        }
+
+        /* Right Content Area */
+        .cat-flyout-content {
+            flex: 1;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top bar with quick links */
+        .cat-topbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 12px 30px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #ffffff;
+            font-size: 13.5px;
+        }
+
+        .cat-topbar-link {
+            color: #333333;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .cat-topbar-link:hover {
+            color: #f05a5b;
+        }
+
+        /* Subcategory Panels Container */
+        .cat-sub-panels {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+        }
+
+        .cat-sub-panels::-webkit-scrollbar {
+            width: 6px;
+        }
+        .cat-sub-panels::-webkit-scrollbar-thumb {
+            background: #e2e2e2;
+            border-radius: 4px;
+        }
+
+        .cat-panel {
+            display: none;
+        }
+
+        .cat-panel.active {
+            display: block;
+            animation: fadeInCatPanel 0.18s ease-in-out;
+        }
+
+        @keyframes fadeInCatPanel {
+            from { opacity: 0.6; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 3-Column Subcategory Grid */
+        .cat-grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px 34px;
+        }
+
+        .cat-col {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        /* Group Block */
+        .cat-group {
+            margin-bottom: 4px;
+        }
+
+        .cat-group-heading {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-decoration: none;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eeeeee;
+            letter-spacing: 0.2px;
+            transition: color 0.15s;
+        }
+
+        .cat-group-heading:hover {
+            color: #f05a5b;
+        }
+
+        .cat-children-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cat-child-item {
+            margin-bottom: 5px;
+        }
+
+        .cat-child-link {
+            display: inline-block;
+            color: #555555;
+            text-decoration: none;
+            font-size: 13px;
+            line-height: 1.6;
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+
+        .cat-child-link:hover {
+            color: #f05a5b;
+            transform: translateX(3px);
+        }
+        </style>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var sidebarItems = document.querySelectorAll('.cat-sidebar-item');
+            sidebarItems.forEach(function(item) {
+                item.addEventListener('mouseenter', function() {
+                    var catId = this.getAttribute('data-cat-id');
+                    sidebarItems.forEach(function(el) { el.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    var panels = document.querySelectorAll('.cat-panel');
+                    panels.forEach(function(panel) { panel.classList.remove('active'); });
+
+                    var target = document.getElementById('cat-panel-' + catId);
+                    if (target) {
+                        target.classList.add('active');
+                    }
+                });
+            });
+        });
+        </script>
+

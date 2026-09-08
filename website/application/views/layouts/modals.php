@@ -91,6 +91,38 @@
             <ul class="list-unstyled">
                 <li class="py-2 border-bottom"><a href="<?= site_url('home'); ?>" class="text-dark text-decoration-none fw-bold">Home</a></li>
                 <li class="py-2 border-bottom"><a href="<?= site_url('shop'); ?>" class="text-dark text-decoration-none fw-bold">Shop All</a></li>
+                <li class="py-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="<?= site_url('shop'); ?>" class="text-dark text-decoration-none fw-bold">Categories</a>
+                        <button class="btn btn-sm btn-link text-secondary p-0" type="button" data-bs-toggle="collapse" data-bs-target="#mobileCatCollapse" aria-expanded="false">
+                            <i class="fa-solid fa-chevron-down small"></i>
+                        </button>
+                    </div>
+                    <div class="collapse mt-2 ps-2 border-start" id="mobileCatCollapse">
+                        <?php if (!empty($category_tree)): ?>
+                            <ul class="list-unstyled mb-0">
+                                <?php foreach ($category_tree as $m_cat): ?>
+                                    <li class="py-1">
+                                        <a href="<?= site_url('shop/' . $m_cat['slug']); ?>" class="text-dark text-decoration-none small fw-semibold">
+                                            <?= html_escape($m_cat['name']); ?>
+                                        </a>
+                                        <?php if (!empty($m_cat['children'])): ?>
+                                            <ul class="list-unstyled ps-3 my-1">
+                                                <?php foreach ($m_cat['children'] as $m_sub): ?>
+                                                    <li class="py-1">
+                                                        <a href="<?= site_url('shop/' . $m_sub['slug']); ?>" class="text-muted text-decoration-none small">
+                                                            &bull; <?= html_escape($m_sub['name']); ?>
+                                                        </a>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php endif; ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                </li>
                 <li class="py-2 border-bottom"><a href="<?= site_url('cart'); ?>" class="text-dark text-decoration-none fw-bold">Shopping Cart (<?= $cart_count; ?>)</a></li>
                 <?php if ($this->is_logged_in()): ?>
                     <li class="py-2 border-bottom text-muted small fw-bold text-uppercase">Account</li>

@@ -26,6 +26,50 @@ class category_model extends CI_Model {
         return $categories;
     }
 
+    public function get_paginated($offset = 0, $limit = 10, $search = '')
+    {
+        // Cache map of all categories for instant O(1) breadcrumb resolution
+        $all_cats = $this->db->select('id, parent_id, name')->get('categories')->result_array();
+        $cat_map = [];
+        foreach ($all_cats as $c) {
+            $cat_map[$c['id']] = $c;
+        }
+
+        $this->db->from('categories');
+        if (!empty($search)) {
+            $this->db->group_start();
+            $this->db->like('name', $search);
+            $this->db->or_like('slug', $search);
+            $this->db->or_like('description', $search);
+            $this->db->group_end();
+        }
+
+        $total = $this->db->count_all_results('', FALSE);
+
+        $categories = $this->db->order_by('sort_order', 'ASC')
+                               ->order_by('id', 'ASC')
+                               ->limit($limit, $offset)
+                               ->get()
+                               ->result_array();
+
+        foreach ($categories as &$cat) {
+            $cat['product_count'] = $this->db->where('category_id', $cat['id'])->count_all_results('products');
+            $cat['breadcrumb_path'] = $this->build_path_string($cat['id'], $cat_map);
+            $cat['parent_name'] = (!empty($cat['parent_id']) && isset($cat_map[$cat['parent_id']]))
+                ? $cat_map[$cat['parent_id']]['name']
+                : 'Top Level';
+        }
+
+        return [
+            'success'    => true,
+            'categories' => $categories,
+            'total'      => $total,
+            'offset'     => $offset,
+            'limit'      => $limit,
+            'has_more'   => ($offset + count($categories)) < $total
+        ];
+    }
+
     public function get_by_id($id)
     {
         return $this->db->where('id', (int) $id)->get('categories')->row_array();
