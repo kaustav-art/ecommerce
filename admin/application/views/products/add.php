@@ -127,7 +127,7 @@
 
             <!-- Additional Gallery Images File Upload -->
             <div class="mb-3">
-              <label class="form-label fw-semibold" for="gallery_files">Additional Gallery Images</label>
+              <label class="form-label fw-semibold" for="gallery_files">Upload Gallery Images</label>
               <input
                 type="file"
                 class="form-control form-control-sm"
@@ -135,10 +135,18 @@
                 name="gallery_files[]"
                 accept="image/*"
                 multiple
-                onchange="previewGalleryFiles(this)"
+                onchange="handleNewGalleryFiles(this)"
               />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery</small>
-              <div id="gallery_preview_container" class="d-flex flex-wrap gap-2 mt-2"></div>
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery. You can remove any image before saving.</small>
+              <div id="new_gallery_container" class="mt-2" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
+                  <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
+                    <i class="fa-solid fa-trash-can me-1"></i>Clear All
+                  </button>
+                </div>
+                <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
+              </div>
             </div>
 
             <div class="border-top pt-3">
@@ -178,22 +186,74 @@ function previewMainProductFile(input) {
   }
 }
 
-function previewGalleryFiles(input) {
-  var container = document.getElementById('gallery_preview_container');
-  container.innerHTML = '';
-  if (input.files) {
-    Array.from(input.files).forEach(function(file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var thumb = document.createElement('div');
-        thumb.className = 'border rounded p-1 bg-white shadow-sm';
-        thumb.style.width = '48px';
-        thumb.style.height = '48px';
-        thumb.innerHTML = '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="Gallery Preview">';
-        container.appendChild(thumb);
-      };
-      reader.readAsDataURL(file);
-    });
+var newGalleryDT = new DataTransfer();
+
+function handleNewGalleryFiles(input) {
+  if (input.files && input.files.length > 0) {
+    for (var i = 0; i < input.files.length; i++) {
+      newGalleryDT.items.add(input.files[i]);
+    }
+    input.files = newGalleryDT.files;
+    renderNewGalleryPreviews();
   }
+}
+
+function removeNewGalleryFile(idx) {
+  newGalleryDT.items.remove(idx);
+  var input = document.getElementById('gallery_files');
+  if (input) {
+    input.files = newGalleryDT.files;
+  }
+  renderNewGalleryPreviews();
+}
+
+function clearAllNewGalleryFiles() {
+  newGalleryDT = new DataTransfer();
+  var input = document.getElementById('gallery_files');
+  if (input) {
+    input.files = newGalleryDT.files;
+    input.value = '';
+  }
+  renderNewGalleryPreviews();
+}
+
+function renderNewGalleryPreviews() {
+  var container = document.getElementById('new_gallery_container');
+  var list = document.getElementById('new_gallery_preview_list');
+  var countLabel = document.getElementById('new_gallery_count_label');
+  if (!container || !list) return;
+
+  list.innerHTML = '';
+  var count = newGalleryDT.files.length;
+
+  if (count === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  if (countLabel) {
+    countLabel.textContent = 'New Selected (' + count + '):';
+  }
+
+  Array.from(newGalleryDT.files).forEach(function(file, idx) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var thumb = document.createElement('div');
+      thumb.className = 'position-relative border rounded p-1 bg-white shadow-sm';
+      thumb.style.width = '58px';
+      thumb.style.height = '58px';
+      thumb.innerHTML = 
+        '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="New Gallery Image">' +
+        '<span class="badge bg-primary position-absolute bottom-0 start-0 p-0 text-center" style="font-size: 8px; width: 100%; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; opacity: 0.9;">NEW</span>' +
+        '<button type="button" class="position-absolute d-flex align-items-center justify-content-center" ' +
+        'style="top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d49; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); z-index: 10; cursor: pointer; padding: 0;" ' +
+        'onclick="removeNewGalleryFile(' + idx + ')" title="Remove this file">' +
+        '<i class="fa-solid fa-xmark" style="font-size: 10px; line-height: 1;"></i>' +
+        '</button>';
+      list.appendChild(thumb);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 </script>

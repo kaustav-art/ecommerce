@@ -153,9 +153,13 @@ class products extends MY_Controller {
 
                 // Handle Additional Gallery Images upload
                 $new_gallery = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
-                $existing_gallery = $this->input->post('existing_gallery');
-                if ($existing_gallery === null) {
-                    $existing_gallery = json_decode($product['gallery_images'], true) ?: [];
+                if ($this->input->post('gallery_submitted')) {
+                    $existing_gallery = $this->input->post('existing_gallery') ?: [];
+                } else {
+                    $existing_gallery = $this->input->post('existing_gallery');
+                    if ($existing_gallery === null) {
+                        $existing_gallery = json_decode($product['gallery_images'], true) ?: [];
+                    }
                 }
                 $final_gallery = array_merge((array) $existing_gallery, $new_gallery);
                 $final_gallery = array_values(array_unique(array_filter($final_gallery)));
@@ -217,5 +221,59 @@ class products extends MY_Controller {
         $this->product_model->delete($id);
         $this->session->set_flashdata('success', 'Product deleted successfully.');
         redirect('products');
+    }
+
+    public function delete_gallery_image()
+    {
+        $this->require_permission('products.manage');
+        $product_id = (int) $this->input->post('product_id');
+        $image_path = $this->input->post('image_path', TRUE);
+
+        if (!$product_id || empty($image_path)) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $product = $this->product_model->get_by_id($product_id);
+        if (!$product) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Product not found']);
+            exit;
+        }
+
+        $gallery = json_decode($product['gallery_images'], true) ?: [];
+        $updated_gallery = [];
+        $found = false;
+        foreach ($gallery as $img) {
+            if ($img === $image_path) {
+                $found = true;
+            } else {
+                $updated_gallery[] = $img;
+            }
+        }
+
+        if ($found) {
+            $this->product_model->update($product_id, [
+                'gallery_images' => json_encode(array_values($updated_gallery)),
+                'updated_at'     => date('Y-m-d H:i:s')
+            ]);
+
+            // If it's a dynamic uploaded file, delete from disk
+            if (strpos($image_path, 'products/prod_gal_') === 0) {
+                $file_path = FCPATH . '../website/assets/images/' . $image_path;
+                if (file_exists($file_path)) {
+                    @unlink($file_path);
+                }
+            }
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'          => 'success',
+            'remaining_count' => count($updated_gallery),
+            'message'         => 'Image removed from gallery'
+        ]);
+        exit;
     }
 }

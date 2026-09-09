@@ -45,16 +45,32 @@ if ($has_color && !empty($product['attributes']['color']['values'])) {
             $initial_color = $c_name;
         }
 
-        // Locate color variant photo
+        // Locate color variant photo and variant gallery images
         $c_photo = '';
+        $c_gallery = [];
         if ($has_variants) {
             foreach ($product['variants'] as $pv) {
-                foreach ($pv['values'] as $val) {
-                    if ($val['attribute_slug'] === 'color' && strcasecmp($val['attribute_value'], $c_name) === 0) {
-                        if (!empty($pv['image'])) {
-                            $c_photo = $pv['image'];
-                            break 2;
+                $matches_color = false;
+                if (!empty($pv['values'])) {
+                    foreach ($pv['values'] as $val) {
+                        if ($val['attribute_slug'] === 'color' && strcasecmp($val['attribute_value'], $c_name) === 0) {
+                            $matches_color = true;
+                            break;
                         }
+                    }
+                }
+                if ($matches_color) {
+                    if (empty($c_photo) && !empty($pv['image'])) {
+                        $c_photo = $pv['image'];
+                    }
+                    if (empty($c_gallery) && !empty($pv['gallery_images'])) {
+                        $decoded_g = is_string($pv['gallery_images']) ? json_decode($pv['gallery_images'], true) : $pv['gallery_images'];
+                        if (is_array($decoded_g) && !empty($decoded_g)) {
+                            $c_gallery = array_values(array_filter($decoded_g));
+                        }
+                    }
+                    if (!empty($c_photo) && !empty($c_gallery)) {
+                        break;
                     }
                 }
             }
@@ -63,14 +79,47 @@ if ($has_color && !empty($product['attributes']['color']['values'])) {
             $c_photo = $product['main_image'];
         }
 
+        // Color images list
+        $c_images = [];
+        if (!empty($c_photo)) {
+            $c_images[] = $c_photo;
+        }
+        if (!empty($c_gallery)) {
+            foreach ($c_gallery as $g) {
+                if (!in_array($g, $c_images)) {
+                    $c_images[] = $g;
+                }
+            }
+        } else {
+            // Keep product gallery images with variant photo as slot 0
+            if (!empty($product['gallery_images_decoded']) && is_array($product['gallery_images_decoded'])) {
+                foreach ($product['gallery_images_decoded'] as $g_img) {
+                    if (!empty($g_img) && !in_array($g_img, $c_images)) {
+                        $c_images[] = $g_img;
+                    }
+                }
+            }
+        }
+        if (empty($c_images)) {
+            $c_images = $all_images;
+        }
+
         $color_map[$c_name] = [
             'id'         => $c_val['id'],
             'name'       => $c_name,
             'color_code' => $c_val['color_code'] ?? '#333333',
             'image'      => $c_photo,
+            'gallery'    => $c_gallery,
+            'images'     => $c_images,
             'sizes'      => []
         ];
     }
+}
+
+// If initial color has custom gallery images, prioritize them for initial view
+if (!empty($initial_color) && !empty($color_map[$initial_color]['gallery'])) {
+    $all_images = $color_map[$initial_color]['images'];
+    $total_images = count($all_images);
 }
 
 // Populate size availability for each color
@@ -537,7 +586,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                 </div>
 
                                 <!-- Subtle gallery helper note -->
-                                <div class="text-center mt-2 text-secondary small">
+                                <div class="text-center mt-2 text-secondary small" id="product-grid-counter-note">
                                     <i class="fa-regular fa-images me-1"></i> Showing <?= $grid_slots; ?> of <?= $total_images; ?> photos. Click any photo to view full gallery.
                                 </div>
 
@@ -863,266 +912,371 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         </section>
         <!-- /Product_Main -->
 
-        <!-- PRODUCT TABS: Description, Reviews, Shipping, Policies (from product-detail.html) -->
-        <section class="py-5 border-top bg-light">
+        <!-- Product_Description_Tabs -->
+        <section class="" id="tab-customer-reviews">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
                         <div class="widget-tabs style-1">
-                            <ul class="widget-menu-tab nav nav-tabs border-bottom mb-4" id="productDetailTabs" role="tablist">
-                                <li class="item-title nav-item">
-                                    <button class="nav-link active fw-bold text-uppercase" id="tab-desc-btn" data-bs-toggle="tab" data-bs-target="#tab-description" type="button" role="tab">Description</button>
+                            <ul class="widget-menu-tab">
+                                <li class="item-title active">
+                                    <span class="inner">Description</span>
                                 </li>
-                                <li class="item-title nav-item">
-                                    <button class="nav-link fw-bold text-uppercase" id="tab-reviews-btn" data-bs-toggle="tab" data-bs-target="#tab-customer-reviews" type="button" role="tab">Customer Reviews (<?= count($product['reviews'] ?? []); ?>)</button>
+                                <li class="item-title">
+                                    <span class="inner">Customer Reviews</span>
                                 </li>
-                                <li class="item-title nav-item">
-                                    <button class="nav-link fw-bold text-uppercase" id="tab-shipping-btn" data-bs-toggle="tab" data-bs-target="#tab-shipping" type="button" role="tab">Shipping & Returns</button>
+                                <li class="item-title">
+                                    <span class="inner">Shipping & Returns</span>
                                 </li>
-                                <li class="item-title nav-item">
-                                    <button class="nav-link fw-bold text-uppercase" id="tab-policies-btn" data-bs-toggle="tab" data-bs-target="#tab-policies" type="button" role="tab">Return Policies</button>
+                                <li class="item-title">
+                                    <span class="inner">Return Policies</span>
                                 </li>
                             </ul>
-                            
-                            <div class="tab-content bg-white p-4 rounded shadow-sm border" id="productDetailTabsContent">
-                                
-                                <!-- 1. DESCRIPTION TAB -->
-                                <div class="tab-pane fade show active" id="tab-description" role="tabpanel">
+                            <div class="widget-content-tab">
+                                <div class="widget-content-inner active">
                                     <div class="tab-description">
-                                        <div class="row gx-5">
-                                            <div class="col-lg-7 mb-4 mb-lg-0">
-                                                <h5 class="fw-bold mb-3"><?= html_escape($product['title']); ?></h5>
-                                                <?php if (!empty($product['description'])): ?>
-                                                    <div class="text-secondary mb-4"><?= $product['description']; ?></div>
-                                                <?php else: ?>
-                                                    <p class="text-secondary">Designed with utmost care and attention to detail, this premium item combines timeless style with modern performance.</p>
-                                                <?php endif; ?>
-
-                                                <!-- Specifications Table -->
-                                                <?php if (!empty($product['specifications'])): ?>
-                                                    <h6 class="fw-bold mb-3 text-uppercase letter-1">Specifications & Details</h6>
-                                                    <div class="table-responsive">
-                                                        <table class="table table-bordered table-striped table-sm mb-0">
-                                                            <tbody>
-                                                                <?php foreach ($product['specifications'] as $spec): ?>
-                                                                    <tr>
-                                                                        <td class="fw-semibold text-secondary" style="width: 35%;"><?= html_escape($spec['spec_name'] ?? ($spec['spec_key'] ?? '')); ?></td>
-                                                                        <td class="text-dark"><?= html_escape($spec['spec_value'] ?? ''); ?></td>
-                                                                    </tr>
-                                                                <?php endforeach; ?>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-
-                                            <div class="col-lg-5">
-                                                <div class="border rounded p-3 bg-light">
-                                                    <h6 class="text-btn-uppercase fw-bold mb-3">Composition, Origin and Care</h6>
-                                                    <ul class="list-unstyled text-secondary small mb-3">
-                                                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i> Premium Breathable Fabric</li>
-                                                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i> Colorfast & Pre-shrunk Materials</li>
-                                                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i> Designed for daily and formal wear</li>
-                                                        <li class="mb-1"><i class="fa-solid fa-check text-success me-2"></i> Country of Origin: India / Imported</li>
-                                                    </ul>
-                                                    <div class="d-flex gap-3 mb-2">
-                                                        <span class="badge bg-secondary px-3 py-2"><i class="fa-solid fa-shirt me-1"></i> Regular Fit</span>
-                                                        <span class="badge bg-secondary px-3 py-2"><i class="fa-solid fa-water me-1"></i> Machine Wash</span>
-                                                    </div>
-                                                    <div class="text-muted small mt-2">MACHINE WASHING MAX 30°C / 85°F SHORT SPIN DRY. DO NOT BLEACH.</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- 2. CUSTOMER REVIEWS TAB -->
-                                <div class="tab-pane fade" id="tab-customer-reviews" role="tabpanel">
-                                    <div class="tab-reviews">
-                                        <div class="row gx-4 mb-4 pb-4 border-bottom">
-                                            <div class="col-md-4 text-center border-end mb-3 mb-md-0">
-                                                <div class="display-3 fw-bold text-dark"><?= number_format($product['rating'], 1); ?></div>
-                                                <div class="list-star text-warning fs-5 mb-1">
-                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                        <i class="fa-solid fa-star"></i>
-                                                    <?php endfor; ?>
-                                                </div>
-                                                <p class="text-secondary small mb-0">(<?= number_format($product['reviews_count'] ?: 128); ?> verified customer reviews)</p>
-                                            </div>
-                                            <div class="col-md-5 mb-3 mb-md-0">
-                                                <div class="d-flex align-items-center gap-2 mb-1 small">
-                                                    <span style="width: 15px;">5★</span>
-                                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                                        <div class="progress-bar bg-success" style="width: 82%;"></div>
-                                                    </div>
-                                                    <span class="text-muted" style="width: 35px;">82%</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 mb-1 small">
-                                                    <span style="width: 15px;">4★</span>
-                                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                                        <div class="progress-bar bg-info" style="width: 12%;"></div>
-                                                    </div>
-                                                    <span class="text-muted" style="width: 35px;">12%</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 mb-1 small">
-                                                    <span style="width: 15px;">3★</span>
-                                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                                        <div class="progress-bar bg-warning" style="width: 4%;"></div>
-                                                    </div>
-                                                    <span class="text-muted" style="width: 35px;">4%</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 mb-1 small">
-                                                    <span style="width: 15px;">2★</span>
-                                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                                        <div class="progress-bar bg-secondary" style="width: 1%;"></div>
-                                                    </div>
-                                                    <span class="text-muted" style="width: 35px;">1%</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 small">
-                                                    <span style="width: 15px;">1★</span>
-                                                    <div class="progress flex-grow-1" style="height: 8px;">
-                                                        <div class="progress-bar bg-danger" style="width: 1%;"></div>
-                                                    </div>
-                                                    <span class="text-muted" style="width: 35px;">1%</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 d-flex align-items-center justify-content-center">
-                                                <button type="button" class="btn btn-outline-dark fw-bold px-4 py-2" data-bs-toggle="collapse" data-bs-target="#writeReviewCollapse">
-                                                    <i class="fa-solid fa-pen-to-square me-1"></i> Write a review
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <!-- Review Form (Collapsed) -->
-                                        <div class="collapse mb-4" id="writeReviewCollapse">
-                                            <div class="card card-body bg-light border p-4">
-                                                <h5 class="fw-bold mb-3">Write Your Review</h5>
-                                                <form action="<?= site_url('product/review'); ?>" method="POST">
-                                                    <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-                                                    <input type="hidden" name="product_slug" value="<?= $product['slug']; ?>">
-
-                                                    <div class="row g-3 mb-3">
-                                                        <div class="col-md-6">
-                                                            <label class="form-label small fw-semibold">Your Name *</label>
-                                                            <input type="text" name="name" class="form-control" required value="<?= $this->session->userdata('user_name') ?? ''; ?>">
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <label class="form-label small fw-semibold">Your Email *</label>
-                                                            <input type="email" name="email" class="form-control" required value="<?= $this->session->userdata('user_email') ?? ''; ?>">
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-semibold">Rating *</label>
-                                                        <select name="rating" class="form-select" style="max-width: 200px;" required>
-                                                            <option value="5" selected>5 Stars - Excellent</option>
-                                                            <option value="4">4 Stars - Very Good</option>
-                                                            <option value="3">3 Stars - Average</option>
-                                                            <option value="2">2 Stars - Below Average</option>
-                                                            <option value="1">1 Star - Poor</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-semibold">Review *</label>
-                                                        <textarea name="review" class="form-control" rows="4" placeholder="Share what you liked or disliked about this product..." required minlength="5"></textarea>
-                                                    </div>
-
-                                                    <button type="submit" class="btn btn-primary fw-bold px-4">Submit Review</button>
-                                                </form>
-                                            </div>
-                                        </div>
-
-                                        <!-- Existing Reviews List -->
-                                        <div class="review-items-list">
-                                            <?php if (!empty($product['reviews'])): ?>
-                                                <?php foreach ($product['reviews'] as $rev): ?>
-                                                    <div class="border-bottom pb-3 mb-3">
-                                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <div class="fw-bold text-dark"><?= html_escape($rev['customer_name']); ?></div>
-                                                            <div class="text-warning small">
-                                                                <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                                    <i class="<?= ($s <= $rev['rating']) ? 'fa-solid' : 'fa-regular'; ?> fa-star"></i>
-                                                                <?php endfor; ?>
-                                                            </div>
-                                                        </div>
-                                                        <div class="text-secondary small mb-2"><?= date('M d, Y', strtotime($rev['created_at'])); ?> • Verified Buyer</div>
-                                                        <p class="mb-0 text-dark"><?= nl2br(html_escape($rev['review'])); ?></p>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <div class="text-center py-4 text-secondary">
-                                                    <i class="fa-regular fa-comment-dots fs-3 mb-2 d-block text-muted"></i>
-                                                    <p class="mb-0">No reviews yet. Be the first to review this product!</p>
+                                        <div class="right">
+                                            <div class="letter-1 text-btn-uppercase mb_12"><?= html_escape($product['title']); ?></div>
+                                            <p class="mb_12 text-secondary"><?= !empty($product['description']) ? $product['description'] : 'Designed with utmost care and attention to detail, this premium item combines timeless style with modern performance.'; ?></p>
+                                            
+                                            <?php if (!empty($product['specifications'])): ?>
+                                                <div class="letter-1 text-btn-uppercase mb_12 mt-4">Specifications & Details</div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-striped table-sm mb-0">
+                                                        <tbody>
+                                                            <?php foreach ($product['specifications'] as $spec): ?>
+                                                                <tr>
+                                                                    <td class="fw-semibold text-secondary" style="width: 35%;"><?= html_escape($spec['spec_name'] ?? ($spec['spec_key'] ?? '')); ?></td>
+                                                                    <td class="text-dark"><?= html_escape($spec['spec_value'] ?? ''); ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
+                                        <div class="left">
+                                            <div class="letter-1 text-btn-uppercase mb_12">COMPOSITION, ORIGIN AND CARE GUIDELINES</div>
+                                            <ul class="list-text type-disc mb_12 gap-6">
+                                                <li class="font-2">Composition: 100% Breathable High Quality Fabric</li>
+                                                <li class="font-2">Designed for all-day comfort and long-lasting durability</li>
+                                                <li class="font-2">Origin: India / Imported</li>
+                                                <li class="font-2">Manufacture: Certified Quality Standards</li>
+                                            </ul>
+                                            <div class="d-flex gap-20 mb_12 list-icon-guideline">
+                                                <div class="d-flex">
+                                                    <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                        <rect width="24" height="21.6" fill="url(#pattern0_15741_41601)"/>
+                                                        <defs>
+                                                        <pattern id="pattern0_15741_41601" patternContentUnits="objectBoundingBox" width="1" height="1">
+                                                        <use xlink:href="#image0_15741_41601" transform="scale(0.0125 0.0138889)"/>
+                                                        </pattern>
+                                                        <image id="image0_15741_41601" width="80" height="72" xlink:href="data:image/png;base64,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"/>
+                                                        </defs>
+                                                    </svg>
+                                                </div>
+                                                <div class="d-flex">
+                                                    <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                        <rect width="24" height="21.6" fill="url(#pattern0_15741_41602)"/>
+                                                        <defs>
+                                                        <pattern id="pattern0_15741_41602" patternContentUnits="objectBoundingBox" width="1" height="1">
+                                                        <use xlink:href="#image0_15741_41602" transform="scale(0.0125 0.0138889)"/>
+                                                        </pattern>
+                                                        <image id="image0_15741_41602" width="80" height="72" xlink:href="data:image/png;base64,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"/>
+                                                        </defs>
+                                                    </svg>
+                                                </div>
+                                                <div class="d-flex">
+                                                    <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                        <rect width="24" height="21.6" fill="url(#pattern0_15741_41603)"/>
+                                                        <defs>
+                                                        <pattern id="pattern0_15741_41603" patternContentUnits="objectBoundingBox" width="1" height="1">
+                                                        <use xlink:href="#image0_15741_41603" transform="scale(0.0125 0.0138889)"/>
+                                                        </pattern>
+                                                        <image id="image0_15741_41603" width="80" height="72" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABICAYAAABhlHJbAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAUKADAAQAAAABAAAASAAAAABhcJAMAAAErUlEQVR4Ae2bzVXbQBSFbR/D3i04axaglAAlkBJMCbiEuAQoAUogJcSwYO8S4j32wbl3oqeMpBl5RgJJ2M/nmJFkzd+n+35GEoOBfpSAElACSkAJKAEloASUgBJQAm0TGNbt8Pz8/LJu3T7W2263q9fX11Xs2MaxFeT84XD4xG2UcuhLl6enpwtMYB47iVFshUM9f7fb1bKow5BPg6tKVzQajYw1LZfLaB5Hr8CXl5dfwr+OXz96gIQH812mEBOBGVoqwH+kDEAExGkoODlPAYIEFCjpiypQlBFZigKTs7OzSUxdVSBo2YFkPB5HqVABpnKrG0gUYAoQAcSkM8gJVYExPkzOrRtIVIFCcDCQXHAaE0gUYArw+flZAA5iAokC/K9A5oOyrAv2gwrQAohAIvlg8J0ZBWgBrBNIFKAFcLPZGBOGEicIJFPrJ++mArTQ8JY+VLjmIdyhDvKDCtACmG4aP/j+/q4KLLPZf0QiMcw4KJCoAgtMsZQzt7ZCAUY/Ayj0592lE0ZCKmZQ8idcc+JqR9068nb2sT9MAM+MF+P7bifYrm5qP9YsNpY+T0h45YKvXv8fiRJktkIpzpn7jQBSZYhWM1ypGaB51SR+RQaAc9dw0pUDk3O7KDG+a3wpBrEg7zBqASS4k5OTW3QwY8soTQcAtcQ2c6kltlf75G8q9fAPrIlzoospuZ7icKMBovFb+K+fVkMrqOker0Y81nk1wmqnT5vBS7rgIJKq7oFXJp0pk84FVHbfp5l/xFgw1wlc0x+2hTlWBpKgNObi4iKByf4WeFDcHE/xvx0iPEKDJXE1YtIZALzkMd9nrwkTHio/Ad4Eja3x/WE/hPE1fADHacZTzLsykFQqkFJGI3cCD9tXRwJvYGUJ4rKcmqhUIPzAHWoxGlHSV181qjpnvv+gBJJKgN4gkiTJNfp4YD8AeNOmv6PysYoxKRL7hwWs2+yfffIDBjuWUKPX8pwK5AQAjabL+o9tDt72uexcPjg+w/26q9TBy+FPLcGAeS0VyK/c7s/16fSBvPri997e3qLf2sz1ELmDfpmgl1Y1nIityshm654uZuwNJE6AnAR7xBVYdJAc03U4P7EPvZ2NRBzE/PfemSkBpKmIArC66FWSjAmVlBnBo86pRoGo6H1WXAIIeJI4cmlmbm/X6blBHXnVzNVE1W+u8xsds1M2uA9nNC4BRI/GhHC1nU6z0YjCKj/6TsOYvL/56jQ9jj5FhfsB2u8II+K1PlhOFkFrgUHnXAf2eftrbiuiKZjQ+rBIIySf/y2mMYYyqXdkvrIOvUEqNRez6QKcAAaLFSBy16nAHECcOE0rimylndbL9AJ25Ubs+QoLBpJpMSsp+kADkNTtFo55216+up4VFwEamcLeFaClGgjKWAL8sFho9msOIEzY5Fk4sYv0JRtU3zbAxZgxSknxsiHmAGZHdSNHwHJppUCSAaSDlFpdRj0ZQ89KUWDppaMMIFKGDGDPBt/5cBhIoELj1oqBJJfGyEixHjb/vSj7WuYI0IyzRYYToMtZ5po44h0oMecHM4D8l3eYcav3/o74OujUlYASUAJKQAkoASWgBJSAElACDQj8BQtLlbWiLn8cAAAAAElFTkSuQmCC"/>
+                                                        </defs>
+                                                    </svg>
+                                                </div>
+                                                <div class="d-flex">
+                                                    <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                        <rect width="24" height="21.6" fill="url(#pattern0_15741_41604)"/>
+                                                        <defs>
+                                                        <pattern id="pattern0_15741_41604" patternContentUnits="objectBoundingBox" width="1" height="1">
+                                                        <use xlink:href="#image0_15741_41604" transform="scale(0.0125 0.0138889)"/>
+                                                        </pattern>
+                                                        <image id="image0_15741_41604" width="80" height="72" xlink:href="data:image/png;base64,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"/>
+                                                        </defs>
+                                                    </svg>
+                                                </div>
+                                                <div class="d-flex">
+                                                    <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                        <rect width="24" height="21.6" fill="url(#pattern0_15741_41605)"/>
+                                                        <defs>
+                                                        <pattern id="pattern0_15741_41605" patternContentUnits="objectBoundingBox" width="1" height="1">
+                                                        <use xlink:href="#image0_15741_41605" transform="scale(0.0125 0.0138889)"/>
+                                                        </pattern>
+                                                        <image id="image0_15741_41605" width="80" height="72" xlink:href="data:image/png;base64,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"/>
+                                                        </defs>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="text-caption-2">MACHINE WASHING MAX 30°C / 85ºF SHORT SPIN DRY</div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <!-- 3. SHIPPING & RETURNS TAB -->
-                                <div class="tab-pane fade" id="tab-shipping" role="tabpanel">
+                                <div class="widget-content-inner">
+                                    <div class="tab-reviews write-cancel-review-wrap">
+                                        <div class="tab-reviews-heading">
+                                            <div class="top">
+                                                <div class="text-center">
+                                                    <div class="number title-display"><?= number_format($product['rating'] ?? 5.0, 1); ?></div>
+                                                    <div class="list-star">
+                                                        <i class="icon icon-star"></i>
+                                                        <i class="icon icon-star"></i>
+                                                        <i class="icon icon-star"></i>
+                                                        <i class="icon icon-star"></i>
+                                                        <i class="icon icon-star"></i>
+                                                    </div>
+                                                    <p>(<?= number_format($product['reviews_count'] ?: (!empty($product['reviews']) ? count($product['reviews']) : 168)); ?> Ratings)</p>
+                                                </div>
+                                                <div class="rating-score">
+                                                    <div class="item">
+                                                        <div class="number-1 text-caption-1">5</div>
+                                                        <i class="icon icon-star"></i>
+                                                        <div class="line-bg">
+                                                            <div style="width: 94.67%;"></div>
+                                                        </div>
+                                                        <div class="number-2 text-caption-1">59</div>
+                                                    </div>
+                                                    <div class="item">
+                                                        <div class="number-1 text-caption-1">4</div>
+                                                        <i class="icon icon-star"></i>
+                                                        <div class="line-bg">
+                                                            <div style="width: 60%;"></div>
+                                                        </div>
+                                                        <div class="number-2 text-caption-1">46</div>
+                                                    </div>
+                                                    <div class="item">
+                                                        <div class="number-1 text-caption-1">3</div>
+                                                        <i class="icon icon-star"></i>
+                                                        <div class="line-bg">
+                                                            <div style="width: 0%;"></div>
+                                                        </div>
+                                                        <div class="number-2 text-caption-1">0</div>
+                                                    </div>
+                                                    <div class="item">
+                                                        <div class="number-1 text-caption-1">2</div>
+                                                        <i class="icon icon-star"></i>
+                                                        <div class="line-bg">
+                                                            <div style="width: 0%;"></div>
+                                                        </div>
+                                                        <div class="number-2 text-caption-1">0</div>
+                                                    </div>
+                                                    <div class="item">
+                                                        <div class="number-1 text-caption-1">1</div>
+                                                        <i class="icon icon-star"></i>
+                                                        <div class="line-bg">
+                                                            <div style="width: 0%;"></div>
+                                                        </div>
+                                                        <div class="number-2 text-caption-1">0</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="btn-style-4 text-btn-uppercase letter-1 btn-comment-review btn-cancel-review">Cancel Review</div>
+                                                <div class="btn-style-4 text-btn-uppercase letter-1 btn-comment-review btn-write-review">Write a review</div>
+                                            </div>
+                                        </div>
+                                        <div class="reply-comment style-1 cancel-review-wrap">
+                                            <div class="d-flex mb_24 gap-20 align-items-center justify-content-between flex-wrap">
+                                                <h4 class=""><?= sprintf('%02d', !empty($product['reviews']) ? count($product['reviews']) : 3); ?> Comments</h4>
+                                                <div class="d-flex align-items-center gap-12">
+                                                    <div class="text-caption-1">Sort by:</div>
+                                                    <div class="tf-dropdown-sort" data-bs-toggle="dropdown">
+                                                        <div class="btn-select">
+                                                            <span class="text-sort-value">Most Recent</span>
+                                                            <span class="icon icon-arrow-down"></span>
+                                                        </div>
+                                                        <div class="dropdown-menu">
+                                                            <div class="select-item active">
+                                                                <span class="text-value-item">Most Recent</span>
+                                                            </div>
+                                                            <div class="select-item">
+                                                                <span class="text-value-item">Oldest</span>
+                                                            </div>
+                                                            <div class="select-item">
+                                                                <span class="text-value-item">Most Popular</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="reply-comment-wrap">
+                                                <?php if (!empty($product['reviews'])): ?>
+                                                    <?php foreach ($product['reviews'] as $rev): ?>
+                                                        <div class="reply-comment-item">
+                                                            <div class="user">
+                                                                <div class="image">
+                                                                    <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="<?= html_escape($rev['customer_name']); ?>">
+                                                                </div>
+                                                                <div>
+                                                                    <h6>
+                                                                        <a href="javascript:void(0);" class="link"><?= html_escape($rev['customer_name']); ?></a>
+                                                                    </h6>
+                                                                    <div class="day text-secondary-2 text-caption-1"><?= date('j \d\a\y\s \a\g\o', strtotime($rev['created_at'])); ?>  &nbsp;&nbsp;&nbsp;-</div>
+                                                                </div>
+                                                            </div>
+                                                            <p class="text-secondary"><?= nl2br(html_escape($rev['review'])); ?></p>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <div class="reply-comment-item">
+                                                        <div class="user">
+                                                            <div class="image">
+                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
+                                                            </div>
+                                                            <div>
+                                                                <h6>
+                                                                    <a href="javascript:void(0);" class="link">Superb quality apparel that exceeds expectations</a>
+                                                                </h6>
+                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
+                                                            </div>
+                                                        </div>
+                                                        <p class="text-secondary">Great theme - we were looking for a theme with lots of built in features and flexibility and this was perfect. We expected to need to employ a developer to add a few finishing touches. But we actually managed to do everything ourselves. We did have one small query and the support given was swift and helpful.</p>
+                                                    </div>
+                                                    <div class="reply-comment-item type-reply">
+                                                        <div class="user">
+                                                            <div class="image">
+                                                                <img src="<?= base_url('assets/images/avatar/user-modave.jpg'); ?>" alt="">
+                                                            </div>
+                                                            <div>
+                                                                <h6>
+                                                                    <a href="javascript:void(0);" class="link">Reply from Modave</a>
+                                                                </h6>
+                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
+                                                            </div>
+                                                        </div>
+                                                        <p class="text-secondary">We love to hear it! Part of what we love most about Modave is how much it empowers store owners like yourself to build a beautiful website without having to hire a developer :) Thank you for this fantastic review!</p>
+                                                    </div>
+                                                    <div class="reply-comment-item">
+                                                        <div class="user">
+                                                            <div class="image">
+                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
+                                                            </div>
+                                                            <div>
+                                                                <h6>
+                                                                    <a href="javascript:void(0);" class="link">Superb quality apparel that exceeds expectations</a>
+                                                                </h6>
+                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
+                                                            </div>
+                                                        </div>
+                                                        <p class="text-secondary">Great theme - we were looking for a theme with lots of built in features and flexibility and this was perfect. We expected to need to employ a developer to add a few finishing touches. But we actually managed to do everything ourselves. We did have one small query and the support given was swift and helpful.</p>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>  
+                                        <form class="form-write-review write-review-wrap" action="<?= site_url('product/review'); ?>" method="POST">
+                                            <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
+                                            <input type="hidden" name="product_slug" value="<?= $product['slug']; ?>">
+                                            <div class="heading">
+                                                <h4>Write a review:</h4>
+                                                <div class="list-rating-check">
+                                                    <input type="radio" id="star5" name="rating" value="5" checked>
+                                                    <label for="star5" title="text"></label>
+                                                    <input type="radio" id="star4" name="rating" value="4">
+                                                    <label for="star4" title="text"></label>
+                                                    <input type="radio" id="star3" name="rating" value="3">
+                                                    <label for="star3" title="text"></label>
+                                                    <input type="radio" id="star2" name="rating" value="2">
+                                                    <label for="star2" title="text"></label>
+                                                    <input type="radio" id="star1" name="rating" value="1">
+                                                    <label for="star1" title="text"></label>
+                                                </div>
+                                            </div>
+                                            <div class="mb_32">
+                                                <div class="mb_8">Review Title</div>
+                                                <fieldset class="mb_20">
+                                                    <input class="" type="text" placeholder="Give your review a title" name="title" tabindex="2" value="" aria-required="true">
+                                                </fieldset>
+                                                <div class="mb_8">Review</div>
+                                                <fieldset class="d-flex mb_20">
+                                                    <textarea class="" rows="4" placeholder="Write your comment here" name="review" tabindex="2" aria-required="true" required=""></textarea>
+                                                </fieldset>
+                                                <div class="cols mb_20">
+                                                    <fieldset class="">
+                                                        <input class="" type="text" placeholder="You Name (Public)" name="name" tabindex="2" value="<?= html_escape($current_user['name'] ?? ''); ?>" aria-required="true" required="">
+                                                    </fieldset>
+                                                    <fieldset class="">
+                                                        <input class="" type="email" placeholder="Your email (private)" name="email" tabindex="2" value="<?= html_escape($current_user['email'] ?? ''); ?>" aria-required="true" required="">
+                                                    </fieldset>
+                                                </div>
+                                                <div class="d-flex align-items-center check-save">
+                                                    <input type="checkbox" name="availability" class="tf-check" id="check1" checked>
+                                                    <label class="text-secondary text-caption-1" for="check1">Save my name, email, and website in this browser for the next time I comment.</label>
+                                                </div>
+                                            </div>
+                                            <div class="button-submit">
+                                                <button class="text-btn-uppercase" type="submit">Submit Reviews</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="widget-content-inner">
                                     <div class="tab-shipping">
-                                        <div class="row g-4">
-                                            <div class="col-md-6">
-                                                <h6 class="fw-bold text-uppercase mb-2"><i class="fa-solid fa-truck-fast text-primary me-2"></i> Shipping Information</h6>
-                                                <p class="text-secondary small mb-2">We offer fast and reliable shipping across all major pin codes. Orders are processed within 24 business hours.</p>
-                                                <ul class="list-unstyled text-secondary small">
-                                                    <li>• Standard Delivery: 3 to 6 business days.</li>
-                                                    <li>• Express Delivery: 1 to 3 business days available at checkout.</li>
-                                                    <li>• Free standard delivery on orders above <?= $currency_symbol; ?>500.</li>
-                                                </ul>
+                                        <div class="w-100">
+                                            <div class="text-btn-uppercase mb_12">We've got your back</div>
+                                            <p class="mb_12">One delivery fee to most locations (check our Orders & Delivery page)</p>
+                                            <p class="">Free returns within 14 days (excludes final sale and made-to-order items, face masks and certain products containing hazardous or flammable materials, such as fragrances and aerosols)</p>
+                                        </div>
+                                        <div class="w-100">
+                                            <div class="text-btn-uppercase mb_12">Import duties information</div>
+                                            <p>Let us handle the legwork. Delivery duties are included in the item price when shipping to all EU countries (excluding the Canary Islands), plus The United Kingdom, USA, Canada, China Mainland, Australia, New Zealand, Puerto Rico, Switzerland, Singapore, Republic Of Korea, Kuwait, Mexico, Qatar, India, Norway, Saudi Arabia, Taiwan Region, Thailand, U.A.E., Japan, Brazil, Isle of Man, San Marino, Colombia, Chile, Argentina, Egypt, Lebanon, Hong Kong SAR, Bahrain and Turkey. All import duties are included in your order – the price you see is the price you pay.</p>
+                                        </div>
+                                        <div class="w-100">
+                                            <div class="text-btn-uppercase mb_12">Estimated delivery</div>
+                                            <p class="mb_6 font-2">Express: May 10 - May 17</p>
+                                            <p class="font-2">Sending from USA</p>
+                                        </div>
+                                        <div class="w-100">
+                                            <div class="text-btn-uppercase mb_12">Need more information?</div>
+                                            <div>
+                                                <a href="<?= site_url('contact'); ?>" class="link text-secondary text-decoration-underline mb_6 font-2">Orders & delivery</a>
                                             </div>
-                                            <div class="col-md-6">
-                                                <h6 class="fw-bold text-uppercase mb-2"><i class="fa-solid fa-rotate-left text-primary me-2"></i> Hassle-Free Returns</h6>
-                                                <p class="text-secondary small mb-2">If you are not completely satisfied with your purchase, you can return or exchange the item within 30 days of delivery.</p>
-                                                <ul class="list-unstyled text-secondary small">
-                                                    <li>• Items must be unused, unwashed, and in original packaging with tags.</li>
-                                                    <li>• Instant refund or replacement initiated once picked up.</li>
-                                                </ul>
+                                            <div>
+                                                <a href="<?= site_url('contact'); ?>" class="link text-secondary text-decoration-underline mb_6 font-2">Returns & refunds</a>
+                                            </div>
+                                            <div>
+                                                <a href="<?= site_url('contact'); ?>" class="link text-secondary text-decoration-underline font-2">Duties & taxes</a>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- 4. RETURN POLICIES TAB -->
-                                <div class="tab-pane fade" id="tab-policies" role="tabpanel">
+                                <div class="widget-content-inner">
                                     <div class="tab-policies">
-                                        <h6 class="fw-bold text-uppercase mb-2">30-Day Guarantee</h6>
-                                        <p class="text-secondary small mb-3">At Modave, our priority is your complete satisfaction. If for any reason your product does not meet expectations, our customer care team is ready to help with instant exchange or full refund.</p>
-                                        <div class="row g-3 text-secondary small">
-                                            <div class="col-md-4">
-                                                <div class="p-3 border rounded bg-light text-center">
-                                                    <i class="fa-solid fa-box-open fs-4 text-primary mb-2"></i>
-                                                    <div class="fw-bold text-dark">1. Pack Item</div>
-                                                    <div>Keep all tags and original packaging intact.</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="p-3 border rounded bg-light text-center">
-                                                    <i class="fa-solid fa-truck-ramp-box fs-4 text-primary mb-2"></i>
-                                                    <div class="fw-bold text-dark">2. Free Pickup</div>
-                                                    <div>Our courier partner picks up from your doorstep.</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="p-3 border rounded bg-light text-center">
-                                                    <i class="fa-solid fa-money-bill-transfer fs-4 text-primary mb-2"></i>
-                                                    <div class="fw-bold text-dark">3. Fast Refund</div>
-                                                    <div>Refund processed to original payment method.</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <div class="text-btn-uppercase mb_12">Return Policies</div>
+                                        <p class="mb_12 text-secondary">At Modave, we stand behind the quality of our products. If you're not completely satisfied with your purchase, we offer hassle-free returns within 30 days of delivery.</p>
+                                        <div class="text-btn-uppercase mb_12">Easy Exchanges or Refunds</div>
+                                        <ul class="list-text type-disc mb_12 gap-6">
+                                            <li class="text-secondary font-2">Exchange your item for a different size, color, or style, or receive a full refund.</li>
+                                            <li class="text-secondary font-2">All returned items must be unworn, in their original packaging, and with tags attached.</li>
+                                        </ul>
+                                        <div class="text-btn-uppercase mb_12">Simple Process</div>
+                                        <ul class="list-text type-number">
+                                            <li class="text-secondary font-2">Initiate your return online or contact our customer service team for assistance.</li>
+                                            <li class="text-secondary font-2">Pack your item securely and include the original packing slip.</li>
+                                            <li class="text-secondary font-2">Ship your return back to us using our prepaid shipping label.</li>
+                                            <li class="text-secondary font-2">Once received, your refund will be processed promptly.</li>
+                                        </ul>
+                                        <p class="text-secondary font-2">For any questions or concerns regarding returns, don't hesitate to reach out to our dedicated customer service team. Your satisfaction is our priority.</p>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-        <!-- /PRODUCT TABS -->
+        <!-- /Product_Description_Tabs -->
 
         <!-- FREQUENTLY BOUGHT TOGETHER -->
         <?php if (!empty($frequently_bought_together)): ?>
@@ -1457,12 +1611,14 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     // Global variables passed from PHP
     var productId        = <?= (int) $product['id']; ?>;
     var currencySymbol   = "<?= $currency_symbol; ?>";
-    var galleryImages    = <?= json_encode(array_map(function($img) { return base_url('assets/images/' . $img); }, $all_images)); ?>;
+    var defaultGalleryImages = <?= json_encode(array_map(function($img) { return base_url('assets/images/' . $img); }, $all_images)); ?>;
+    var galleryImages    = defaultGalleryImages.slice();
     var totalGallery     = galleryImages.length;
     var colorMap         = <?= json_encode($color_map); ?>;
     var hasVariants      = <?= $has_variants ? 'true' : 'false'; ?>;
     var hasColor         = <?= $has_color ? 'true' : 'false'; ?>;
     var hasSize          = <?= $has_size ? 'true' : 'false'; ?>;
+    var isProductInWishlist = <?= !empty($is_in_wishlist) ? 'true' : 'false'; ?>;
 
     // Active state
     var selectedColor    = "<?= addslashes($initial_color); ?>";
@@ -1483,6 +1639,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     };
 
     window.lightboxNav = function(delta) {
+        if (totalGallery <= 0) return;
         activeLightboxIdx = (activeLightboxIdx + delta + totalGallery) % totalGallery;
         updateLightboxView();
     };
@@ -1512,6 +1669,80 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                     th.classList.remove('active');
                 }
             }
+        }
+    }
+
+    // Dynamic 2x2 Grid Rendering when switching color variants
+    function renderProductGrid(imgs) {
+        var gridEl = document.getElementById('product-grid-gallery');
+        if (!gridEl) return;
+
+        var count = imgs.length;
+        var slots = Math.min(4, count);
+        var html = '';
+
+        for (var i = 0; i < slots; i++) {
+            var imgSrc = imgs[i];
+            var isLastSlot = (i === 3);
+            var showOverlay = (isLastSlot && count > 4);
+            var remainingCount = count - 4;
+
+            html += '<div class="product-grid-item" onclick="openLightbox(' + i + ')" id="grid-item-' + i + '">';
+            html += '  <img src="' + imgSrc + '" alt="Product Image ' + (i + 1) + '" id="grid-img-' + i + '" onerror="this.src=\'<?= base_url("assets/images/products/womens/women-1.jpg"); ?>\'">';
+
+            if (i === 1 || (slots === 1 && i === 0)) {
+                html += '  <div class="grid-floating-actions" onclick="event.stopPropagation();">';
+                html += '    <button type="button" class="grid-action-btn wishlist-btn ' + (isProductInWishlist ? 'active' : '') + '" id="btn-grid-wishlist" onclick="toggleWishlist(' + productId + ', this)" title="Wishlist">';
+                html += '      <i class="' + (isProductInWishlist ? 'fa-solid' : 'fa-regular') + ' fa-heart"></i>';
+                html += '    </button>';
+                html += '    <button type="button" class="grid-action-btn zoom-btn" onclick="openLightbox(' + i + ')" title="Fullscreen Gallery">';
+                html += '      <i class="fa-solid fa-expand"></i>';
+                html += '    </button>';
+                html += '  </div>';
+            }
+
+            if (showOverlay) {
+                html += '  <div class="product-grid-overlay">';
+                html += '    <span class="overlay-text">+' + remainingCount + '</span>';
+                html += '  </div>';
+            }
+
+            html += '</div>';
+        }
+
+        gridEl.innerHTML = html;
+
+        var stickyImg = document.getElementById('sticky-bar-img');
+        if (stickyImg && imgs.length > 0) {
+            stickyImg.src = imgs[0];
+        }
+
+        var noteEl = document.getElementById('product-grid-counter-note');
+        if (noteEl) {
+            noteEl.innerHTML = '<i class="fa-regular fa-images me-1"></i> Showing ' + slots + ' of ' + count + ' photos. Click any photo to view full gallery.';
+        }
+    }
+
+    // Dynamic Lightbox Thumbs Strip Rendering when switching color variants
+    function renderLightboxStrip(imgs) {
+        var stripEl = document.getElementById('lightbox-thumbs-strip');
+        if (!stripEl) return;
+
+        var html = '';
+        imgs.forEach(function(imgSrc, idx) {
+            html += '<div class="lightbox-thumb-item ' + (idx === 0 ? 'active' : '') + '" onclick="lightboxGoTo(' + idx + ')" id="lb-thumb-' + idx + '">';
+            html += '  <img src="' + imgSrc + '" alt="Thumb ' + (idx + 1) + '">';
+            html += '</div>';
+        });
+        stripEl.innerHTML = html;
+
+        var mainImg = document.getElementById('lightbox-active-img');
+        if (mainImg && imgs.length > 0) {
+            mainImg.src = imgs[0];
+        }
+        var counterEl = document.getElementById('lightbox-counter');
+        if (counterEl) {
+            counterEl.textContent = 'Image 1 of ' + imgs.length;
         }
     }
 
@@ -1545,19 +1776,24 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         cards.forEach(function(c) { c.classList.remove('active'); });
         if (cardEl) cardEl.classList.add('active');
 
-        // Swap primary image in 2x2 grid to this color image if available
-        if (colorMap[colorName] && colorMap[colorName].image) {
+        // Swap images in 2x2 grid and Lightbox for this variant color
+        if (colorMap[colorName] && colorMap[colorName].images && colorMap[colorName].images.length > 0) {
+            var colorImgs = colorMap[colorName].images.map(function(img) {
+                return (img.indexOf('://') !== -1) ? img : ("<?= base_url('assets/images/'); ?>" + img);
+            });
+            galleryImages = colorImgs;
+            totalGallery = galleryImages.length;
+            activeLightboxIdx = 0;
+
+            renderProductGrid(galleryImages);
+            renderLightboxStrip(galleryImages);
+        } else if (colorMap[colorName] && colorMap[colorName].image) {
             var newImgSrc = "<?= base_url('assets/images/'); ?>" + colorMap[colorName].image;
-            var gridImg0 = document.getElementById('grid-img-0');
-            if (gridImg0) {
-                gridImg0.src = newImgSrc;
-            }
-            var stickyImg = document.getElementById('sticky-bar-img');
-            if (stickyImg) {
-                stickyImg.src = newImgSrc;
-            }
-            // Also update lightbox 0 image
             galleryImages[0] = newImgSrc;
+            var gridImg0 = document.getElementById('grid-img-0');
+            if (gridImg0) gridImg0.src = newImgSrc;
+            var stickyImg = document.getElementById('sticky-bar-img');
+            if (stickyImg) stickyImg.src = newImgSrc;
         }
 
         // Re-evaluate size chips for this color
@@ -1884,10 +2120,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     };
 
     window.activateReviewTab = function() {
-        var btn = document.getElementById('tab-reviews-btn');
-        if (btn) {
-            btn.click();
-            btn.scrollIntoView({ behavior: 'smooth' });
+        var tabTitle = document.querySelector('.widget-tabs.style-1 .widget-menu-tab .item-title:nth-child(2)');
+        if (tabTitle) {
+            tabTitle.click();
+            tabTitle.scrollIntoView({ behavior: 'smooth' });
         }
     };
 

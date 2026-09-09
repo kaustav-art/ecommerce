@@ -97,7 +97,10 @@
 
             <!-- Additional Gallery Images -->
             <div class="mb-3">
-              <label class="form-label fw-semibold" for="gallery_files">Upload Gallery Images</label>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-semibold mb-0" for="gallery_files">Upload Gallery Images</label>
+              </div>
+              <input type="hidden" name="gallery_submitted" value="1" />
               <input
                 type="file"
                 class="form-control form-control-sm"
@@ -105,22 +108,46 @@
                 name="gallery_files[]"
                 accept="image/*"
                 multiple
-                onchange="previewGalleryFiles(this)" />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select additional images for product gallery.</small>
-              <div id="gallery_preview_container" class="d-flex flex-wrap gap-2 mt-2"></div>
+                onchange="handleNewGalleryFiles(this)" />
+              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery. You can remove any image before saving.</small>
 
-              <?php if (!empty($existing_gallery)): ?>
-                <label class="form-label small fw-semibold text-secondary mt-3 mb-1">Existing Gallery (<?= count($existing_gallery); ?>):</label>
-                <div class="d-flex flex-wrap gap-2">
-                  <?php foreach ($existing_gallery as $g_idx => $g_file): ?>
-                    <div class="position-relative border rounded p-1 bg-white shadow-sm" id="gal_item_<?= $g_idx; ?>" style="width: 50px; height: 50px;">
-                      <img src="<?= base_url('../website/assets/images/' . $g_file); ?>" class="w-100 h-100 object-fit-cover rounded" alt="Gallery" onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'">
-                      <input type="hidden" name="existing_gallery[]" value="<?= html_escape($g_file); ?>" id="gal_input_<?= $g_idx; ?>">
-                      <button type="button" class="btn btn-danger btn-xs position-absolute top-0 end-0 p-0 rounded-circle" style="width: 16px; height: 16px; line-height: 1; transform: translate(30%, -30%);" onclick="removeExistingGallery(<?= $g_idx; ?>)" title="Remove from gallery">&times;</button>
-                    </div>
-                  <?php endforeach; ?>
+              <!-- New Uploads Preview Container with individual remove buttons -->
+              <div id="new_gallery_container" class="mt-2" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
+                  <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
+                    <i class="fa-solid fa-trash-can me-1"></i>Clear All New
+                  </button>
                 </div>
-              <?php endif; ?>
+                <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
+              </div>
+
+              <!-- Existing Gallery Section -->
+              <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-semibold text-secondary mb-0" id="existing_gallery_label">
+                    Existing Gallery (<?= count($existing_gallery); ?>):
+                  </label>
+                </div>
+                <div class="d-flex flex-wrap gap-2" id="existing_gallery_list">
+                  <?php if (!empty($existing_gallery)): ?>
+                    <?php foreach ($existing_gallery as $g_idx => $g_file): ?>
+                      <div class="position-relative border rounded p-1 bg-white shadow-sm" id="gal_item_<?= $g_idx; ?>" style="width: 58px; height: 58px;">
+                        <img src="<?= base_url('../website/assets/images/' . $g_file); ?>" class="w-100 h-100 object-fit-cover rounded" alt="Gallery" onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'">
+                        <input type="hidden" name="existing_gallery[]" value="<?= html_escape($g_file); ?>" id="gal_input_<?= $g_idx; ?>">
+                        <button type="button" class="position-absolute d-flex align-items-center justify-content-center"
+                          style="top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d49; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); z-index: 10; cursor: pointer; padding: 0;"
+                          onclick="removeExistingGallery(<?= $g_idx; ?>, '<?= html_escape($g_file); ?>')"
+                          title="Remove from gallery">
+                          <i class="fa-solid fa-xmark" style="font-size: 10px; line-height: 1;"></i>
+                        </button>
+                      </div>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <span class="text-muted small fst-italic" id="no_existing_gallery_msg">No existing gallery images.</span>
+                  <?php endif; ?>
+                </div>
+              </div>
             </div>
 
             <div class="mb-3">
@@ -191,29 +218,139 @@ function previewProductMainImage(input) {
   }
 }
 
-function previewGalleryFiles(input) {
-  var container = document.getElementById('gallery_preview_container');
-  container.innerHTML = '';
-  if (input.files) {
-    Array.from(input.files).forEach(function(file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var thumb = document.createElement('div');
-        thumb.className = 'border rounded p-1 bg-white shadow-sm';
-        thumb.style.width = '48px';
-        thumb.style.height = '48px';
-        thumb.innerHTML = '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="Gallery Preview">';
-        container.appendChild(thumb);
-      };
-      reader.readAsDataURL(file);
-    });
+// DataTransfer container for newly selected gallery uploads
+var newGalleryDT = new DataTransfer();
+
+function handleNewGalleryFiles(input) {
+  if (input.files && input.files.length > 0) {
+    for (var i = 0; i < input.files.length; i++) {
+      newGalleryDT.items.add(input.files[i]);
+    }
+    input.files = newGalleryDT.files;
+    renderNewGalleryPreviews();
   }
 }
 
-function removeExistingGallery(idx) {
+function removeNewGalleryFile(idx) {
+  newGalleryDT.items.remove(idx);
+  var input = document.getElementById('gallery_files');
+  if (input) {
+    input.files = newGalleryDT.files;
+  }
+  renderNewGalleryPreviews();
+}
+
+function clearAllNewGalleryFiles() {
+  newGalleryDT = new DataTransfer();
+  var input = document.getElementById('gallery_files');
+  if (input) {
+    input.files = newGalleryDT.files;
+    input.value = '';
+  }
+  renderNewGalleryPreviews();
+}
+
+function renderNewGalleryPreviews() {
+  var container = document.getElementById('new_gallery_container');
+  var list = document.getElementById('new_gallery_preview_list');
+  var countLabel = document.getElementById('new_gallery_count_label');
+  if (!container || !list) return;
+
+  list.innerHTML = '';
+  var count = newGalleryDT.files.length;
+
+  if (count === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  if (countLabel) {
+    countLabel.textContent = 'New Selected (' + count + '):';
+  }
+
+  Array.from(newGalleryDT.files).forEach(function(file, idx) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var thumb = document.createElement('div');
+      thumb.className = 'position-relative border rounded p-1 bg-white shadow-sm';
+      thumb.style.width = '58px';
+      thumb.style.height = '58px';
+      thumb.innerHTML = 
+        '<img src="' + e.target.result + '" class="w-100 h-100 object-fit-cover rounded" alt="New Gallery Image">' +
+        '<span class="badge bg-primary position-absolute bottom-0 start-0 p-0 text-center" style="font-size: 8px; width: 100%; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; opacity: 0.9;">NEW</span>' +
+        '<button type="button" class="position-absolute d-flex align-items-center justify-content-center" ' +
+        'style="top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d49; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); z-index: 10; cursor: pointer; padding: 0;" ' +
+        'onclick="removeNewGalleryFile(' + idx + ')" title="Remove this file">' +
+        '<i class="fa-solid fa-xmark" style="font-size: 10px; line-height: 1;"></i>' +
+        '</button>';
+      list.appendChild(thumb);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeExistingGallery(idx, imagePath) {
   var item = document.getElementById('gal_item_' + idx);
-  var input = document.getElementById('gal_input_' + idx);
-  if (item) item.remove();
-  if (input) input.remove();
+  if (!item) return;
+
+  if (!confirm('Are you sure you want to remove this image from the gallery?')) {
+    return;
+  }
+
+  // Visual feedback
+  item.style.opacity = '0.3';
+  item.style.pointerEvents = 'none';
+
+  // AJAX call to delete from DB and server
+  var payload = new URLSearchParams();
+  payload.append('product_id', '<?= $product["id"]; ?>');
+  payload.append('image_path', imagePath);
+
+  fetch('<?= site_url("products/delete_gallery_image"); ?>', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: payload.toString()
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.status === 'success') {
+      item.remove();
+      updateExistingGalleryUI(data.remaining_count);
+    } else {
+      alert(data.message || 'Error removing image');
+      item.style.opacity = '1';
+      item.style.pointerEvents = 'auto';
+    }
+  })
+  .catch(function(err) {
+    // If network fails, remove from DOM so form submit will still exclude it
+    item.remove();
+    updateExistingGalleryUI();
+  });
+}
+
+function updateExistingGalleryUI(remaining) {
+  var list = document.getElementById('existing_gallery_list');
+  var label = document.getElementById('existing_gallery_label');
+  var remainingItems = list ? list.querySelectorAll('[id^="gal_item_"]') : [];
+  var count = (remaining !== undefined) ? remaining : remainingItems.length;
+
+  if (label) {
+    label.textContent = 'Existing Gallery (' + count + '):';
+  }
+
+  if (count === 0 && list) {
+    if (!document.getElementById('no_existing_gallery_msg')) {
+      var msg = document.createElement('span');
+      msg.className = 'text-muted small fst-italic';
+      msg.id = 'no_existing_gallery_msg';
+      msg.textContent = 'No existing gallery images.';
+      list.appendChild(msg);
+    }
+  }
 }
 </script>
