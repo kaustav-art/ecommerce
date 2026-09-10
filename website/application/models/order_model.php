@@ -13,6 +13,9 @@ class order_model extends CI_Model {
         // Generate unique human-readable order number
         $order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
         $order_data['order_number'] = $order_number;
+        if (empty($order_data['user_id'])) {
+            unset($order_data['user_id']);
+        }
 
         $this->db->insert('orders', $order_data);
         $order_id = $this->db->insert_id();
@@ -52,14 +55,27 @@ class order_model extends CI_Model {
                     }
                 }
 
-                // Log stock adjustment
-                $this->db->insert('stock_adjustments', [
-                    'product_id' => $item['id'],
-                    'variant_id' => $variant_id,
-                    'type'       => 'out',
-                    'quantity'   => (int) $item['quantity'],
-                    'reason'     => "Order #{$order_number}"
-                ]);
+                // Log stock adjustment if table exists
+                if ($this->db->table_exists('inventory_transactions')) {
+                    $this->db->insert('inventory_transactions', [
+                        'product_id'     => $item['id'],
+                        'variant_id'     => $variant_id,
+                        'movement_type'  => 'ORDER_SHIPMENT',
+                        'quantity'       => (int) $item['quantity'],
+                        'reference_id'   => $order_number,
+                        'reference_type' => 'order',
+                        'note'           => "Order #{$order_number}",
+                        'created_at'     => date('Y-m-d H:i:s')
+                    ]);
+                } elseif ($this->db->table_exists('stock_adjustments')) {
+                    $this->db->insert('stock_adjustments', [
+                        'product_id' => $item['id'],
+                        'variant_id' => $variant_id,
+                        'type'       => 'out',
+                        'quantity'   => (int) $item['quantity'],
+                        'reason'     => "Order #{$order_number}"
+                    ]);
+                }
             }
             $this->db->insert_batch('order_items', $batch);
         }
@@ -72,7 +88,9 @@ class order_model extends CI_Model {
         $order = $this->db->where('order_number', $order_number)->get('orders')->row_array();
         if ($order) {
             $order['items'] = $this->db->where('order_id', $order['id'])->get('order_items')->result_array();
-            $order['returns'] = $this->db->where('order_id', $order['id'])->get('order_returns')->result_array();
+            $order['returns'] = $this->db->table_exists('order_returns') 
+                ? $this->db->where('order_id', $order['id'])->get('order_returns')->result_array() 
+                : [];
         }
         return $order;
     }
@@ -82,7 +100,9 @@ class order_model extends CI_Model {
         $orders = $this->db->where('user_id', (int) $user_id)->order_by('id', 'DESC')->get('orders')->result_array();
         foreach ($orders as &$ord) {
             $ord['items_count'] = $this->db->where('order_id', $ord['id'])->count_all_results('order_items');
-            $ord['returns_count'] = $this->db->where('order_id', $ord['id'])->count_all_results('order_returns');
+            $ord['returns_count'] = $this->db->table_exists('order_returns') 
+                ? $this->db->where('order_id', $ord['id'])->count_all_results('order_returns') 
+                : 0;
         }
         return $orders;
     }

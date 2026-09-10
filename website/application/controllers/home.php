@@ -35,7 +35,7 @@ class home extends MY_Controller {
         }
 
         $data = [
-            'title'             => ($this->store_settings['site_name'] ?? 'Modave') . ' - Multipurpose eCommerce',
+            'title'             => $this->site_name . ' - Multipurpose eCommerce',
             'active_page'       => 'home',
             'banners'           => $banners,
             'featured_cats'     => $featured_cats,

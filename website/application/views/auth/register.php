@@ -5,7 +5,7 @@
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm p-4 p-md-5 bg-white">
                             <h3 class="fw-bold mb-2 text-center">Create an Account</h3>
-                            <p class="text-muted text-center small mb-4">Join Modave for personalized shopping & fast checkout</p>
+                            <p class="text-muted text-center small mb-4">Join <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'us')); ?> for personalized shopping & fast checkout</p>
 
                             <form action="<?= site_url('auth/register'); ?>" method="POST">
                                 <div class="row g-3 mb-3">

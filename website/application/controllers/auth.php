@@ -43,7 +43,12 @@ class auth extends MY_Controller {
 
                     $this->session->set_flashdata('success', 'Welcome back, ' . $user['first_name'] . '!');
 
-                    // Redirect to home page as requested
+                    // Redirect to stored destination if available, otherwise home
+                    $redirect_url = $this->session->userdata('redirect_url');
+                    if (!empty($redirect_url)) {
+                        $this->session->unset_userdata('redirect_url');
+                        redirect($redirect_url);
+                    }
                     redirect('');
                 } else {
                     $this->session->set_flashdata('error', 'Invalid email address or password.');
@@ -53,7 +58,7 @@ class auth extends MY_Controller {
         }
 
         $data = [
-            'title'       => 'Customer Sign In - Modave',
+            'title'       => 'Customer Sign In - ' . $this->site_name,
             'active_page' => 'login'
         ];
 
@@ -97,7 +102,7 @@ class auth extends MY_Controller {
                     'user_logged_in'  => TRUE
                 ]);
 
-                $this->session->set_flashdata('success', 'Registration successful! Welcome to Modave.');
+                $this->session->set_flashdata('success', 'Registration successful! Welcome to ' . $this->site_name . '.');
 
                 // Redirect to home page as requested
                 redirect('');
@@ -107,7 +112,7 @@ class auth extends MY_Controller {
         }
 
         $data = [
-            'title'       => 'Create an Account - Modave',
+            'title'       => 'Create an Account - ' . $this->site_name,
             'active_page' => 'register'
         ];
 
@@ -126,5 +131,126 @@ class auth extends MY_Controller {
         ]);
         $this->session->set_flashdata('success', 'You have been signed out.');
         redirect('');
+    }
+
+    public function send_otp()
+    {
+        $identifier = trim($this->input->post('identifier', TRUE));
+        if (empty($identifier)) {
+            $this->json_response(['success' => false, 'message' => 'Please enter a valid phone number or email address.']);
+        }
+
+        $is_email = filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
+        $clean_phone = preg_replace('/[^0-9+]/', '', $identifier);
+
+        if (!$is_email && (strlen($clean_phone) < 7 || strlen($clean_phone) > 15)) {
+            $this->json_response(['success' => false, 'message' => 'Please enter a valid 10-digit mobile number or email address.']);
+        }
+
+        $target = $is_email ? strtolower($identifier) : $clean_phone;
+        $otp = (string) mt_rand(100000, 999999);
+
+        // Store OTP in session
+        $this->session->set_userdata('otp_auth', [
+            'identifier' => $target,
+            'type'       => $is_email ? 'email' : 'phone',
+            'code'       => $otp,
+            'expires_at' => time() + 600 // 10 minutes
+        ]);
+
+        if ($is_email) {
+            @mail($target, "Your {$this->site_name} OTP Code", "Your verification OTP code for {$this->site_name} is: {$otp}. Valid for 10 minutes.");
+        }
+
+        $this->json_response([
+            'success'    => true,
+            'message'    => 'One-Time Password (OTP) has been sent to ' . html_escape($target) . '.',
+            'identifier' => $target,
+            'type'       => $is_email ? 'email' : 'phone',
+            'demo_otp'   => $otp // Exposed for seamless testing in local environment
+        ]);
+    }
+
+    public function verify_otp()
+    {
+        $identifier = trim($this->input->post('identifier', TRUE));
+        $otp        = trim($this->input->post('otp', TRUE));
+
+        if (empty($identifier) || empty($otp)) {
+            $this->json_response(['success' => false, 'message' => 'Please enter the 6-digit OTP code.']);
+        }
+
+        $is_email = filter_var($identifier, FILTER_VALIDATE_EMAIL) !== false;
+        $target = $is_email ? strtolower($identifier) : preg_replace('/[^0-9+]/', '', $identifier);
+
+        $otp_session = $this->session->userdata('otp_auth');
+        if (!$otp_session || !isset($otp_session['code'])) {
+            $this->json_response(['success' => false, 'message' => 'OTP expired or not requested. Please request a new code.']);
+        }
+
+        if (time() > $otp_session['expires_at']) {
+            $this->session->unset_userdata('otp_auth');
+            $this->json_response(['success' => false, 'message' => 'OTP code has expired. Please request a new code.']);
+        }
+
+        if ($otp_session['identifier'] !== $target || $otp_session['code'] !== $otp) {
+            $this->json_response(['success' => false, 'message' => 'Invalid OTP code. Please enter the correct code.']);
+        }
+
+        // OTP is valid! Find or auto-register user
+        $user = $this->user_model->get_by_email_or_phone($target);
+
+        if (!$user) {
+            if ($is_email) {
+                $email_parts = explode('@', $target);
+                $first_name  = ucfirst($email_parts[0]);
+                $last_name   = 'Customer';
+                $email       = $target;
+                $phone       = NULL;
+            } else {
+                $first_name  = 'Member';
+                $last_name   = substr($target, -4);
+                $email       = $target . '@customer.local';
+                $phone       = $target;
+            }
+
+            $new_user_id = $this->user_model->register([
+                'first_name' => $first_name,
+                'last_name'  => $last_name,
+                'email'      => $email,
+                'phone'      => $phone,
+                'password'   => password_hash($otp . time(), PASSWORD_BCRYPT),
+                'status'     => 'active'
+            ]);
+
+            $user = $this->user_model->get_by_id($new_user_id);
+        }
+
+        // Clear OTP session
+        $this->session->unset_userdata('otp_auth');
+
+        // Set logged in session
+        $this->session->set_userdata([
+            'user_id'         => $user['id'],
+            'user_first_name' => $user['first_name'],
+            'user_last_name'  => $user['last_name'],
+            'user_email'      => $user['email'],
+            'user_phone'      => $user['phone'],
+            'user_logged_in'  => TRUE
+        ]);
+
+        $redirect_to = $this->input->post('redirect_to', TRUE) ?: site_url('checkout');
+
+        $this->json_response([
+            'success'  => true,
+            'message'  => 'Successfully verified! Redirecting...',
+            'user'     => [
+                'id'         => $user['id'],
+                'first_name' => $user['first_name'],
+                'last_name'  => $user['last_name'],
+                'email'      => $user['email']
+            ],
+            'redirect' => $redirect_to
+        ]);
     }
 }

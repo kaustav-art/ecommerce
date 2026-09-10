@@ -17,7 +17,7 @@
 
                 <div class="content lh-lg text-secondary">
                     <h5 class="fw-bold text-dark mt-4 mb-2">1. Overview</h5>
-                    <p>This website is operated by <?= html_escape($store_settings['site_name'] ?? 'Modave'); ?>. Throughout the site, the terms "we", "us" and "our" refer to <?= html_escape($store_settings['site_name'] ?? 'Modave'); ?>. By visiting our site and/ or purchasing something from us, you engage in our "Service" and agree to be bound by the following terms and conditions.</p>
+                    <p>This website is operated by <?= html_escape($site_name); ?>. Throughout the site, the terms "we", "us" and "our" refer to <?= html_escape($site_name); ?>. By visiting our site and/ or purchasing something from us, you engage in our "Service" and agree to be bound by the following terms and conditions.</p>
 
                     <h5 class="fw-bold text-dark mt-4 mb-2">2. Products & Pricing</h5>
                     <p>Prices for our products are subject to change without notice. We reserve the right at any time to modify or discontinue any product or service without notice at any time. We have made every effort to display as accurately as possible the colors and images of our products that appear at the store.</p>

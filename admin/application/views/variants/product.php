@@ -25,6 +25,7 @@
         <div class="card-body pt-3">
           <form action="<?= site_url('variants/product/' . $product['id']); ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" id="var_id" value="">
+            <input type="hidden" name="group_variant_ids" id="var_group_variant_ids" value="">
             <input type="hidden" name="gallery_submitted" value="1">
 
             <div class="mb-3">
@@ -51,9 +52,10 @@
               </div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3" id="var_stock_wrapper">
               <label class="form-label" for="var_stock">Stock Quantity (per variant) <span class="text-danger">*</span></label>
               <input type="number" class="form-control" id="var_stock" name="stock_quantity" value="10" required>
+              <small class="text-muted d-block" id="var_stock_helper" style="font-size: 11px;">When sizes are selected below, manage stock for each size in the section below.</small>
             </div>
 
             <!-- Main Variant Image -->
@@ -150,8 +152,29 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-1">
                           <span class="text-muted small" id="selected-sizes-count" style="font-size: 11px;">0 sizes selected</span>
-                          <span class="text-muted small fst-italic" style="font-size: 10px;">Creates 1 variant per size</span>
+                          <span class="text-muted small fst-italic" style="font-size: 10px;">Manage stock per size</span>
                         </div>
+
+                        <!-- Manage Stock by Size Dynamic Container -->
+                        <div id="var_size_stock_manager" class="mt-2 p-2 bg-light rounded border" style="display: none;">
+                          <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom flex-wrap gap-1">
+                            <span class="small fw-bold text-dark">
+                              <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> Stock by Size:
+                            </span>
+                            <div class="d-flex align-items-center gap-1">
+                              <input type="number" min="0" class="form-control form-control-sm text-end p-1" id="quick_var_stock_val" placeholder="10" value="10" style="width: 60px; font-size: 11px;">
+                              <button type="button" class="btn btn-outline-primary btn-xs py-0" onclick="applyVarStockToAll()">Set All</button>
+                            </div>
+                          </div>
+                          <div id="var_size_stock_inputs_list" class="d-flex flex-column gap-1">
+                            <!-- Populated dynamically -->
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center mt-2 pt-1 border-top">
+                            <small class="text-muted" style="font-size: 11px;">Total Variant Stock:</small>
+                            <strong class="text-primary small" id="var_total_sizes_stock">0 units</strong>
+                          </div>
+                        </div>
+
                       </div>
                     <?php else: ?>
                       <!-- Standard Attribute (Color, Material, etc.) -->
@@ -181,81 +204,121 @@
       </div>
     </div>
 
-    <!-- Table: Variants List -->
+    <!-- Table: Variants List (Grouped by Color / Base Variant with Group Size) -->
     <div class="col-lg-8">
       <div class="card">
         <div class="card-header border-bottom d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">Existing Variants (<?= count($variants); ?>)</h5>
+          <div>
+            <h5 class="card-title mb-0">Existing Variants (<?= count($variant_groups); ?> Groups)</h5>
+            <small class="text-muted"><?= count($variants); ?> individual size variations total</small>
+          </div>
         </div>
         <div class="table-responsive text-nowrap">
-          <table class="table table-hover">
+          <table class="table table-hover align-middle">
             <thead>
               <tr>
                 <th>Variant</th>
-                <th>SKU</th>
-                <th>Attributes</th>
+                <th>Base SKU</th>
+                <th>Attributes & Grouped Sizes</th>
                 <th>Price</th>
                 <th>Stock</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <?php if (!empty($variants)): ?>
-                <?php foreach ($variants as $v): ?>
+              <?php if (!empty($variant_groups)): ?>
+                <?php foreach ($variant_groups as $grp): ?>
                   <tr>
                     <td>
                       <div class="d-flex align-items-center">
-                        <div class="position-relative me-2" style="width: 38px; height: 38px; flex-shrink: 0;">
-                          <img src="<?= base_url('../website/assets/images/' . ($v['image'] ?: $product['main_image'])); ?>" class="rounded w-100 h-100 object-fit-cover" onerror="this.src='<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>'">
+                        <div class="position-relative me-2" style="width: 44px; height: 44px; flex-shrink: 0;">
+                          <img src="<?= base_url('../website/assets/images/' . ($grp['image'] ?: $product['main_image'])); ?>" class="rounded w-100 h-100 object-fit-cover" onerror="this.src='<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>'">
                           <?php 
-                            $v_gal = !empty($v['gallery_images']) ? (json_decode($v['gallery_images'], true) ?: []) : []; 
-                            if (!empty($v_gal)):
+                            $grp_gal = !empty($grp['gallery_images']) ? (is_array($grp['gallery_images']) ? $grp['gallery_images'] : (json_decode($grp['gallery_images'], true) ?: [])) : []; 
+                            if (!empty($grp_gal)):
                           ?>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 8px; padding: 2px 4px;" title="<?= count($v_gal); ?> gallery photos">+<?= count($v_gal); ?></span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info" style="font-size: 8px; padding: 2px 4px;" title="<?= count($grp_gal); ?> gallery photos">+<?= count($grp_gal); ?></span>
                           <?php endif; ?>
                         </div>
                         <div>
-                          <strong><?= html_escape($v['title']); ?></strong>
-                          <?php if (!empty($v_gal)): ?>
-                            <small class="text-muted d-block" style="font-size: 11px;"><i class="fa-solid fa-images me-1"></i><?= count($v_gal); ?> gallery photos</small>
+                          <strong class="d-block text-truncate" style="max-width: 170px;" title="<?= html_escape($grp['title']); ?>"><?= html_escape($grp['title']); ?></strong>
+                          <?php if (!empty($grp['non_size_attrs'])): ?>
+                            <?php foreach ($grp['non_size_attrs'] as $nsa): ?>
+                              <span class="badge bg-label-secondary d-inline-flex align-items-center mt-1" style="font-size: 10px;">
+                                <?php if (!empty($nsa['color_code'])): ?>
+                                  <span class="rounded-circle me-1" style="width: 8px; height: 8px; background: <?= html_escape($nsa['color_code']); ?>; display: inline-block; border: 1px solid rgba(0,0,0,0.2);"></span>
+                                <?php endif; ?>
+                                <?= html_escape($nsa['attribute_name']); ?>: <?= html_escape($nsa['attribute_value']); ?>
+                              </span>
+                            <?php endforeach; ?>
                           <?php endif; ?>
                         </div>
                       </div>
                     </td>
-                    <td><code><?= html_escape($v['sku']); ?></code></td>
                     <td>
-                      <?php if (!empty($v['values'])): ?>
-                        <?php foreach ($v['values'] as $val): ?>
-                          <span class="badge bg-label-primary me-1">
-                            <?= html_escape($val['attribute_name']); ?>: <?= html_escape($val['attribute_value']); ?>
-                          </span>
-                        <?php endforeach; ?>
-                      <?php else: ?>
-                        <span class="text-muted small">Standard</span>
+                      <code><?= html_escape($grp['base_sku']); ?></code>
+                      <?php if ($grp['has_sizes']): ?>
+                        <small class="text-muted d-block" style="font-size: 10px;"><?= count($grp['sizes']); ?> size SKUs</small>
                       <?php endif; ?>
                     </td>
                     <td>
-                      <?php if (!empty($v['sale_price'])): ?>
-                        <strong class="text-danger">$<?= number_format($v['sale_price'], 2); ?></strong>
-                        <small class="text-muted text-decoration-line-through d-block">$<?= number_format($v['price'], 2); ?></small>
+                      <?php if ($grp['has_sizes'] && !empty($grp['sizes'])): ?>
+                        <!-- Grouped Sizes with Individual Stock Badges -->
+                        <div class="d-flex flex-wrap gap-1 align-items-center" style="max-width: 260px;">
+                          <?php foreach ($grp['sizes'] as $sz): ?>
+                            <?php if ($sz['stock'] > 0): ?>
+                              <span class="badge bg-label-primary px-2 py-1" style="font-size: 11px;" title="SKU: <?= html_escape($sz['sku']); ?> | Stock: <?= $sz['stock']; ?>">
+                                <strong><?= html_escape($sz['size_name']); ?>:</strong> <?= $sz['stock']; ?>
+                              </span>
+                            <?php else: ?>
+                              <span class="badge bg-label-danger text-decoration-line-through px-2 py-1" style="font-size: 11px;" title="SKU: <?= html_escape($sz['sku']); ?> | Out of stock">
+                                <strong><?= html_escape($sz['size_name']); ?>:</strong> 0
+                              </span>
+                            <?php endif; ?>
+                          <?php endforeach; ?>
+                        </div>
+                        <button type="button" class="btn btn-link btn-xs p-0 text-primary mt-1 text-decoration-none fw-semibold" style="font-size: 11px;" onclick="openQuickStockModal(<?= htmlspecialchars(json_encode($grp), ENT_QUOTES, 'UTF-8'); ?>)">
+                          <i class="fa-solid fa-boxes-stacked me-1"></i>Manage Stock by Size
+                        </button>
                       <?php else: ?>
-                        <strong>$<?= number_format($v['price'], 2); ?></strong>
+                        <span class="text-muted small">Standard (No sizes)</span>
                       <?php endif; ?>
                     </td>
                     <td>
-                      <?php if ($v['stock_quantity'] > 0): ?>
-                        <span class="badge bg-label-success"><?= $v['stock_quantity']; ?> in stock</span>
+                      <?php if (!empty($grp['sale_price'])): ?>
+                        <strong class="text-danger">$<?= number_format($grp['sale_price'], 2); ?></strong>
+                        <small class="text-muted text-decoration-line-through d-block">$<?= number_format($grp['price'], 2); ?></small>
                       <?php else: ?>
-                        <span class="badge bg-label-danger">Out of stock</span>
+                        <strong>$<?= number_format($grp['price'], 2); ?></strong>
                       <?php endif; ?>
                     </td>
                     <td>
-                      <button type="button" class="btn btn-xs btn-outline-primary me-1" onclick="editVar(<?= htmlspecialchars(json_encode($v), ENT_QUOTES, 'UTF-8'); ?>)">
+                      <div class="d-flex flex-column">
+                        <strong class="<?= ($grp['total_stock'] > 0) ? 'text-success' : 'text-danger'; ?>">
+                          <?= $grp['total_stock']; ?> in stock
+                        </strong>
+                        <?php if ($grp['has_sizes']): ?>
+                          <small class="text-muted" style="font-size: 10px;">
+                            <?= $grp['in_stock_count']; ?> in stock, <?= $grp['out_of_stock_count']; ?> out
+                          </small>
+                        <?php endif; ?>
+                      </div>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-xs btn-outline-primary me-1" title="Edit Variant Group" onclick="editVarGroup(<?= htmlspecialchars(json_encode($grp), ENT_QUOTES, 'UTF-8'); ?>)">
                         <i class="fa-solid fa-pen-to-square"></i>
                       </button>
-                      <a href="<?= site_url('variants/delete/' . $product['id'] . '/' . $v['id']); ?>" class="btn btn-xs btn-outline-danger" onclick="return confirm('Delete this variant?');">
-                        <i class="fa-solid fa-trash-can"></i>
-                      </a>
+                      <?php if ($grp['has_sizes']): ?>
+                        <button type="button" class="btn btn-xs btn-outline-info me-1" title="Manage Stock by Size" onclick="openQuickStockModal(<?= htmlspecialchars(json_encode($grp), ENT_QUOTES, 'UTF-8'); ?>)">
+                          <i class="fa-solid fa-boxes-stacked"></i>
+                        </button>
+                      <?php endif; ?>
+                      <form action="<?= site_url('variants/delete_group/' . $product['id']); ?>" method="POST" class="d-inline" onsubmit="return confirm('Delete this variant group (<?= count($grp['variant_ids']); ?> sizes)?');">
+                        <input type="hidden" name="variant_ids" value="<?= implode(',', $grp['variant_ids']); ?>">
+                        <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete Variant Group">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                      </form>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -267,6 +330,51 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Manage Stock Modal -->
+<div class="modal fade" id="quickStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header pb-2 border-bottom">
+        <div>
+          <h5 class="modal-title mb-0" id="quickStockModalTitle">
+            <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> Manage Stock by Size
+          </h5>
+          <small class="text-muted" id="quickStockModalSubtitle"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="quickStockForm">
+          <input type="hidden" id="qs_product_id" value="<?= $product['id']; ?>">
+          
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <span class="small fw-semibold text-secondary">Adjust quantities for each size:</span>
+            <div class="d-flex align-items-center gap-1">
+              <input type="number" min="0" class="form-control form-control-sm text-end" id="qs_quick_set_all" placeholder="Qty" value="10" style="width: 65px;">
+              <button type="button" class="btn btn-outline-primary btn-xs" onclick="applyQsStockToAll()">Set All</button>
+            </div>
+          </div>
+
+          <div id="quickStockList" class="d-flex flex-column gap-2">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+            <span class="text-muted small">Total Updated Stock:</span>
+            <strong class="text-primary fs-6" id="qs_total_stock_display">0 units</strong>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnSaveQuickStock" onclick="submitQuickStock()">
+          <i class="fa-solid fa-check me-1"></i> Save Stock Changes
+        </button>
       </div>
     </div>
   </div>
@@ -416,30 +524,13 @@ function updateVarExistingGalleryUI() {
   }
 }
 
-// SIZE CHIP SELECTION
+// SIZE CHIP SELECTION & STOCK BY SIZE
 function toggleSizeChip(valId) {
   var cb = document.getElementById('size_input_' + valId);
   var label = document.getElementById('size_chip_label_' + valId);
   if (!cb || !label) return;
 
-  var isEdit = !!document.getElementById('var_id').value;
-  if (isEdit) {
-    // In edit mode: single selection
-    document.querySelectorAll('.size-chip-checkbox').forEach(function(otherCb) {
-      if (otherCb !== cb) {
-        otherCb.checked = false;
-        var otherLabel = document.getElementById('size_chip_label_' + otherCb.value);
-        if (otherLabel) {
-          otherLabel.style.background = '#fff';
-          otherLabel.style.borderColor = '#d4d5d9';
-          otherLabel.style.color = '#515569';
-        }
-      }
-    });
-    cb.checked = !cb.checked;
-  } else {
-    cb.checked = !cb.checked;
-  }
+  cb.checked = !cb.checked;
 
   if (cb.checked) {
     label.style.background = '#666cff';
@@ -452,12 +543,10 @@ function toggleSizeChip(valId) {
   }
 
   updateSizeSelectionInfo();
+  renderVarSizeStockInputs();
 }
 
 function selectAllSizes(enable) {
-  var isEdit = !!document.getElementById('var_id').value;
-  if (isEdit) return; // Disallowed in single edit mode
-
   document.querySelectorAll('.size-chip-checkbox').forEach(function(cb) {
     cb.checked = enable;
     var label = document.getElementById('size_chip_label_' + cb.value);
@@ -475,6 +564,7 @@ function selectAllSizes(enable) {
   });
 
   updateSizeSelectionInfo();
+  renderVarSizeStockInputs();
 }
 
 function updateSizeSelectionInfo() {
@@ -498,6 +588,100 @@ function updateSizeSelectionInfo() {
   updateSkuPreview();
 }
 
+// Render dynamic Stock by Size inputs in the form
+function renderVarSizeStockInputs(presetStocks) {
+  var checkedCbs = document.querySelectorAll('.size-chip-checkbox:checked');
+  var container = document.getElementById('var_size_stock_manager');
+  var list = document.getElementById('var_size_stock_inputs_list');
+  var stockWrapper = document.getElementById('var_stock_wrapper');
+  if (!container || !list) return;
+
+  var baseSku = (document.getElementById('var_sku') ? document.getElementById('var_sku').value.trim() : '') || 'SKU';
+
+  if (checkedCbs.length === 0) {
+    container.style.display = 'none';
+    if (stockWrapper) stockWrapper.style.display = 'block';
+    return;
+  }
+
+  container.style.display = 'block';
+  if (stockWrapper) stockWrapper.style.display = 'none';
+
+  // Read existing input values unless presetStocks provided
+  var existingVals = presetStocks || {};
+  if (!presetStocks) {
+    document.querySelectorAll('.var-size-qty-input').forEach(function(inp) {
+      existingVals[inp.getAttribute('data-size-id')] = inp.value;
+    });
+  }
+
+  list.innerHTML = '';
+  checkedCbs.forEach(function(cb) {
+    var sizeId = cb.value;
+    var sizeName = cb.getAttribute('data-val') || '';
+    var existingQty = (existingVals[sizeId] !== undefined && existingVals[sizeId] !== '') ? existingVals[sizeId] : '10';
+    var isOut = parseInt(existingQty, 10) === 0;
+    var vSku = baseSku;
+    if (!new RegExp('-' + sizeName + '$', 'i').test(vSku)) {
+      vSku += '-' + sizeName.toUpperCase();
+    }
+
+    var row = document.createElement('div');
+    row.className = 'd-flex align-items-center justify-content-between p-1 px-2 border rounded bg-white';
+    row.id = 'var_size_row_' + sizeId;
+    row.innerHTML = 
+      '<div class="d-flex align-items-center gap-2">' +
+        '<span class="badge bg-primary fw-bold" style="min-width: 32px;">' + sizeName + '</span>' +
+        '<code class="small text-muted var-size-sku-preview" style="font-size: 11px;">' + vSku + '</code>' +
+      '</div>' +
+      '<div class="d-flex align-items-center gap-1">' +
+        '<div class="input-group input-group-sm" style="width: 115px;">' +
+          '<span class="input-group-text p-1 text-muted" style="font-size: 10px;">Qty</span>' +
+          '<input type="number" min="0" class="form-control form-control-sm text-end var-size-qty-input p-1" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + existingQty + '" oninput="recalcVarTotalStock()">' +
+        '</div>' +
+        '<span class="badge ' + (isOut ? 'bg-label-danger' : 'bg-label-success') + ' var-size-status-pill" style="font-size: 9px; min-width: 48px;">' + (isOut ? 'Out' : 'In') + '</span>' +
+      '</div>';
+    list.appendChild(row);
+  });
+
+  recalcVarTotalStock();
+}
+
+function applyVarStockToAll() {
+  var val = document.getElementById('quick_var_stock_val') ? document.getElementById('quick_var_stock_val').value : '10';
+  document.querySelectorAll('.var-size-qty-input').forEach(function(inp) {
+    inp.value = val;
+  });
+  recalcVarTotalStock();
+}
+
+function recalcVarTotalStock() {
+  var total = 0;
+  document.querySelectorAll('.var-size-qty-input').forEach(function(inp) {
+    var qty = parseInt(inp.value, 10) || 0;
+    total += qty;
+    var row = inp.closest('#var_size_row_' + inp.getAttribute('data-size-id'));
+    if (row) {
+      var pill = row.querySelector('.var-size-status-pill');
+      if (pill) {
+        if (qty <= 0) {
+          pill.className = 'badge bg-label-danger var-size-status-pill';
+          pill.textContent = 'Out';
+        } else {
+          pill.className = 'badge bg-label-success var-size-status-pill';
+          pill.textContent = 'In';
+        }
+      }
+    }
+  });
+
+  var totalEl = document.getElementById('var_total_sizes_stock');
+  if (totalEl) totalEl.textContent = total + ' units';
+
+  var stockInp = document.getElementById('var_stock');
+  if (stockInp) stockInp.value = total;
+}
+
 function onNonSizeAttrChange(selectEl, slug) {
   if (slug === 'color') {
     var opt = selectEl.options[selectEl.selectedIndex];
@@ -509,7 +693,7 @@ function onNonSizeAttrChange(selectEl, slug) {
       var prodSku = '<?= html_escape($product["sku"]); ?>';
 
       if (!document.getElementById('var_id').value) {
-        // Only auto-fill if in Add mode
+        // Auto-fill in Add mode
         if (baseTitleInput && (!baseTitleInput.value || baseTitleInput.value.indexOf(prodTitle) === 0)) {
           baseTitleInput.value = prodTitle + ' - ' + colorName;
         }
@@ -524,17 +708,20 @@ function onNonSizeAttrChange(selectEl, slug) {
 }
 
 function updateSkuPreview() {
-  var isEdit = !!document.getElementById('var_id').value;
   var helper = document.getElementById('sku-preview-helper');
   if (!helper) return;
 
-  if (isEdit) {
-    helper.style.display = 'none';
-    return;
-  }
-
   var baseSku = document.getElementById('var_sku').value.trim();
   var checked = document.querySelectorAll('.size-chip-checkbox:checked');
+
+  // Update dynamic size previews
+  document.querySelectorAll('#var_size_stock_inputs_list .var-size-sku-preview').forEach(function(el) {
+    var row = el.closest('[id^="var_size_row_"]');
+    var badge = row ? row.querySelector('.badge.bg-primary') : null;
+    if (badge && baseSku) {
+      el.textContent = baseSku + '-' + badge.textContent.trim().toUpperCase();
+    }
+  });
 
   if (!baseSku || checked.length <= 1) {
     helper.style.display = 'none';
@@ -552,40 +739,42 @@ function updateSkuPreview() {
   });
 
   helper.style.display = 'block';
-  helper.innerHTML = '<i class="fa-solid fa-layer-group me-1"></i>Will create ' + checked.length + ' variants: <code class="text-dark">' + skus.join(', ') + '</code>';
+  helper.innerHTML = '<i class="fa-solid fa-layer-group me-1"></i>Group of ' + checked.length + ' sizes: <code class="text-dark">' + skus.join(', ') + '</code>';
 }
 
-function editVar(v) {
-  document.getElementById('variant-form-title').innerText = 'Edit Variant: ' + v.title;
-  document.getElementById('var_id').value = v.id;
-  document.getElementById('var_title').value = v.title;
-  document.getElementById('var_sku').value = v.sku;
-  document.getElementById('var_price').value = v.price;
-  document.getElementById('var_sale_price').value = v.sale_price || '';
-  document.getElementById('var_stock').value = v.stock_quantity;
-  document.getElementById('var_current_image').value = v.image || '<?= html_escape($product['main_image']); ?>';
-  
+// Edit Variant Group
+function editVarGroup(grp) {
+  document.getElementById('variant-form-title').innerText = 'Edit Variant: ' + grp.title;
+  document.getElementById('var_id').value = grp.primary_id;
+  document.getElementById('var_group_variant_ids').value = grp.variant_ids.join(',');
+  document.getElementById('var_title').value = grp.title;
+  document.getElementById('var_sku').value = grp.base_sku;
+  document.getElementById('var_price').value = grp.price;
+  document.getElementById('var_sale_price').value = grp.sale_price || '';
+  document.getElementById('var_stock').value = grp.total_stock;
+  document.getElementById('var_current_image').value = grp.image || '<?= html_escape($product['main_image']); ?>';
+
   var btnSave = document.getElementById('btn-save-var');
   if (btnSave) {
-    btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Update Variant';
+    btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Update Variant Group';
   }
 
-  var imgSrc = v.image ? ('<?= base_url('../website/assets/images/'); ?>' + v.image) : ('<?= base_url('../website/assets/images/' . $product['main_image']); ?>');
+  var imgSrc = grp.image ? ('<?= base_url('../website/assets/images/'); ?>' + grp.image) : ('<?= base_url('../website/assets/images/' . $product['main_image']); ?>');
   document.getElementById('var_preview_img').src = imgSrc;
   document.getElementById('var_image_file').value = '';
 
   // Clear new gallery upload
   clearAllVarGalleryFiles();
 
-  // Load existing variant gallery
+  // Load existing gallery
   var galList = document.getElementById('var_existing_gallery_list');
   var galWrapper = document.getElementById('var_existing_gallery_wrapper');
   if (galList && galWrapper) {
     galList.innerHTML = '';
     var existingGal = [];
-    if (v.gallery_images) {
+    if (grp.gallery_images) {
       try {
-        existingGal = typeof v.gallery_images === 'string' ? JSON.parse(v.gallery_images) : v.gallery_images;
+        existingGal = typeof grp.gallery_images === 'string' ? JSON.parse(grp.gallery_images) : grp.gallery_images;
       } catch(e) { existingGal = []; }
     }
 
@@ -613,37 +802,47 @@ function editVar(v) {
     }
   }
 
-  // Set attribute values
-  // Reset size chips first
-  selectAllSizes(false);
-  var sizeQuickActions = document.getElementById('size-quick-actions');
-  if (sizeQuickActions) sizeQuickActions.style.display = 'none';
-
-  if (v.values && v.values.length > 0) {
-    v.values.forEach(function(val) {
-      var sel = document.getElementById('attr_val_' + val.attribute_id);
+  // Set non-size attributes (e.g. Color)
+  var selects = document.querySelectorAll('select[id^="attr_val_"]');
+  selects.forEach(function(s) { s.value = ''; });
+  if (grp.non_size_attrs && grp.non_size_attrs.length > 0) {
+    grp.non_size_attrs.forEach(function(nsa) {
+      var sel = document.getElementById('attr_val_' + nsa.attribute_id);
       if (sel) {
-        sel.value = val.attribute_value_id;
+        sel.value = nsa.attribute_value_id;
       }
-      // If this is a size attribute
-      var sizeCb = document.getElementById('size_input_' + val.attribute_value_id);
-      var sizeLabel = document.getElementById('size_chip_label_' + val.attribute_value_id);
+    });
+  }
+
+  // Clear all size chips first
+  selectAllSizes(false);
+
+  // Check chips for each size in grp.sizes and build preset stocks map
+  var presetStocks = {};
+  if (grp.sizes && grp.sizes.length > 0) {
+    grp.sizes.forEach(function(sz) {
+      var sizeCb = document.getElementById('size_input_' + sz.size_id);
+      var sizeLabel = document.getElementById('size_chip_label_' + sz.size_id);
       if (sizeCb && sizeLabel) {
         sizeCb.checked = true;
         sizeLabel.style.background = '#666cff';
         sizeLabel.style.borderColor = '#666cff';
         sizeLabel.style.color = '#fff';
       }
+      presetStocks[sz.size_id] = sz.stock;
     });
   }
 
   updateSizeSelectionInfo();
+  renderVarSizeStockInputs(presetStocks);
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function resetVarForm() {
   document.getElementById('variant-form-title').innerText = 'Add Product Variant';
   document.getElementById('var_id').value = '';
+  document.getElementById('var_group_variant_ids').value = '';
   document.getElementById('var_title').value = '';
   document.getElementById('var_sku').value = '';
   document.getElementById('var_price').value = '<?= $product['price']; ?>';
@@ -668,11 +867,129 @@ function resetVarForm() {
   var selects = document.querySelectorAll('select[id^="attr_val_"]');
   selects.forEach(function(s) { s.value = ''; });
 
-  // Show quick actions in Add mode
-  var sizeQuickActions = document.getElementById('size-quick-actions');
-  if (sizeQuickActions) sizeQuickActions.style.display = 'flex';
-
   selectAllSizes(false);
+  renderVarSizeStockInputs();
   updateSkuPreview();
+}
+
+// Quick Stock Management Modal
+var activeQsGroup = null;
+var qsModalInstance = null;
+
+function openQuickStockModal(grp) {
+  activeQsGroup = grp;
+  document.getElementById('quickStockModalSubtitle').textContent = grp.title + ' (' + grp.base_sku + ')';
+  var list = document.getElementById('quickStockList');
+  list.innerHTML = '';
+
+  if (!grp.sizes || grp.sizes.length === 0) {
+    list.innerHTML = '<div class="text-muted small py-2">No sizes configured for this variant.</div>';
+    return;
+  }
+
+  grp.sizes.forEach(function(sz) {
+    var isOut = sz.stock <= 0;
+    var row = document.createElement('div');
+    row.className = 'd-flex align-items-center justify-content-between p-2 border rounded bg-white shadow-sm';
+    row.id = 'qs_size_row_' + sz.variant_id;
+    row.innerHTML = 
+      '<div class="d-flex align-items-center gap-2">' +
+        '<span class="badge bg-primary fs-6 fw-bold" style="min-width: 40px;">' + sz.size_name + '</span>' +
+        '<div>' +
+          '<code class="d-block" style="font-size: 11px;">' + sz.sku + '</code>' +
+          '<span class="badge ' + (isOut ? 'bg-label-danger' : 'bg-label-success') + ' qs-status-badge" style="font-size: 9px;">' +
+            (isOut ? 'Out of stock' : 'In stock') +
+          '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="d-flex align-items-center gap-2">' +
+        '<div class="input-group input-group-sm" style="width: 120px;">' +
+          '<span class="input-group-text">Qty</span>' +
+          '<input type="number" min="0" class="form-control text-end qs-stock-input" data-var-id="' + sz.variant_id + '" value="' + sz.stock + '" oninput="recalcQsTotal()">' +
+        '</div>' +
+      '</div>';
+    list.appendChild(row);
+  });
+
+  recalcQsTotal();
+
+  var modalEl = document.getElementById('quickStockModal');
+  qsModalInstance = new bootstrap.Modal(modalEl);
+  qsModalInstance.show();
+}
+
+function applyQsStockToAll() {
+  var val = document.getElementById('qs_quick_set_all') ? document.getElementById('qs_quick_set_all').value : '10';
+  document.querySelectorAll('.qs-stock-input').forEach(function(inp) {
+    inp.value = val;
+  });
+  recalcQsTotal();
+}
+
+function recalcQsTotal() {
+  var total = 0;
+  document.querySelectorAll('.qs-stock-input').forEach(function(inp) {
+    var qty = parseInt(inp.value, 10) || 0;
+    total += qty;
+    var row = inp.closest('#qs_size_row_' + inp.getAttribute('data-var-id'));
+    if (row) {
+      var badge = row.querySelector('.qs-status-badge');
+      if (badge) {
+        if (qty <= 0) {
+          badge.className = 'badge bg-label-danger qs-status-badge';
+          badge.textContent = 'Out of stock';
+        } else {
+          badge.className = 'badge bg-label-success qs-status-badge';
+          badge.textContent = 'In stock';
+        }
+      }
+    }
+  });
+
+  var totalEl = document.getElementById('qs_total_stock_display');
+  if (totalEl) totalEl.textContent = total + ' units';
+}
+
+function submitQuickStock() {
+  if (!activeQsGroup) return;
+
+  var btn = document.getElementById('btnSaveQuickStock');
+  var origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+  var payload = new URLSearchParams();
+  payload.append('product_id', '<?= $product["id"]; ?>');
+
+  document.querySelectorAll('.qs-stock-input').forEach(function(inp) {
+    var vId = inp.getAttribute('data-var-id');
+    var qty = inp.value;
+    payload.append('stocks[' + vId + ']', qty);
+  });
+
+  fetch('<?= site_url("variants/update_size_stocks"); ?>', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: payload.toString()
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+    if (data.status === 'success') {
+      if (qsModalInstance) qsModalInstance.hide();
+      window.location.reload();
+    } else {
+      alert(data.message || 'Error updating stocks');
+    }
+  })
+  .catch(function(err) {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+    alert('Request failed');
+  });
 }
 </script>

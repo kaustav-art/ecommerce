@@ -288,9 +288,7 @@
             <div class="canvas-wrapper">
                 <div class="canvas-header d-flex justify-content-between align-items-center p-3 border-bottom">
                     <h5 class="m-0 fw-bold">Filters</h5>
-                    <span class="icon-close icon-close-popup cursor-pointer" data-bs-dismiss="offcanvas" aria-label="Close">
-                        <i class="fa-solid fa-xmark fs-5"></i>
-                    </span>
+                    <span class="icon-close icon-close-popup cursor-pointer" data-bs-dismiss="offcanvas" aria-label="Close"></span>
                 </div>
                 <div class="canvas-body p-3">
                     <form action="<?= $selected_category ? site_url('shop/' . $selected_category['slug']) : site_url('shop'); ?>" method="GET" id="shopFilterForm">

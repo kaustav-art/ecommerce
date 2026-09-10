@@ -78,11 +78,97 @@ class variants extends MY_Controller {
                 $sale_price = $this->input->post('sale_price') ? (float) $this->input->post('sale_price') : NULL;
                 $stock      = (int) $this->input->post('stock_quantity');
 
-                if (!empty($id)) {
-                    // --- EDIT EXISTING VARIANT ---
+                $group_variant_ids_str = $this->input->post('group_variant_ids');
+                $group_variant_ids     = !empty($group_variant_ids_str) ? array_filter(array_map('intval', explode(',', $group_variant_ids_str))) : [];
+                $size_stocks           = $this->input->post('size_stock') ?: [];
+                $selected_sizes        = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
+
+                if (!empty($group_variant_ids)) {
+                    // --- EDIT GROUPED VARIANT (MULTIPLE SIZES) ---
+                    $existing_variants = $this->db->where_in('id', $group_variant_ids)->get('product_variants')->result_array();
+                    $existing_by_size  = [];
+                    foreach ($existing_variants as $ev) {
+                        $pv_val = $this->db->where('variant_id', $ev['id'])->where('attribute_id', $size_attr_id)->get('product_variant_values')->row_array();
+                        if ($pv_val) {
+                            $existing_by_size[$pv_val['attribute_value_id']] = $ev;
+                        }
+                    }
+
+                    $processed_var_ids = [];
+                    if ($size_attr_id && !empty($selected_sizes)) {
+                        foreach ($selected_sizes as $s_id) {
+                            $s_name = $size_map[$s_id] ?? '';
+                            $v_sku = $base_sku;
+                            if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
+                                $v_sku .= '-' . strtoupper($s_name);
+                            }
+                            $v_title = $base_title;
+                            if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
+                                $v_title .= ' / ' . $s_name;
+                            }
+                            $s_stock = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : $stock;
+
+                            $v_data = [
+                                'product_id'     => (int) $product_id,
+                                'title'          => $v_title,
+                                'sku'            => $v_sku,
+                                'price'          => $price,
+                                'sale_price'     => $sale_price,
+                                'stock_quantity' => $s_stock,
+                                'stock_status'   => $s_stock > 0 ? 'in_stock' : 'out_of_stock',
+                                'image'          => $image_path,
+                                'gallery_images' => $gallery_json
+                            ];
+                            $v_attrs = $attr_vals;
+                            $v_attrs[$size_attr_id] = $s_id;
+
+                            if (isset($existing_by_size[$s_id])) {
+                                $this->variant_model->update($existing_by_size[$s_id]['id'], $v_data, $v_attrs);
+                                $processed_var_ids[] = (int) $existing_by_size[$s_id]['id'];
+                            } else {
+                                $new_v_id = $this->variant_model->create($v_data, $v_attrs);
+                                $processed_var_ids[] = (int) $new_v_id;
+                            }
+                        }
+
+                        // Remove sizes that were unchecked from the group
+                        $removed_var_ids = array_diff($group_variant_ids, $processed_var_ids);
+                        if (!empty($removed_var_ids)) {
+                            $this->variant_model->delete_multiple($removed_var_ids, $product_id);
+                        }
+                    } else {
+                        // Group had sizes but now no sizes selected - update primary variant
+                        $primary_id = reset($group_variant_ids);
+                        $data = [
+                            'product_id'     => (int) $product_id,
+                            'title'          => $base_title,
+                            'sku'            => $base_sku,
+                            'price'          => $price,
+                            'sale_price'     => $sale_price,
+                            'stock_quantity' => $stock,
+                            'stock_status'   => $stock > 0 ? 'in_stock' : 'out_of_stock',
+                            'image'          => $image_path,
+                            'gallery_images' => $gallery_json
+                        ];
+                        $this->variant_model->update($primary_id, $data, $attr_vals);
+
+                        $other_ids = array_diff($group_variant_ids, [$primary_id]);
+                        if (!empty($other_ids)) {
+                            $this->variant_model->delete_multiple($other_ids, $product_id);
+                        }
+                    }
+
+                    $this->variant_model->sync_product_stock($product_id);
+                    $this->session->set_flashdata('success', 'Variant group updated successfully.');
+
+                } elseif (!empty($id)) {
+                    // --- EDIT EXISTING SINGLE VARIANT ---
                     $single_size_id = !empty($size_vals) ? (is_array($size_vals) ? reset($size_vals) : $size_vals) : null;
                     if ($size_attr_id && !empty($single_size_id)) {
                         $attr_vals[$size_attr_id] = $single_size_id;
+                        if (isset($size_stocks[$single_size_id])) {
+                            $stock = max(0, (int) $size_stocks[$single_size_id]);
+                        }
                     }
 
                     $data = [
@@ -98,13 +184,13 @@ class variants extends MY_Controller {
                     ];
 
                     $this->variant_model->update($id, $data, $attr_vals);
+                    $this->variant_model->sync_product_stock($product_id);
                     $this->session->set_flashdata('success', 'Variant updated successfully.');
+
                 } else {
                     // --- ADD NEW VARIANT(S) ---
-                    $selected_sizes = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
-
-                    if ($size_attr_id && count($selected_sizes) > 1) {
-                        // MULTIPLE SIZES SELECTED
+                    if ($size_attr_id && !empty($selected_sizes)) {
+                        // SIZES SELECTED WITH INDIVIDUAL STOCKS
                         $created_count = 0;
                         foreach ($selected_sizes as $s_id) {
                             $s_name = $size_map[$s_id] ?? '';
@@ -121,14 +207,16 @@ class variants extends MY_Controller {
                                 $v_title .= ' / ' . $s_name;
                             }
 
+                            $s_stock = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : $stock;
+
                             $v_data = [
                                 'product_id'     => (int) $product_id,
                                 'title'          => $v_title,
                                 'sku'            => $v_sku,
                                 'price'          => $price,
                                 'sale_price'     => $sale_price,
-                                'stock_quantity' => $stock,
-                                'stock_status'   => $stock > 0 ? 'in_stock' : 'out_of_stock',
+                                'stock_quantity' => $s_stock,
+                                'stock_status'   => $s_stock > 0 ? 'in_stock' : 'out_of_stock',
                                 'image'          => $image_path,
                                 'gallery_images' => $gallery_json
                             ];
@@ -148,27 +236,14 @@ class variants extends MY_Controller {
                             }
                             $created_count++;
                         }
-                        $this->session->set_flashdata('success', $created_count . ' variants created successfully for selected sizes!');
+                        $this->variant_model->sync_product_stock($product_id);
+                        $this->session->set_flashdata('success', $created_count . ' variants created successfully with managed stock by size!');
                     } else {
-                        // SINGLE SIZE OR NO SIZE
-                        $v_sku = $base_sku;
-                        $v_title = $base_title;
-                        if ($size_attr_id && count($selected_sizes) === 1) {
-                            $s_id = reset($selected_sizes);
-                            $attr_vals[$size_attr_id] = $s_id;
-                            $s_name = $size_map[$s_id] ?? '';
-                            if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
-                                $v_sku .= '-' . strtoupper($s_name);
-                            }
-                            if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
-                                $v_title .= ' / ' . $s_name;
-                            }
-                        }
-
+                        // NO SIZE ATTRIBUTE SELECTED
                         $data = [
                             'product_id'     => (int) $product_id,
-                            'title'          => $v_title,
-                            'sku'            => $v_sku,
+                            'title'          => $base_title,
+                            'sku'            => $base_sku,
                             'price'          => $price,
                             'sale_price'     => $sale_price,
                             'stock_quantity' => $stock,
@@ -178,8 +253,20 @@ class variants extends MY_Controller {
                         ];
 
                         $this->variant_model->create($data, $attr_vals);
+                        $this->variant_model->sync_product_stock($product_id);
                         $this->session->set_flashdata('success', 'Variant created successfully.');
                     }
+                }
+
+                // Ensure assigned attributes in product_attributes are kept in sync
+                $assigned_attr_ids = array_keys($attr_vals);
+                if (!empty($selected_sizes) && $size_attr_id) {
+                    $assigned_attr_ids[] = $size_attr_id;
+                }
+                if (!empty($assigned_attr_ids)) {
+                    $existing_attrs = array_column($this->attribute_model->get_product_attributes($product_id), 'attribute_id');
+                    $all_attrs = array_unique(array_merge($existing_attrs, $assigned_attr_ids));
+                    $this->attribute_model->save_product_attributes($product_id, $all_attrs);
                 }
 
                 // Ensure product type is marked as variable
@@ -189,15 +276,17 @@ class variants extends MY_Controller {
             }
         }
 
-        $variants   = $this->variant_model->get_by_product($product_id);
-        $attributes = $this->attribute_model->get_all();
+        $variants       = $this->variant_model->get_by_product($product_id);
+        $variant_groups = $this->variant_model->get_grouped_by_product($product_id);
+        $attributes     = $this->attribute_model->get_all();
 
         $data = [
             'title'          => 'Variants for ' . html_escape($product['title']) . ' | Admin',
             'active_menu'    => 'products',
             'active_submenu' => 'products_list',
-            'product'        => $product,
+            'product'        => $this->product_model->get_by_id($product_id), // fresh data with updated stock
             'variants'       => $variants,
+            'variant_groups' => $variant_groups,
             'attributes'     => $attributes
         ];
         $this->render('variants/product', $data);
@@ -207,8 +296,60 @@ class variants extends MY_Controller {
     {
         $this->require_permission('products.manage');
         $this->variant_model->delete($variant_id);
+        $this->variant_model->sync_product_stock($product_id);
         $this->session->set_flashdata('success', 'Variant deleted.');
         redirect('variants/product/' . $product_id);
+    }
+
+    public function delete_group($product_id)
+    {
+        $this->require_permission('products.manage');
+        $var_ids_str = $this->input->post('variant_ids') ?: $this->input->get('variant_ids');
+        $var_ids = array_filter(array_map('intval', explode(',', $var_ids_str)));
+
+        if (!empty($var_ids)) {
+            $this->variant_model->delete_multiple($var_ids, $product_id);
+            $this->session->set_flashdata('success', 'Variant group (' . count($var_ids) . ' sizes) deleted successfully.');
+        } else {
+            $this->session->set_flashdata('error', 'No variant IDs provided.');
+        }
+        redirect('variants/product/' . $product_id);
+    }
+
+    public function update_size_stocks()
+    {
+        $this->require_permission('products.manage');
+        $product_id = (int) $this->input->post('product_id');
+        $stocks     = $this->input->post('stocks'); // array: variant_id => qty
+
+        if (!$product_id || empty($stocks) || !is_array($stocks)) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        foreach ($stocks as $v_id => $qty) {
+            $int_v_id = (int) $v_id;
+            $int_qty  = max(0, (int) $qty);
+            $status   = $int_qty > 0 ? 'in_stock' : 'out_of_stock';
+            $this->db->where('id', $int_v_id)
+                     ->where('product_id', $product_id)
+                     ->update('product_variants', [
+                         'stock_quantity' => $int_qty,
+                         'stock_status'   => $status,
+                         'updated_at'     => date('Y-m-d H:i:s')
+                     ]);
+        }
+
+        $total_stock = $this->variant_model->sync_product_stock($product_id);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'      => 'success',
+            'message'     => 'Stock quantities updated successfully!',
+            'total_stock' => $total_stock
+        ]);
+        exit;
     }
 
     public function delete_gallery_image()

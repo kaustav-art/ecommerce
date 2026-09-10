@@ -133,11 +133,11 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold">Store Brand Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" name="site_name" value="<?= html_escape($settings['site_name'] ?? ''); ?>" required placeholder="e.g. Modave eCommerce">
+                  <input type="text" class="form-control" name="site_name" value="<?= html_escape($settings['site_name'] ?? ''); ?>" required placeholder="e.g. Store Brand Name">
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold">Support Email Address <span class="text-danger">*</span></label>
-                  <input type="email" class="form-control" name="admin_email" value="<?= html_escape($settings['admin_email'] ?? ($settings['site_email'] ?? '')); ?>" required placeholder="support@modave.com">
+                  <input type="email" class="form-control" name="admin_email" value="<?= html_escape($settings['admin_email'] ?? ($settings['site_email'] ?? '')); ?>" required placeholder="support@example.com">
                 </div>
               </div>
 
@@ -325,12 +325,12 @@
 
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label class="form-label fw-semibold">Sender "From" Email Address</label>
-                  <input type="email" class="form-control" name="from_email" value="<?= html_escape($settings['from_email'] ?? 'orders@modave.com'); ?>" placeholder="orders@modave.com">
+                  <label class="form-label fw-semibold">From Email Address</label>
+                  <input type="email" class="form-control" name="from_email" value="<?= html_escape($settings['from_email'] ?? 'orders@example.com'); ?>" placeholder="orders@example.com">
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label class="form-label fw-semibold">Sender "From" Display Name</label>
-                  <input type="text" class="form-control" name="from_name" value="<?= html_escape($settings['from_name'] ?? 'Modave Online Store'); ?>" placeholder="Modave Store">
+                  <label class="form-label fw-semibold">From Sender Name</label>
+                  <input type="text" class="form-control" name="from_name" value="<?= html_escape($settings['from_name'] ?? ($settings['site_name'] ?? 'Store')); ?>" placeholder="Store Brand Name">
                 </div>
               </div>
 
@@ -402,7 +402,7 @@
               
               <div class="mb-3">
                 <label class="form-label fw-semibold">Default Meta Title</label>
-                <input type="text" class="form-control" name="meta_title" value="<?= html_escape($settings['meta_title'] ?? 'Modave - Multipurpose Modern eCommerce Platform'); ?>" placeholder="Store Title">
+                <input type="text" class="form-control" name="meta_title" value="<?= html_escape($settings['meta_title'] ?? (($settings['site_name'] ?? 'Store') . ' - Multipurpose Modern eCommerce Platform')); ?>" placeholder="Store Title">
                 <small class="text-muted">Primary title tag for search engines and browser tabs.</small>
               </div>
 

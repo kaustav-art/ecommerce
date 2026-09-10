@@ -63,6 +63,69 @@
             </div>
           </div>
         </div>
+
+        <!-- Product Type & Variants Card -->
+        <div class="card mb-4 <?= ($product['product_type'] === 'variable') ? 'border-primary' : ''; ?>">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 d-flex align-items-center">
+              <i class="fa-solid fa-code-fork <?= ($product['product_type'] === 'variable') ? 'text-primary' : 'text-secondary'; ?> me-2"></i>
+              Product Type & Variants
+            </h5>
+            <span class="badge bg-<?= ($product['product_type'] === 'variable') ? 'primary' : 'secondary'; ?> text-uppercase">
+              <?= html_escape($product['product_type'] ?? 'simple'); ?>
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold" for="product_type">Product Type</label>
+                <select class="form-select" id="product_type" name="product_type">
+                  <option value="simple" <?= ($product['product_type'] === 'simple') ? 'selected' : ''; ?>>Simple Product</option>
+                  <option value="variable" <?= ($product['product_type'] === 'variable') ? 'selected' : ''; ?>>Variable Product (Variants & Sizes)</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Variants Status</label>
+                <div>
+                  <span class="badge bg-label-primary fs-6 py-2 px-3">
+                    <i class="fa-solid fa-boxes-stacked me-1"></i> <?= (int) $variants_count; ?> Variant<?= $variants_count == 1 ? '' : 's'; ?> Configured
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <?php if (!empty($assigned_attributes)): ?>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold text-muted d-block mb-1">Assigned Attributes:</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <?php foreach ($assigned_attributes as $attr): ?>
+                    <span class="badge bg-label-info py-2 px-3">
+                      <i class="fa-solid fa-tag me-1"></i> <?= html_escape($attr['name']); ?>
+                    </span>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            <?php endif; ?>
+
+            <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded bg-light border mt-2">
+              <div>
+                <h6 class="mb-1 fw-bold text-dark">
+                  <i class="fa-solid fa-sliders me-1 text-primary"></i> Variant & Stock Management
+                </h6>
+                <small class="text-muted">Manage size groups, per-size inventory, custom SKUs, and variant images.</small>
+              </div>
+              <a href="<?= site_url('variants/product/' . $product['id']); ?>" class="btn btn-primary mt-2 mt-sm-0">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Manage Variants & Sizes
+              </a>
+            </div>
+
+            <?php if ($product['product_type'] === 'variable'): ?>
+              <small class="text-muted d-block mt-2" style="font-size: 11px;">
+                <i class="fa-solid fa-circle-info me-1 text-primary"></i> Note: For variable products, total stock quantity is automatically calculated and synchronized from the individual size stocks in the variants manager.
+              </small>
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
 
       <div class="col-12 col-lg-4">

@@ -26,7 +26,7 @@ class order extends MY_Controller {
         }
 
         $data = [
-            'title'       => 'Order Tracking - Modave',
+            'title'       => 'Order Tracking - ' . $this->site_name,
             'active_page' => 'track',
             'searched'    => $searched,
             'order'       => $order

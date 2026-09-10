@@ -30,7 +30,7 @@
                                 "key": "<?= html_escape($razorpay['key_id']); ?>",
                                 "amount": "<?= html_escape($razorpay['amount_subunit']); ?>",
                                 "currency": "INR",
-                                "name": "<?= html_escape($store_settings['site_name'] ?? 'Modave eCommerce'); ?>",
+                                "name": "<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>",
                                 "description": "Order Payment for #<?= html_escape($order['order_number']); ?>",
                                 "order_id": "<?= html_escape($razorpay['razorpay_order_id']); ?>",
                                 "handler": function (response){

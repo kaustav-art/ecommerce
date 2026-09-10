@@ -31,7 +31,7 @@ class compare extends MY_Controller {
         }
 
         $data = [
-            'title'        => 'Product Comparison - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'        => 'Product Comparison - ' . $this->site_name,
             'active_page'  => 'compare',
             'products'     => $products,
             'all_specs'    => $all_specs

@@ -11,14 +11,14 @@
                                     ? base_url('assets/images/logo/' . $store_settings['site_logo'])
                                     : base_url('assets/images/logo/logo.webp');
                                 ?>
-                                <img src="<?= $footer_logo; ?>" alt="<?= html_escape($store_settings['site_name'] ?? 'Codeulas'); ?>" style="max-height: 42px; width: auto; background: #ffffff; padding: 5px 12px; border-radius: 6px;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
+                                <img src="<?= $footer_logo; ?>" alt="<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>" style="max-height: 42px; width: auto; background: #ffffff; padding: 5px 12px; border-radius: 6px;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
                             </a>
                             <p class="text-white-50 small">Multipurpose eCommerce Platform powered by CodeIgniter 3 MVC</p>
                         </div>
                         <ul class="list-unstyled text-white-50 small">
                             <li class="mb-2"><i class="fa-solid fa-location-dot me-2 text-primary"></i> <?= html_escape($store_settings['site_address'] ?? '123 Commerce St'); ?></li>
                             <li class="mb-2"><i class="fa-solid fa-phone me-2 text-primary"></i> <?= html_escape($store_settings['site_phone'] ?? '+1 800 555-0199'); ?></li>
-                            <li class="mb-2"><i class="fa-solid fa-envelope me-2 text-primary"></i> <?= html_escape($store_settings['site_email'] ?? 'support@modave.com'); ?></li>
+                            <li class="mb-2"><i class="fa-solid fa-envelope me-2 text-primary"></i> <?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></li>
                         </ul>
                     </div>
 
@@ -73,7 +73,7 @@
 
                 <div class="border-top border-secondary pt-3 mt-4 d-flex flex-wrap justify-content-between align-items-center text-white-50 small">
                     <div>
-                        © <?= date('Y'); ?> <?= html_escape($store_settings['site_name'] ?? 'Modave'); ?>. All Rights Reserved.
+                        © <?= date('Y'); ?> <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>. All Rights Reserved.
                     </div>
                     <div class="d-flex gap-3">
                         <a href="<?= site_url('terms'); ?>" class="text-white-50 text-decoration-none">Terms</a>

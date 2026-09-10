@@ -13,7 +13,20 @@ class cart_model extends CI_Model {
     public function get_items()
     {
         $cart = $this->session->userdata('cart');
-        return is_array($cart) ? $cart : [];
+        if (!is_array($cart)) {
+            return [];
+        }
+        foreach ($cart as $k => &$item) {
+            if (empty($item['regular_price']) || $item['regular_price'] <= $item['price']) {
+                $item['regular_price'] = round($item['price'] * 1.30, 2);
+            }
+            if (!empty($item['regular_price']) && $item['regular_price'] > $item['price']) {
+                $item['discount_percent'] = round((($item['regular_price'] - $item['price']) / $item['regular_price']) * 100);
+            } else {
+                $item['discount_percent'] = 0;
+            }
+        }
+        return $cart;
     }
 
     public function add_item($product_id, $quantity = 1, $variant_id = NULL)
@@ -49,34 +62,45 @@ class cart_model extends CI_Model {
         // Price calculation
         if ($variant) {
             $price = !empty($variant['sale_price']) ? (float) $variant['sale_price'] : (float) $variant['price'];
+            $regular_price = !empty($variant['price']) ? (float) $variant['price'] : round($price * 1.30, 2);
             $image = !empty($variant['image']) ? $variant['image'] : $product['main_image'];
             $sku   = !empty($variant['sku']) ? $variant['sku'] : $product['sku'];
         } else {
             $price = !empty($product['sale_price']) ? (float) $product['sale_price'] : (float) $product['price'];
+            $regular_price = !empty($product['price']) ? (float) $product['price'] : round($price * 1.30, 2);
             $image = $product['main_image'];
             $sku   = $product['sku'];
         }
+        if ($regular_price <= $price) {
+            $regular_price = round($price * 1.30, 2);
+        }
+        $disc_pct = ($regular_price > $price) ? round((($regular_price - $price) / $regular_price) * 100) : 0;
 
         $cart[$cart_key] = [
-            'cart_key'      => $cart_key,
-            'id'            => (int) $product['id'],
-            'variant_id'    => $variant ? (int) $variant['id'] : NULL,
-            'variant_title' => $variant ? $variant['title'] : NULL,
-            'title'         => $product['title'],
-            'slug'          => $product['slug'],
-            'sku'           => $sku,
-            'image'         => $image,
-            'price'         => (float) $price,
-            'quantity'      => $target_qty,
-            'total'         => (float) ($price * $target_qty),
-            'stock_max'     => $available_stock
+            'cart_key'         => $cart_key,
+            'id'               => (int) $product['id'],
+            'variant_id'       => $variant ? (int) $variant['id'] : NULL,
+            'variant_title'    => $variant ? $variant['title'] : NULL,
+            'title'            => $product['title'],
+            'slug'             => $product['slug'],
+            'sku'              => $sku,
+            'image'            => $image,
+            'price'            => (float) $price,
+            'regular_price'    => (float) $regular_price,
+            'discount_percent' => $disc_pct,
+            'quantity'         => $target_qty,
+            'total'            => (float) ($price * $target_qty),
+            'stock_max'        => $available_stock
         ];
 
         $this->session->set_userdata('cart', $cart);
+        $summary = $this->get_cart_summary();
         return [
             'success'      => true,
             'message'      => 'Item added to your shopping cart.',
-            'cart_summary' => $this->get_cart_summary()
+            'cart_count'   => $summary['item_count'],
+            'cart_summary' => $summary,
+            'item'         => $cart[$cart_key]
         ];
     }
 
@@ -98,7 +122,8 @@ class cart_model extends CI_Model {
         }
 
         $this->session->set_userdata('cart', $cart);
-        return ['success' => true, 'cart_summary' => $this->get_cart_summary()];
+        $summary = $this->get_cart_summary();
+        return ['success' => true, 'cart_count' => $summary['item_count'], 'cart_summary' => $summary];
     }
 
     public function remove_item($cart_key)
@@ -108,7 +133,8 @@ class cart_model extends CI_Model {
             unset($cart[$cart_key]);
             $this->session->set_userdata('cart', $cart);
         }
-        return ['success' => true, 'cart_summary' => $this->get_cart_summary()];
+        $summary = $this->get_cart_summary();
+        return ['success' => true, 'cart_count' => $summary['item_count'], 'cart_summary' => $summary];
     }
 
     public function clear_cart()

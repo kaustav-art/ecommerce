@@ -14,7 +14,7 @@
                                 ? base_url('assets/images/logo/' . $store_settings['site_logo'])
                                 : base_url('assets/images/logo/logo.webp');
                             ?>
-                            <img src="<?= $web_logo; ?>" alt="<?= html_escape($store_settings['site_name'] ?? 'Codeulas'); ?>" class="logo" style="max-height: 44px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
+                            <img src="<?= $web_logo; ?>" alt="<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>" class="logo" style="max-height: 44px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
                         </a>
                     </div>
                     <div class="col-xl-6 d-none d-xl-block">
@@ -187,7 +187,7 @@
                                         <li><a class="dropdown-item py-2 text-danger" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Logout</a></li>
                                     </ul>
                                 <?php else: ?>
-                                    <a href="<?= site_url('login'); ?>" class="nav-icon-item" title="Login / Register">
+                                    <a href="#loginModal" data-bs-toggle="modal" class="nav-icon-item" title="Login / Register">
                                         <i class="fa-solid fa-user"></i>
                                     </a>
                                 <?php endif; ?>
@@ -209,7 +209,7 @@
 
                             <!-- Shopping Cart Icon -->
                             <li class="nav-cart">
-                                <a href="<?= site_url('cart'); ?>" class="nav-icon-item position-relative" title="Cart">
+                                <a href="#shoppingCart" data-bs-toggle="modal" class="nav-icon-item position-relative" title="Cart">
                                     <i class="fa-solid fa-bag-shopping"></i>
                                     <span class="count-box count-cart bg-danger" id="cart-counter"><?= $cart_count; ?></span>
                                 </a>

@@ -78,4 +78,20 @@ class attribute_model extends CI_Model {
                         ->get()
                         ->result_array();
     }
+
+    public function save_product_attributes($product_id, $attribute_ids)
+    {
+        $this->db->where('product_id', (int) $product_id)->delete('product_attributes');
+        if (!empty($attribute_ids) && is_array($attribute_ids)) {
+            $unique_ids = array_unique(array_filter(array_map('intval', $attribute_ids)));
+            foreach ($unique_ids as $attr_id) {
+                if ($attr_id > 0) {
+                    $this->db->insert('product_attributes', [
+                        'product_id'   => (int) $product_id,
+                        'attribute_id' => $attr_id
+                    ]);
+                }
+            }
+        }
+    }
 }

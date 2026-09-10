@@ -38,7 +38,7 @@
                             <div class="fs-4 text-primary"><i class="fa-solid fa-envelope"></i></div>
                             <div>
                                 <h6 class="mb-0 fw-bold">Email Inquiries</h6>
-                                <p class="text-muted small mb-0"><?= html_escape($store_settings['site_email'] ?? 'contact@modave.com'); ?></p>
+                                <p class="text-muted small mb-0"><?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></p>
                             </div>
                         </div>
                     </div>

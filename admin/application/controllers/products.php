@@ -10,6 +10,8 @@ class products extends MY_Controller {
         $this->load->model('category_model');
         $this->load->model('brand_model');
         $this->load->model('setting_model');
+        $this->load->model('attribute_model');
+        $this->load->model('variant_model');
     }
 
     public function index()
@@ -68,19 +70,42 @@ class products extends MY_Controller {
                 // Handle Additional Gallery Images upload
                 $gallery_images = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
 
+                // Check if variants or attributes are enabled/assigned
+                $has_variants = (bool) $this->input->post('has_variants');
+                $size_vals    = $this->input->post('size_vals');
+                $size_stocks  = $this->input->post('size_stock') ?: [];
+                $attr_vals    = array_filter((array) $this->input->post('attr_vals'));
+                $selected_sizes = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
+
+                if (!empty($selected_sizes) || !empty($attr_vals)) {
+                    $has_variants = true;
+                }
+
+                $product_type = $has_variants ? 'variable' : ($this->input->post('product_type', TRUE) ?: 'simple');
+
+                // Calculate initial stock: if sizes with individual stock are selected, sum them
+                $initial_stock = (int) $this->input->post('stock_quantity');
+                if ($has_variants && !empty($selected_sizes)) {
+                    $sum_size_stock = 0;
+                    foreach ($selected_sizes as $s_id) {
+                        $sum_size_stock += isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : 10;
+                    }
+                    $initial_stock = $sum_size_stock;
+                }
+
                 $insert_data = [
                     'category_id'         => (int) $this->input->post('category_id'),
                     'brand_id'            => $this->input->post('brand_id') ? (int) $this->input->post('brand_id') : NULL,
-                    'product_type'        => $this->input->post('product_type', TRUE) ?: 'simple',
+                    'product_type'        => $product_type,
                     'title'               => $title,
                     'slug'                => $slug,
                     'sku'                 => strtoupper($this->input->post('sku', TRUE)),
                     'price'               => (float) $this->input->post('price'),
                     'sale_price'          => $this->input->post('sale_price') ? (float) $this->input->post('sale_price') : NULL,
                     'tax_rate'            => (float) $this->input->post('tax_rate'),
-                    'stock_quantity'      => (int) $this->input->post('stock_quantity'),
+                    'stock_quantity'      => $initial_stock,
                     'low_stock_threshold' => (int) $this->input->post('low_stock_threshold') ?: 5,
-                    'stock_status'        => $this->input->post('stock_quantity') > 0 ? 'in_stock' : 'out_of_stock',
+                    'stock_status'        => $initial_stock > 0 ? 'in_stock' : 'out_of_stock',
                     'short_description'   => $this->input->post('short_description', TRUE),
                     'description'         => $this->input->post('description'),
                     'main_image'          => $main_image,
@@ -104,6 +129,109 @@ class products extends MY_Controller {
                 }
                 $this->product_model->save_specifications($new_id, $specs);
 
+                // Process Assigned Attributes & Variants if enabled
+                if ($has_variants && (!empty($selected_sizes) || !empty($attr_vals))) {
+                    $all_attributes = $this->attribute_model->get_all();
+                    $size_attr_id   = null;
+                    $size_map       = [];
+                    $color_name     = '';
+
+                    foreach ($all_attributes as $attr) {
+                        $is_size = (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0);
+                        if ($is_size) {
+                            $size_attr_id = (int) $attr['id'];
+                            if (!empty($attr['values'])) {
+                                foreach ($attr['values'] as $val) {
+                                    $size_map[$val['id']] = $val['value'];
+                                }
+                            }
+                        }
+                        if (isset($attr_vals[$attr['id']])) {
+                            $selected_val_id = $attr_vals[$attr['id']];
+                            if (!empty($attr['values'])) {
+                                foreach ($attr['values'] as $val) {
+                                    if ($val['id'] == $selected_val_id && (strcasecmp($attr['slug'], 'color') === 0 || strcasecmp($attr['name'], 'color') === 0)) {
+                                        $color_name = $val['value'];
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Save assigned attributes to product_attributes
+                    $assigned_attrs = array_keys($attr_vals);
+                    if (!empty($selected_sizes) && $size_attr_id) {
+                        $assigned_attrs[] = $size_attr_id;
+                    }
+                    $this->attribute_model->save_product_attributes($new_id, $assigned_attrs);
+
+                    // Build base variant title & SKU
+                    $base_var_title = $insert_data['title'];
+                    if (!empty($color_name)) {
+                        $base_var_title .= ' - ' . $color_name;
+                    }
+                    $base_var_sku = $insert_data['sku'];
+
+                    $created_var_count = 0;
+                    if (!empty($selected_sizes) && $size_attr_id) {
+                        // Create a variant for each size
+                        foreach ($selected_sizes as $s_id) {
+                            $s_name = $size_map[$s_id] ?? '';
+                            $v_sku = $base_var_sku;
+                            if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
+                                $v_sku .= '-' . strtoupper($s_name);
+                            }
+                            $v_title = $base_var_title;
+                            if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
+                                $v_title .= ' / ' . $s_name;
+                            }
+
+                            $v_stock  = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : 10;
+                            $v_status = $v_stock > 0 ? 'in_stock' : 'out_of_stock';
+
+                            $v_data = [
+                                'product_id'     => $new_id,
+                                'title'          => $v_title,
+                                'sku'            => $v_sku,
+                                'price'          => $insert_data['price'],
+                                'sale_price'     => $insert_data['sale_price'],
+                                'stock_quantity' => $v_stock,
+                                'stock_status'   => $v_status,
+                                'image'          => $main_image,
+                                'gallery_images' => json_encode($gallery_images)
+                            ];
+
+                            $v_attrs = $attr_vals;
+                            $v_attrs[$size_attr_id] = $s_id;
+
+                            $this->variant_model->create($v_data, $v_attrs);
+                            $created_var_count++;
+                        }
+                    } elseif (!empty($attr_vals)) {
+                        // Single variant for non-size attributes
+                        $v_data = [
+                            'product_id'     => $new_id,
+                            'title'          => $base_var_title,
+                            'sku'            => $base_var_sku,
+                            'price'          => $insert_data['price'],
+                            'sale_price'     => $insert_data['sale_price'],
+                            'stock_quantity' => $insert_data['stock_quantity'],
+                            'stock_status'   => $insert_data['stock_status'],
+                            'image'          => $main_image,
+                            'gallery_images' => json_encode($gallery_images)
+                        ];
+                        $this->variant_model->create($v_data, $attr_vals);
+                        $created_var_count++;
+                    }
+
+                    // Sync product stock
+                    $this->variant_model->sync_product_stock($new_id);
+
+                    $this->session->set_flashdata('success', 'Product created with ' . $created_var_count . ' variants for assigned attributes! You can manage them below.');
+                    redirect('variants/product/' . $new_id);
+                    return;
+                }
+
                 $this->session->set_flashdata('success', 'Product created successfully!');
                 
                 if ($insert_data['product_type'] === 'variable') {
@@ -119,7 +247,8 @@ class products extends MY_Controller {
             'active_menu'    => 'products',
             'active_submenu' => 'products_add',
             'categories'     => $this->category_model->get_all(),
-            'brands'         => $this->brand_model->get_all()
+            'brands'         => $this->brand_model->get_all(),
+            'attributes'     => $this->attribute_model->get_all()
         ];
 
         $this->render('products/add', $data);
@@ -204,12 +333,15 @@ class products extends MY_Controller {
         }
 
         $data = [
-            'title'          => 'Edit Product | Admin',
-            'active_menu'    => 'products',
-            'active_submenu' => 'products_list',
-            'product'        => $product,
-            'categories'     => $this->category_model->get_all(),
-            'brands'         => $this->brand_model->get_all()
+            'title'               => 'Edit Product | Admin',
+            'active_menu'         => 'products',
+            'active_submenu'      => 'products_list',
+            'product'             => $product,
+            'categories'          => $this->category_model->get_all(),
+            'brands'              => $this->brand_model->get_all(),
+            'attributes'          => $this->attribute_model->get_all(),
+            'assigned_attributes' => $this->attribute_model->get_product_attributes($id),
+            'variants_count'      => $this->db->where('product_id', (int) $id)->count_all_results('product_variants')
         ];
 
         $this->render('products/edit', $data);

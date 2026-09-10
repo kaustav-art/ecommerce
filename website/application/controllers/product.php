@@ -44,7 +44,7 @@ class product extends MY_Controller {
         $is_in_compare = is_array($compare_ids) && in_array($product['id'], $compare_ids);
 
         $data = [
-            'title'                      => $product['title'] . ' - Modave',
+            'title'                      => $product['title'] . ' - ' . $this->site_name,
             'active_page'                => 'shop',
             'product'                    => $product,
             'related_products'           => $related_products,

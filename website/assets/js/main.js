@@ -635,21 +635,24 @@
             });
 
             function updateTotalPrice(price, scope) {
+                var rawPriceText = scope.find(".price-on-sale").text() || scope.find(".product-current-price").text() || "";
                 var currentPrice =
                     price ||
-                    parseFloat(
-                        scope.find(".price-on-sale").text().replace("$", "")
-                    );
-                var quantity = parseInt(scope.find(".quantity-product").val());
+                    parseFloat(scope.find(".price-on-sale").data("base-price")) ||
+                    parseFloat(rawPriceText.replace(/[^0-9.]/g, "")) ||
+                    0;
+                var quantity = parseInt(scope.find(".quantity-product").val(), 10) || 1;
                 var totalPrice = currentPrice * quantity;
-                scope
-                    .find(".total-price")
-                    .text(
-                        "$" +
-                            totalPrice
-                                .toFixed(2)
-                                .replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    );
+                if (!isNaN(totalPrice) && totalPrice > 0) {
+                    scope
+                        .find(".total-price")
+                        .text(
+                            "$" +
+                                totalPrice
+                                    .toFixed(2)
+                                    .replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                        );
+                }
             }
         });
     };

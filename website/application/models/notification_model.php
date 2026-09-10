@@ -17,10 +17,12 @@ class notification_model extends CI_Model {
 
         // If user has no notifications yet, generate helpful welcome notifications!
         if (empty($notifications)) {
+            $this->load->model('setting_model');
+            $site_name = $this->setting_model->get('site_name', 'our store');
             $welcome = [
                 'user_id'    => (int) $user_id,
-                'title'      => 'Welcome to Modave!',
-                'message'    => 'Thank you for joining Modave eCommerce. Explore our new collection and enjoy free standard shipping on your first order.',
+                'title'      => "Welcome to {$site_name}!",
+                'message'    => "Thank you for joining {$site_name}. Explore our new collection and enjoy free standard shipping on your first order.",
                 'type'       => 'account',
                 'link'       => 'shop',
                 'is_read'    => 0,
@@ -31,7 +33,7 @@ class notification_model extends CI_Model {
             $promo = [
                 'user_id'    => (int) $user_id,
                 'title'      => 'Member Exclusive: 10% Off',
-                'message'    => 'Use coupon code MODAVE10 at checkout to save 10% on trending styles this week.',
+                'message'    => 'Use coupon code WELCOME10 at checkout to save 10% on trending styles this week.',
                 'type'       => 'promo',
                 'link'       => 'shop',
                 'is_read'    => 0,

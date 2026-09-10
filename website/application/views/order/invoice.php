@@ -74,10 +74,10 @@
         <!-- Invoice Header -->
         <div class="invoice-header d-flex justify-content-between align-items-start">
             <div>
-                <h3 class="fw-bold text-dark mb-1"><?= html_escape($store_settings['site_name'] ?? 'Modave eCommerce'); ?></h3>
+                <h3 class="fw-bold text-dark mb-1"><?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?></h3>
                 <p class="text-muted small mb-0"><?= html_escape($store_settings['site_address'] ?? '123 Commerce St'); ?></p>
                 <p class="text-muted small mb-0">Phone: <?= html_escape($store_settings['site_phone'] ?? '+1 800 555-0199'); ?></p>
-                <p class="text-muted small mb-0">Email: <?= html_escape($store_settings['site_email'] ?? 'support@modave.com'); ?></p>
+                <p class="text-muted small mb-0">Email: <?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></p>
             </div>
             <div class="text-end">
                 <div class="invoice-title">INVOICE</div>
@@ -189,7 +189,7 @@
         <!-- Footer -->
         <div class="border-top pt-4 mt-4 text-center text-muted small">
             <p class="mb-1">Thank you for your business! We hope you love your order.</p>
-            <p class="mb-0">Questions? Contact us at <strong><?= html_escape($store_settings['site_email'] ?? 'support@modave.com'); ?></strong> or call <strong><?= html_escape($store_settings['site_phone'] ?? '+1 800 555-0199'); ?></strong>.</p>
+            <p class="mb-0">Questions? Contact us at <strong><?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></strong> or call <strong><?= html_escape($store_settings['site_phone'] ?? '+1 800 555-0199'); ?></strong>.</p>
         </div>
     </div>
 </div>

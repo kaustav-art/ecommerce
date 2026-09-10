@@ -7,6 +7,7 @@ class cart extends MY_Controller {
     {
         parent::__construct();
         $this->load->model('cart_model');
+        $this->load->model('product_model');
     }
 
     public function index()
@@ -14,11 +15,12 @@ class cart extends MY_Controller {
         $shipping_method = $this->session->userdata('shipping_method') ?: 'standard';
 
         $data = [
-            'title'        => 'Shopping Cart - Modave',
-            'active_page'  => 'cart',
-            'cart_items'   => $this->cart_model->get_items(),
-            'saved_items'  => $this->cart_model->get_saved_items(),
-            'cart_summary' => $this->cart_model->get_cart_summary($shipping_method)
+            'title'                => 'Shopping Cart - ' . $this->site_name,
+            'active_page'          => 'cart',
+            'cart_items'           => $this->cart_model->get_items(),
+            'saved_items'          => $this->cart_model->get_saved_items(),
+            'cart_summary'         => $this->cart_model->get_cart_summary($shipping_method),
+            'cart_recommendations' => $this->product_model->get_products([], 8)
         ];
 
         $this->render('cart/index', $data);
@@ -31,6 +33,9 @@ class cart extends MY_Controller {
         $variant_id = $this->input->post('variant_id') ? (int) $this->input->post('variant_id') : NULL;
 
         $result = $this->cart_model->add_item($product_id, $quantity, $variant_id);
+        if (!empty($result['success'])) {
+            $result['cart_items'] = array_values($this->cart_model->get_items());
+        }
 
         if ($this->input->is_ajax_request()) {
             $this->json_response($result);
@@ -42,6 +47,17 @@ class cart extends MY_Controller {
             }
             redirect('cart');
         }
+    }
+
+    public function data()
+    {
+        $summary = $this->cart_model->get_cart_summary();
+        $this->json_response([
+            'success'      => true,
+            'cart_count'   => $summary['item_count'],
+            'cart_summary' => $summary,
+            'cart_items'   => array_values($this->cart_model->get_items())
+        ]);
     }
 
     public function add_bundle()
@@ -78,6 +94,9 @@ class cart extends MY_Controller {
         $quantity = (int) $this->input->post('quantity');
 
         $result = $this->cart_model->update_item($cart_key, $quantity);
+        $items = $this->cart_model->get_items();
+        $result['cart_items'] = array_values($items);
+        $result['item_total'] = isset($items[$cart_key]) ? (float) $items[$cart_key]['total'] : 0.00;
 
         if ($this->input->is_ajax_request()) {
             $this->json_response($result);
@@ -86,12 +105,23 @@ class cart extends MY_Controller {
         }
     }
 
-    public function remove($cart_key)
+    public function remove($cart_key = '')
     {
-        $cart_key = urldecode($cart_key);
-        $this->cart_model->remove_item($cart_key);
-        $this->session->set_flashdata('success', 'Item removed from shopping cart.');
-        redirect('cart');
+        $cart_key = urldecode($cart_key ?: (string) $this->input->post('cart_key'));
+        $result = $this->cart_model->remove_item($cart_key);
+
+        if ($this->input->is_ajax_request()) {
+            $this->json_response([
+                'success'      => true,
+                'message'      => 'Item removed from shopping cart.',
+                'cart_count'   => $result['cart_count'],
+                'cart_summary' => $result['cart_summary'],
+                'cart_items'   => array_values($this->cart_model->get_items())
+            ]);
+        } else {
+            $this->session->set_flashdata('success', 'Item removed from shopping cart.');
+            redirect('cart');
+        }
     }
 
     public function save_for_later($cart_key)

@@ -79,7 +79,7 @@ class orders extends MY_Controller {
         $data = [
             'title'           => 'Invoice #' . $order['order_number'],
             'order'           => $order,
-            'site_name'       => $this->setting_model->get('site_name', 'Modave eCommerce'),
+            'site_name'       => $this->setting_model->get('site_name', 'Store'),
             'site_email'      => $this->setting_model->get('site_email', 'billing@ecommerce.com'),
             'site_address'    => $this->setting_model->get('site_address', '123 Commerce St'),
             'currency_symbol' => $this->setting_model->get('currency_symbol', '$')

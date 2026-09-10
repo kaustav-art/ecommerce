@@ -86,7 +86,7 @@ class shop extends MY_Controller {
         $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
 
         $data = [
-            'title'             => $page_heading . ' - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'             => $page_heading . ' - ' . $this->site_name,
             'active_page'       => 'shop',
             'products'          => $products,
             'total_products'    => $total_products,

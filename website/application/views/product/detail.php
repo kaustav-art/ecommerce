@@ -287,39 +287,37 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     margin-bottom: 16px;
 }
 
-/* Color Variant Slider (as in varient_products.PNG) */
+/* Color Badge Selection (matching color_badge.PNG) */
+.color-badge-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.color-badge-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.2px;
+}
+.color-badge-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
 .color-variant-container {
     position: relative;
-    padding: 0 34px;
-    margin-bottom: 20px;
+    width: 100%;
+    margin-bottom: 22px;
 }
-.color-slider-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 1px solid #d5d9d9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 3;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.12);
-    transition: all 0.2s ease;
-    color: #0F1111;
-}
-.color-slider-arrow:hover {
-    background: #f7fafa;
-    border-color: #007185;
-}
-.color-slider-arrow.prev { left: 0; }
-.color-slider-arrow.next { right: 0; }
+
 .color-slider-track {
     display: flex;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 12px;
     overflow-x: auto;
     scroll-behavior: smooth;
     scrollbar-width: none;
@@ -329,40 +327,83 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 .color-slider-track::-webkit-scrollbar {
     display: none;
 }
+
+/* Portrait capsule thumbnail badge card (color_badge.PNG) */
 .color-thumb-card {
     flex: 0 0 auto;
-    width: 66px;
-    border: 1.5px solid #d5d9d9;
-    border-radius: 6px;
-    padding: 3px;
+    width: 70px;
+    height: 80px;
+    border: 1px solid #dcdfe4;
+    border-radius: 12px;
+    padding: 3.5px;
     cursor: pointer;
     background: #ffffff;
-    text-align: center;
-    transition: all 0.2s ease;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    user-select: none;
 }
+
 .color-thumb-card:hover {
-    border-color: #007185;
+    border-color: #6b7280;
+    transform: translateY(-1px);
 }
+
 .color-thumb-card.active {
-    border: 2px solid #007185;
-    box-shadow: 0 0 0 1px #007185;
+    border: 2px solid #1a1a1a;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
+
 .color-thumb-card img {
     width: 100%;
-    height: 64px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: 8px;
     display: block;
+    pointer-events: none;
 }
-.color-thumb-card .color-thumb-title {
-    display: block;
-    font-size: 11px;
-    color: #0F1111;
-    margin-top: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 500;
+
+/* Circular floating navigation arrows (as shown in color_badge.PNG) */
+.color-slider-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    transition: all 0.2s ease;
+    color: #1a1a1a;
+    font-size: 13px;
+    padding: 0;
+    line-height: 1;
+}
+
+.color-slider-arrow:hover {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.color-slider-arrow.prev {
+    left: -4px;
+}
+
+.color-slider-arrow.next {
+    right: -4px;
 }
 
 /* Size Chips (as in varient_products.PNG) */
@@ -497,23 +538,6 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 .brand-store-link:hover {
     color: #c7511f;
     text-decoration: underline !important;
-}
-
-/* Sticky ATC Bar Animation */
-.tf-sticky-btn-atc {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 998;
-    background: #ffffff;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    padding: 12px 0;
-}
-.tf-sticky-btn-atc.show {
-    transform: translateY(0);
 }
 </style>
 
@@ -679,32 +703,31 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                     <!-- Variant Options Picker (varient_products.PNG) -->
                                     <div class="tf-product-info-choose-option mt-4">
                                         
-                                        <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS -->
+                                        <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS (color_badge.PNG) -->
                                         <?php if ($has_color && !empty($color_map)): ?>
                                             <div class="variant-picker-item mb-4">
-                                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                                    <div class="variant-picker-label">
-                                                        <span class="text-secondary">Selected Color:</span>
-                                                        <strong class="ms-1" id="selected-color-name"><?= html_escape($initial_color); ?></strong>
-                                                    </div>
+                                                <div class="color-badge-heading mb-2">
+                                                    <span class="color-badge-title">Selected Color:</span>
+                                                    <span class="color-badge-name" id="selected-color-name"><?= strtoupper(html_escape($initial_color)); ?></span>
                                                 </div>
 
-                                                <!-- Horizontal color slider with navigation arrows -->
+                                                <!-- Horizontal color slider with navigation arrows (color_badge.PNG) -->
                                                 <div class="color-variant-container">
-                                                    <button type="button" class="color-slider-arrow prev" id="color-arrow-prev" onclick="slideColorTrack(-1)" aria-label="Previous Color">
+                                                    <button type="button" class="color-slider-arrow prev" id="color-arrow-prev" onclick="slideColorTrack(-1)" aria-label="Previous Color" style="display: none;">
                                                         <i class="fa-solid fa-chevron-left"></i>
                                                     </button>
                                                     
-                                                    <div class="color-slider-track" id="color-slider-track">
+                                                    <div class="color-slider-track" id="color-slider-track" onscroll="updateColorSliderArrows()">
                                                         <?php foreach ($color_map as $c_name => $c_info): 
                                                             $is_active_color = ($c_name === $initial_color);
+                                                            $c_img = !empty($c_info['image']) ? $c_info['image'] : $product['main_image'];
                                                         ?>
                                                             <div class="color-thumb-card <?= $is_active_color ? 'active' : ''; ?>" 
                                                                  data-color="<?= html_escape($c_name); ?>"
-                                                                 data-image="<?= base_url('assets/images/' . $c_info['image']); ?>"
-                                                                 onclick="selectColor('<?= html_escape($c_name); ?>', this)">
-                                                                <img src="<?= base_url('assets/images/' . $c_info['image']); ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= base_url('assets/images/' . $product['main_image']); ?>'">
-                                                                <span class="color-thumb-title"><?= html_escape($c_name); ?></span>
+                                                                 data-image="<?= base_url('assets/images/' . $c_img); ?>"
+                                                                 onclick="selectColor('<?= html_escape($c_name); ?>', this)"
+                                                                 title="<?= html_escape($c_name); ?>">
+                                                                <img src="<?= base_url('assets/images/' . $c_img); ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= base_url('assets/images/' . $product['main_image']); ?>'">
                                                             </div>
                                                         <?php endforeach; ?>
                                                     </div>
@@ -757,16 +780,16 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <div class="tf-product-info-quantity mb-4">
                                             <div class="title mb-2 text-secondary fw-semibold">Quantity:</div>
                                             <div class="wg-quantity">
-                                                <span class="btn-quantity btn-decrease" onclick="changeQty(-1)">-</span>
+                                                <span class="btn-quantity btn-qty-minus" onclick="changeQty(-1, event)">-</span>
                                                 <input class="quantity-product" type="number" id="product-qty-input" name="number" value="1" min="1" max="99" readonly>
-                                                <span class="btn-quantity btn-increase" onclick="changeQty(1)">+</span>
+                                                <span class="btn-quantity btn-qty-plus" onclick="changeQty(1, event)">+</span>
                                             </div>
                                         </div>
 
                                         <!-- ACTION BUTTONS -->
                                         <div>
                                             <div class="tf-product-info-by-btn mb-2 d-flex gap-2">
-                                                <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart" id="main-btn-atc" onclick="addToCartAjax()">
+                                                <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart" id="main-btn-atc" onclick="addToCartAjax(event)">
                                                     <span>Add to cart -&nbsp;</span>
                                                     <span class="tf-qty-price total-price" id="atc-btn-price"><?= $currency_symbol . number_format($current_price, 2); ?></span>
                                                 </button>
@@ -820,7 +843,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                             </li>
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Brand:</p>
-                                                <p class="text-caption-1 mb-0 fw-semibold"><?= html_escape($product['brand_name'] ?: 'Modave'); ?></p>
+                                                <p class="text-caption-1 mb-0 fw-semibold"><?= html_escape($product['brand_name'] ?: ($site_name ?? ($store_settings['site_name'] ?? 'Store'))); ?></p>
                                             </li>
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Availability:</p>
@@ -855,59 +878,6 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                     </div>
                 </div>
             </div>
-
-            <!-- Sticky Bottom Add-To-Cart Bar (from product-detail.html) -->
-            <div class="tf-sticky-btn-atc" id="sticky-atc-bar">
-                <div class="container">
-                    <div class="row align-items-center">
-                        <div class="col-12">
-                            <form class="form-sticky-atc d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                <div class="tf-sticky-atc-product d-flex align-items-center gap-3">
-                                    <div class="image">
-                                        <img id="sticky-bar-img" src="<?= base_url('assets/images/' . $all_images[0]); ?>" alt="<?= html_escape($product['title']); ?>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                                    </div>
-                                    <div class="content">
-                                        <div class="text-title fw-bold text-truncate" style="max-width: 240px;"><?= html_escape($product['title']); ?></div>
-                                        <div class="text-caption-1 text-secondary" id="sticky-variant-label">
-                                            <?= $has_color ? html_escape($initial_color) : ''; ?><?= ($has_color && $has_size) ? ', ' : ''; ?><?= $has_size ? html_escape($initial_size) : ''; ?>
-                                        </div>
-                                        <div class="text-title fw-bold text-primary" id="sticky-price-display"><?= $currency_symbol . number_format($current_price, 2); ?></div>
-                                    </div>
-                                </div>
-                                <div class="tf-sticky-atc-infos d-flex align-items-center gap-3 flex-wrap">
-                                    <?php if ($has_size && !empty($product['attributes']['size']['values'])): ?>
-                                        <div class="tf-sticky-atc-size d-flex align-items-center gap-2">
-                                            <span class="small text-secondary fw-semibold">Size:</span>
-                                            <select class="form-select form-select-sm" id="sticky-size-dropdown" onchange="onStickySizeChange(this.value)" style="width: 85px;">
-                                                <?php foreach ($product['attributes']['size']['values'] as $sv): ?>
-                                                    <option value="<?= html_escape($sv['value']); ?>" <?= ($sv['value'] === $initial_size) ? 'selected' : ''; ?>>
-                                                        <?= html_escape($sv['value']); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                    <?php endif; ?>
-                                    
-                                    <div class="tf-sticky-atc-quantity d-flex align-items-center gap-2">
-                                        <span class="small text-secondary fw-semibold">Qty:</span>
-                                        <div class="wg-quantity style-1">
-                                            <span class="btn-quantity minus-btn" onclick="changeQty(-1)">-</span>
-                                            <input type="text" name="sticky_number" id="sticky-qty-input" value="1" readonly>
-                                            <span class="btn-quantity plus-btn" onclick="changeQty(1)">+</span>
-                                        </div>
-                                    </div>
-                                    <div class="tf-sticky-atc-btns">
-                                        <button type="button" class="tf-btn btn-fill radius-4 btn-add-to-cart px-4 py-2" onclick="addToCartAjax()">
-                                            <span class="text text-btn-uppercase fw-bold"><i class="fa-solid fa-bag-shopping me-1"></i> Add To Cart</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- /Sticky Bottom ATC -->
 
         </section>
         <!-- /Product_Main -->
@@ -1147,16 +1117,16 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                     <div class="reply-comment-item type-reply">
                                                         <div class="user">
                                                             <div class="image">
-                                                                <img src="<?= base_url('assets/images/avatar/user-modave.jpg'); ?>" alt="">
+                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
                                                             </div>
                                                             <div>
                                                                 <h6>
-                                                                    <a href="javascript:void(0);" class="link">Reply from Modave</a>
+                                                                    <a href="javascript:void(0);" class="link">Reply from <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?></a>
                                                                 </h6>
                                                                 <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
                                                             </div>
                                                         </div>
-                                                        <p class="text-secondary">We love to hear it! Part of what we love most about Modave is how much it empowers store owners like yourself to build a beautiful website without having to hire a developer :) Thank you for this fantastic review!</p>
+                                                        <p class="text-secondary">We love to hear it! Thank you so much for your feedback and support for our store! Thank you for this fantastic review!</p>
                                                     </div>
                                                     <div class="reply-comment-item">
                                                         <div class="user">
@@ -1254,7 +1224,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                 <div class="widget-content-inner">
                                     <div class="tab-policies">
                                         <div class="text-btn-uppercase mb_12">Return Policies</div>
-                                        <p class="mb_12 text-secondary">At Modave, we stand behind the quality of our products. If you're not completely satisfied with your purchase, we offer hassle-free returns within 30 days of delivery.</p>
+                                        <p class="mb_12 text-secondary">At <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'our store')); ?>, we stand behind the quality of our products. If you're not completely satisfied with your purchase, we offer hassle-free returns within 30 days of delivery.</p>
                                         <div class="text-btn-uppercase mb_12">Easy Exchanges or Refunds</div>
                                         <ul class="list-text type-disc mb_12 gap-6">
                                             <li class="text-secondary font-2">Exchange your item for a different size, color, or style, or receive a full refund.</li>
@@ -1536,7 +1506,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                         </div>
                         <div>
                             <h6 class="fw-bold text-dark">Customer Support</h6>
-                            <p class="text-secondary small mb-0">Need help? Reach out at <a href="mailto:support@modave.com" class="text-primary">support@modave.com</a> or call +1 800-123-4567.</p>
+                            <p class="text-secondary small mb-0">Need help? Reach out at <a href="mailto:<?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?>" class="text-primary"><?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></a><?= !empty($store_settings['site_phone']) ? ' or call ' . html_escape($store_settings['site_phone']) : ''; ?>.</p>
                         </div>
                     </div>
                 </div>
@@ -1755,11 +1725,30 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
     });
 
-    // 2. COLOR SLIDER HORIZONTAL SCROLL
+    // 2. COLOR SLIDER HORIZONTAL SCROLL (color_badge.PNG)
     window.slideColorTrack = function(direction) {
         var track = document.getElementById('color-slider-track');
         if (track) {
-            track.scrollBy({ left: direction * 140, behavior: 'smooth' });
+            track.scrollBy({ left: direction * 160, behavior: 'smooth' });
+            setTimeout(updateColorSliderArrows, 250);
+        }
+    };
+
+    window.updateColorSliderArrows = function() {
+        var track = document.getElementById('color-slider-track');
+        var prevBtn = document.getElementById('color-arrow-prev');
+        var nextBtn = document.getElementById('color-arrow-next');
+        if (!track || !prevBtn || !nextBtn) return;
+
+        var scrollLeft = track.scrollLeft;
+        var maxScroll = track.scrollWidth - track.clientWidth;
+
+        if (maxScroll <= 4) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = scrollLeft > 6 ? 'flex' : 'none';
+            nextBtn.style.display = scrollLeft < (maxScroll - 6) ? 'flex' : 'none';
         }
     };
 
@@ -1767,14 +1756,20 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     window.selectColor = function(colorName, cardEl) {
         selectedColor = colorName;
 
-        // Update label
+        // Update label (uppercase as in color_badge.PNG)
         var label = document.getElementById('selected-color-name');
-        if (label) label.textContent = colorName;
+        if (label) label.textContent = colorName.toUpperCase();
 
         // Update active class on cards
         var cards = document.querySelectorAll('.color-thumb-card');
         cards.forEach(function(c) { c.classList.remove('active'); });
-        if (cardEl) cardEl.classList.add('active');
+        if (cardEl) {
+            cardEl.classList.add('active');
+            if (cardEl.scrollIntoView) {
+                cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                setTimeout(updateColorSliderArrows, 250);
+            }
+        }
 
         // Swap images in 2x2 grid and Lightbox for this variant color
         if (colorMap[colorName] && colorMap[colorName].images && colorMap[colorName].images.length > 0) {
@@ -1889,11 +1884,9 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             var salePriceEl = document.getElementById('display-sale-price');
             if (salePriceEl) salePriceEl.textContent = currencySymbol + price.toFixed(2);
 
+            var curQty = parseInt(document.getElementById('product-qty-input')?.value, 10) || 1;
             var atcPriceEl = document.getElementById('atc-btn-price');
-            if (atcPriceEl) atcPriceEl.textContent = currencySymbol + price.toFixed(2);
-
-            var stickyPriceEl = document.getElementById('sticky-price-display');
-            if (stickyPriceEl) stickyPriceEl.textContent = currencySymbol + price.toFixed(2);
+            if (atcPriceEl) atcPriceEl.textContent = currencySymbol + (price * curQty).toFixed(2);
 
             // SKU
             var skuEl = document.getElementById('display-sku');
@@ -1914,38 +1907,49 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                 }
             }
         }
-
-        // Update sticky bar summary text
-        var stickySummary = document.getElementById('sticky-variant-label');
-        if (stickySummary) {
-            var parts = [];
-            if (hasColor && selectedColor) parts.push(selectedColor);
-            if (hasSize && selectedSize) parts.push(selectedSize);
-            stickySummary.textContent = parts.join(', ');
-        }
     }
 
     // 7. QUANTITY CONTROLLER
-    window.changeQty = function(delta) {
+    window.changeQty = function(delta, e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        }
         var input = document.getElementById('product-qty-input');
-        var stickyInput = document.getElementById('sticky-qty-input');
         if (input) {
-            var val = parseInt(input.value) || 1;
+            var val = parseInt(input.value, 10) || 1;
             val = Math.max(1, Math.min(99, val + delta));
             input.value = val;
-            if (stickyInput) stickyInput.value = val;
+
+            // Resolve unit price reliably without NaN
+            var unitPrice = 0;
+            if (typeof currentPrice === 'number' && !isNaN(currentPrice) && currentPrice > 0) {
+                unitPrice = currentPrice;
+            } else {
+                var priceEl = document.getElementById('display-sale-price');
+                if (priceEl) {
+                    unitPrice = parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0;
+                }
+            }
 
             // Update ATC button dynamic price
             var atcPriceEl = document.getElementById('atc-btn-price');
-            if (atcPriceEl) {
-                atcPriceEl.textContent = currencySymbol + (currentPrice * val).toFixed(2);
+            if (atcPriceEl && unitPrice > 0) {
+                atcPriceEl.textContent = currencySymbol + (unitPrice * val).toFixed(2);
             }
         }
     };
 
-    // 8. AJAX ADD TO CART
-    window.addToCartAjax = function() {
-        var qty = parseInt(document.getElementById('product-qty-input').value) || 1;
+    // 8. SIDE DRAWER CART MODAL & AJAX ADD TO CART
+    window.addToCartAjax = function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        var qtyInput = document.getElementById('product-qty-input');
+        var qty = parseInt(qtyInput ? qtyInput.value : '1', 10) || 1;
         var btn = document.getElementById('main-btn-atc');
         var originalHtml = btn ? btn.innerHTML : '';
 
@@ -1977,25 +1981,45 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             }
 
             if (data.status === 'success' || data.success) {
-                // Update cart count badges
-                var countBadges = document.querySelectorAll('.count-box, #header-cart-count');
-                countBadges.forEach(function(b) {
-                    if (data.cart_count !== undefined) b.textContent = data.cart_count;
-                });
+                // 1. Update cart count badges
+                var newCount = (typeof data.cart_count !== 'undefined')
+                    ? data.cart_count
+                    : (data.cart_summary && typeof data.cart_summary.item_count !== 'undefined' ? data.cart_summary.item_count : null);
 
-                // Show feedback alert / toast
-                alert(data.message || 'Product successfully added to cart!');
+                if (newCount !== null) {
+                    var countBadges = document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count');
+                    countBadges.forEach(function(b) {
+                        b.textContent = newCount;
+                    });
+                }
+
+                // 2. Re-render the side cart modal with updated items and subtotal
+                if (typeof renderSideCart === 'function') {
+                    renderSideCart(data.cart_items || [], data.cart_summary || {});
+                }
+
+                // 3. Open the side cart drawer modal (sliding from the right)
+                if (typeof openSideCartModal === 'function') {
+                    openSideCartModal();
+                } else if (typeof bootstrap !== 'undefined' && document.getElementById('shoppingCart')) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('shoppingCart')).show();
+                } else if (typeof $ !== 'undefined') {
+                    $('#shoppingCart').modal('show');
+                }
             } else {
                 alert(data.message || 'Could not add product to cart.');
             }
         })
-        .catch(function() {
+        .catch(function(err) {
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
             }
-            alert('Product added to cart!');
-            window.location.reload();
+            console.error('Add to cart error:', err);
+            // Open side modal as fallback
+            if (typeof openSideCartModal === 'function') {
+                openSideCartModal();
+            }
         });
     };
 
@@ -2127,23 +2151,20 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
     };
 
-    // 13. STICKY ATC BAR ON SCROLL
-    window.addEventListener('scroll', function() {
-        var stickyBar = document.getElementById('sticky-atc-bar');
-        var mainBtn = document.getElementById('main-btn-atc');
-        if (!stickyBar || !mainBtn) return;
 
-        var rect = mainBtn.getBoundingClientRect();
-        if (rect.bottom < 0) {
-            stickyBar.classList.add('show');
-        } else {
-            stickyBar.classList.remove('show');
-        }
-    });
 
     // Initial setup
     updateSizeAvailability();
     syncCurrentVariant();
+    updateColorSliderArrows();
+    window.addEventListener('resize', updateColorSliderArrows);
+
+    // Prevent duplicate listeners from theme scripts
+    if (window.jQuery) {
+        $(function() {
+            $('.tf-product-info-list .btn-increase, .tf-product-info-list .btn-decrease, .tf-product-info-list .btn-quantity').off('click.tfQuantity');
+        });
+    }
 
 })();
 </script>

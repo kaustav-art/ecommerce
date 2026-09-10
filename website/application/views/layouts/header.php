@@ -2,9 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
 <head>
     <meta charset="utf-8">
-    <title><?= isset($title) ? html_escape($title) : 'Modave - Multipurpose eCommerce'; ?></title>
+    <title><?= isset($title) ? html_escape($title) : html_escape($site_name ?? 'Store'); ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="description" content="Modave Multipurpose eCommerce Store">
+    <meta name="description" content="<?= html_escape($site_name ?? 'Store'); ?> - Multipurpose eCommerce Store">
 
     <!-- Fonts -->
     <link rel="stylesheet" href="<?= base_url('assets/fonts/fonts.css'); ?>">
@@ -88,6 +88,13 @@
     <link rel="shortcut icon" href="<?= $web_favicon; ?>" type="image/webp">
     <link rel="icon" type="image/webp" href="<?= $web_favicon; ?>">
     <link rel="apple-touch-icon-precomposed" href="<?= $web_favicon; ?>">
+
+    <script>
+        window.IS_USER_LOGGED_IN = <?= !empty($is_logged_in) ? 'true' : 'false'; ?>;
+        window.BASE_URL = '<?= base_url(); ?>';
+        window.SITE_URL = '<?= site_url(); ?>';
+        window.STORE_NAME = '<?= html_escape($site_name ?? 'Store'); ?>';
+    </script>
 </head>
 <body class="preload-wrapper">
     <!-- Scroll Top -->

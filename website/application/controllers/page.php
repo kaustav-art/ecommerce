@@ -11,7 +11,7 @@ class page extends MY_Controller {
     public function about()
     {
         $data = [
-            'title'       => 'About Us - Modave',
+            'title'       => 'About Us - ' . $this->site_name,
             'active_page' => 'about'
         ];
         $this->render('pages/about', $data);
@@ -25,7 +25,7 @@ class page extends MY_Controller {
         }
 
         $data = [
-            'title'       => 'Contact Us - Modave',
+            'title'       => 'Contact Us - ' . $this->site_name,
             'active_page' => 'contact'
         ];
         $this->render('pages/contact', $data);
@@ -34,7 +34,7 @@ class page extends MY_Controller {
     public function faq()
     {
         $data = [
-            'title'       => 'Frequently Asked Questions - Modave',
+            'title'       => 'Frequently Asked Questions - ' . $this->site_name,
             'active_page' => 'faq'
         ];
         $this->render('pages/faq', $data);
@@ -43,7 +43,7 @@ class page extends MY_Controller {
     public function terms()
     {
         $data = [
-            'title'       => 'Terms & Conditions - Modave',
+            'title'       => 'Terms & Conditions - ' . $this->site_name,
             'active_page' => 'terms'
         ];
         $this->render('pages/terms', $data);
@@ -52,7 +52,7 @@ class page extends MY_Controller {
     public function privacy()
     {
         $data = [
-            'title'       => 'Privacy Policy - Modave',
+            'title'       => 'Privacy Policy - ' . $this->site_name,
             'active_page' => 'privacy'
         ];
         $this->render('pages/privacy', $data);
@@ -61,7 +61,7 @@ class page extends MY_Controller {
     public function returns_policy()
     {
         $data = [
-            'title'       => 'Return & Refund Policy - Modave',
+            'title'       => 'Return & Refund Policy - ' . $this->site_name,
             'active_page' => 'returns_policy'
         ];
         $this->render('pages/returns', $data);

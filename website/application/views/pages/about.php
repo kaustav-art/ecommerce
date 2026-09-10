@@ -17,14 +17,14 @@
                         <span class="text-uppercase text-primary fw-bold small">Our Mission & Story</span>
                         <h2 class="display-6 fw-bold mb-3">Modern Multipurpose eCommerce Excellence</h2>
                         <p class="text-muted leading-relaxed mb-3">
-                            Modave is built as a next-generation multipurpose eCommerce destination providing seamless shopping experiences across fashion, consumer tech, lifestyle, and home goods.
+                            <?= html_escape($site_name); ?> is built as a next-generation multipurpose eCommerce destination providing seamless shopping experiences across fashion, consumer tech, lifestyle, and home goods.
                         </p>
                         <p class="text-muted leading-relaxed">
                             Engineered with clean CodeIgniter 3 MVC architecture and enterprise-grade payment processing with Stripe, Razorpay, and PayU, we deliver unparalleled speed, security, and global convenience.
                         </p>
                     </div>
                     <div class="col-lg-6 text-center">
-                        <img src="<?= base_url('assets/images/section/about-us.jpg'); ?>" alt="About Modave" class="img-fluid rounded shadow" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
+                        <img src="<?= base_url('assets/images/section/about-us.jpg'); ?>" alt="About <?= html_escape($site_name); ?>" class="img-fluid rounded shadow" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                     </div>
                 </div>
 

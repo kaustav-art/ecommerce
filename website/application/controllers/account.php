@@ -80,7 +80,7 @@ class account extends MY_Controller {
         }
 
         $data = [
-            'title'               => 'My Profile - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'               => 'My Profile - ' . $this->site_name,
             'active_page'         => 'account',
             'active_account_tab'  => 'profile',
             'user'                => $user
@@ -95,7 +95,7 @@ class account extends MY_Controller {
         $orders  = $this->order_model->get_by_user_id($user_id);
 
         $data = [
-            'title'              => 'My Orders - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'My Orders - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'orders',
             'user'               => $this->user_model->get_by_id($user_id),
@@ -113,7 +113,7 @@ class account extends MY_Controller {
         }
 
         $data = [
-            'title'              => 'Order Details #' . $order_number . ' - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'Order Details #' . $order_number . ' - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'orders',
             'user'               => $this->user_model->get_by_id($this->current_user['id']),
@@ -155,7 +155,7 @@ class account extends MY_Controller {
         $returns = $this->order_model->get_returns_by_user($user_id);
 
         $data = [
-            'title'              => 'Return & Refund Requests - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'Return & Refund Requests - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'returns',
             'user'               => $this->user_model->get_by_id($user_id),
@@ -243,7 +243,7 @@ class account extends MY_Controller {
         $addresses = $this->user_model->get_addresses($user_id);
 
         $data = [
-            'title'              => 'Saved Addresses - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'Saved Addresses - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'address',
             'user'               => $this->user_model->get_by_id($user_id),
@@ -267,7 +267,7 @@ class account extends MY_Controller {
         $wishlist  = $this->wishlist_model->get_by_user($user_id);
 
         $data = [
-            'title'              => 'My Wishlist - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'My Wishlist - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'wishlist',
             'user'               => $this->user_model->get_by_id($user_id),
@@ -301,7 +301,7 @@ class account extends MY_Controller {
         $this->notification_model->mark_all_read($user_id);
 
         $data = [
-            'title'              => 'Notifications - ' . ($this->store_settings['site_name'] ?? 'Modave'),
+            'title'              => 'Notifications - ' . $this->site_name,
             'active_page'        => 'account',
             'active_account_tab' => 'notifications',
             'user'               => $this->user_model->get_by_id($user_id),
