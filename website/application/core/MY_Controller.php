@@ -25,12 +25,20 @@ class MY_Controller extends CI_Controller {
 
         // Current Customer
         if ($this->session->userdata('user_logged_in')) {
+            $avatar = $this->session->userdata('user_avatar');
+            if ($avatar === NULL) {
+                $this->load->model('user_model');
+                $u_row = $this->user_model->get_by_id($this->session->userdata('user_id'));
+                $avatar = !empty($u_row['avatar']) ? $u_row['avatar'] : '';
+                $this->session->set_userdata('user_avatar', $avatar);
+            }
             $this->current_user = [
                 'id'         => $this->session->userdata('user_id'),
                 'first_name' => $this->session->userdata('user_first_name'),
                 'last_name'  => $this->session->userdata('user_last_name'),
                 'email'      => $this->session->userdata('user_email'),
-                'phone'      => $this->session->userdata('user_phone')
+                'phone'      => $this->session->userdata('user_phone'),
+                'avatar'     => $avatar
             ];
         }
 

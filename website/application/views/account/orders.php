@@ -166,6 +166,11 @@
                                                         <i class="fa-solid fa-boxes-packing me-1 text-primary"></i> <?= count($items); ?> items shipped together
                                                     </span>
                                                 <?php endif; ?>
+                                                <?php if (!empty($ord['courier_name']) || !empty($ord['tracking_number'])): ?>
+                                                    <span class="badge bg-white text-secondary border fw-normal py-1 px-2" style="font-size: 11px;">
+                                                        <i class="fa-solid fa-truck-fast me-1 text-primary"></i> <?= html_escape($ord['courier_name'] ?: 'Courier'); ?><?= !empty($ord['tracking_number']) ? ': ' . html_escape($ord['tracking_number']) : ''; ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
 
                                             <div>

@@ -124,13 +124,34 @@
                     </div>
                 </li>
                 <li class="py-2 border-bottom"><a href="<?= site_url('cart'); ?>" class="text-dark text-decoration-none fw-bold">Shopping Cart (<?= $cart_count; ?>)</a></li>
-                <?php if ($this->is_logged_in()): ?>
-                    <li class="py-2 border-bottom text-muted small fw-bold text-uppercase">Account</li>
-                    <li class="py-2 border-bottom"><a href="<?= site_url('account/profile'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-user me-2"></i>My Profile</a></li>
-                    <li class="py-2 border-bottom"><a href="<?= site_url('account/orders'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-box-archive me-2"></i>Orders</a></li>
-                    <li class="py-2 border-bottom"><a href="<?= site_url('account/address'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-location-dot me-2"></i>Saved Address</a></li>
-                    <li class="py-2 border-bottom"><a href="<?= site_url('wishlist'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-heart me-2"></i>Wishlist</a></li>
-                    <li class="py-2 border-bottom"><a href="<?= site_url('account/notifications'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-bell me-2"></i>Notification</a></li>
+                <?php if ($this->is_logged_in()): 
+                    $u_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                    if (empty($u_name)) $u_name = 'My Account';
+                    $u_email = $current_user['email'] ?? '';
+                    $u_avatar = (!empty($current_user['avatar']) && $current_user['avatar'] !== 'default-user.png' && file_exists(FCPATH . $current_user['avatar'])) ? base_url($current_user['avatar']) : null;
+                ?>
+                    <li class="py-3 border-bottom bg-light rounded px-3 my-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden" style="width: 44px; height: 44px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 18px;">
+                                <?php if (!empty($u_avatar)): ?>
+                                    <img src="<?= $u_avatar; ?>" alt="<?= html_escape($u_name); ?>" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                    <i class="fa-solid fa-user d-none"></i>
+                                <?php else: ?>
+                                    <i class="fa-solid fa-user"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div class="overflow-hidden" style="min-width: 0;">
+                                <div class="text-muted text-uppercase" style="font-size: 10px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
+                                <div class="fw-bold text-dark text-truncate" style="font-size: 14px;"><?= html_escape($u_name); ?></div>
+                                <div class="text-secondary small text-truncate" style="font-size: 11.5px;"><?= html_escape($u_email); ?></div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="py-2 border-bottom"><a href="<?= site_url('account/profile'); ?>" class="text-dark text-decoration-none"><i class="fa-regular fa-user text-primary me-2"></i>My Profile</a></li>
+                    <li class="py-2 border-bottom"><a href="<?= site_url('account/orders'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-box-archive text-primary me-2"></i>Orders</a></li>
+                    <li class="py-2 border-bottom"><a href="<?= site_url('account/address'); ?>" class="text-dark text-decoration-none"><i class="fa-solid fa-location-dot text-primary me-2"></i>Saved Address</a></li>
+                    <li class="py-2 border-bottom"><a href="<?= site_url('wishlist'); ?>" class="text-dark text-decoration-none"><i class="fa-regular fa-heart text-primary me-2"></i>Wishlist</a></li>
+                    <li class="py-2 border-bottom"><a href="<?= site_url('account/notifications'); ?>" class="text-dark text-decoration-none"><i class="fa-regular fa-bell text-primary me-2"></i>Notification</a></li>
                     <li class="py-2 border-bottom"><a href="<?= site_url('logout'); ?>" class="text-danger text-decoration-none fw-bold"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Logout</a></li>
                 <?php else: ?>
                     <li class="py-2 border-bottom"><a href="#loginModal" data-bs-toggle="modal" data-bs-dismiss="offcanvas" class="text-dark text-decoration-none fw-bold">Sign In / Register</a></li>

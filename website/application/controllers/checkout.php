@@ -268,6 +268,11 @@ class checkout extends MY_Controller {
             $company    = $active_addr['company'] ?? 'HOME';
         }
 
+        $company = strtoupper(trim($this->input->post('address_type', TRUE) ?: $company));
+        if (!in_array($company, ['HOME', 'WORK'])) {
+            $company = 'HOME';
+        }
+
         $full_name = trim($first_name . ' ' . $last_name);
         $shipping_str = implode("\n", array_filter([
             $full_name . ' (' . $company . ')',
@@ -285,6 +290,7 @@ class checkout extends MY_Controller {
             'customer_name'    => $full_name,
             'customer_email'   => $email,
             'customer_phone'   => $phone,
+            'address_type'     => $company,
             'shipping_address' => $shipping_str,
             'billing_address'  => $shipping_str,
             'subtotal'         => $summary['subtotal'],
@@ -490,11 +496,17 @@ class checkout extends MY_Controller {
 
             $payment_method = $this->input->post('payment_method', TRUE);
 
+            $addr_type = strtoupper(trim($this->input->post('address_type', TRUE) ?: ($this->input->post('company', TRUE) ?: 'HOME')));
+            if (!in_array($addr_type, ['HOME', 'WORK'])) {
+                $addr_type = 'HOME';
+            }
+
             $order_data = [
                 'user_id'          => $user_id,
                 'customer_name'    => $full_name,
                 'customer_email'   => $email,
                 'customer_phone'   => $phone,
+                'address_type'     => $addr_type,
                 'shipping_address' => $shipping_address,
                 'billing_address'  => $shipping_address,
                 'subtotal'         => $summary['subtotal'],

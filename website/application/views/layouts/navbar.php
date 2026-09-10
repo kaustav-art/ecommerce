@@ -168,23 +168,49 @@
                             </li>
 
                             <!-- Account / User Icon -->
-                            <li class="nav-account dropdown">
-                                <?php if ($this->is_logged_in()): ?>
-                                    <a href="javascript:void(0);" class="nav-icon-item" data-bs-toggle="dropdown" aria-expanded="false">
+                            <li class="nav-account dropdown position-relative">
+                                <?php if ($this->is_logged_in()): 
+                                    $u_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                                    if (empty($u_name)) $u_name = 'My Account';
+                                    $u_email = $current_user['email'] ?? '';
+                                    $u_avatar = (!empty($current_user['avatar']) && $current_user['avatar'] !== 'default-user.png' && file_exists(FCPATH . $current_user['avatar'])) ? base_url($current_user['avatar']) : null;
+                                ?>
+                                    <a href="<?= site_url('account/profile'); ?>" class="nav-icon-item" data-bs-toggle="dropdown" aria-expanded="false" title="My Account">
                                         <i class="fa-solid fa-user"></i>
                                     </a>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        <li class="px-3 py-2 border-bottom">
-                                            <strong><?= html_escape($current_user['first_name'] . ' ' . $current_user['last_name']); ?></strong><br>
-                                            <small class="text-muted"><?= html_escape($current_user['email']); ?></small>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 after-login-drawer-menu" style="min-width: 275px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.12) !important;">
+                                        <!-- Profile Picture Icon on Side of Name and Email -->
+                                        <li class="p-3 border-bottom rounded-top-2" style="background-color: #f8f9fa;">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <!-- Profile Picture Icon -->
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden" style="width: 46px; height: 46px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 20px;">
+                                                    <?php if (!empty($u_avatar)): ?>
+                                                        <img src="<?= $u_avatar; ?>" alt="<?= html_escape($u_name); ?>" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                                        <i class="fa-solid fa-user d-none"></i>
+                                                    <?php else: ?>
+                                                        <i class="fa-solid fa-user"></i>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="overflow-hidden" style="min-width: 0;">
+                                                    <div class="text-muted text-uppercase" style="font-size: 11px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
+                                                    <div class="fw-bold text-dark text-truncate" style="font-size: 15px;" title="<?= html_escape($u_name); ?>">
+                                                        <?= html_escape($u_name); ?>
+                                                    </div>
+                                                    <div class="text-secondary small text-truncate" style="font-size: 12px;" title="<?= html_escape($u_email); ?>">
+                                                        <?= html_escape($u_email); ?>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </li>
-                                        <li><a class="dropdown-item py-2" href="<?= site_url('account/profile'); ?>"><i class="fa-solid fa-user me-2"></i>My Profile</a></li>
-                                        <li><a class="dropdown-item py-2" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive me-2"></i>Orders</a></li>
-                                        <li><a class="dropdown-item py-2" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot me-2"></i>Saved Address</a></li>
-                                        <li><a class="dropdown-item py-2" href="<?= site_url('wishlist'); ?>"><i class="fa-solid fa-heart me-2"></i>Wishlist</a></li>
-                                        <li><a class="dropdown-item py-2" href="<?= site_url('account/notifications'); ?>"><i class="fa-solid fa-bell me-2"></i>Notification</a></li>
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li><a class="dropdown-item py-2 text-danger" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Logout</a></li>
+                                        <div class="py-2">
+                                            <li><a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/profile'); ?>"><i class="fa-regular fa-user text-primary me-3" style="width: 16px;"></i>My Profile</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive text-primary me-3" style="width: 16px;"></i>Orders</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a></li>
+                                            <li><a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a></li>
+                                            <li><hr class="dropdown-divider my-2" style="border-color: #f0f0f0;"></li>
+                                            <li><a class="dropdown-item py-2 px-3 text-danger d-flex align-items-center" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>Logout</a></li>
+                                        </div>
                                     </ul>
                                 <?php else: ?>
                                     <a href="#loginModal" data-bs-toggle="modal" class="nav-icon-item" title="Login / Register">
@@ -497,6 +523,61 @@
             color: #f05a5b;
             transform: translateX(3px);
         }
+
+        /* After-Login User Icon Hover Drawer / Dropdown */
+        @media (min-width: 992px) {
+            .nav-account.dropdown {
+                position: relative;
+            }
+            .nav-account.dropdown > .after-login-drawer-menu {
+                display: block;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transform: translateY(8px);
+                transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+                top: 100%;
+                right: 0;
+                left: auto;
+                margin-top: 5px;
+            }
+            /* Invisible bridge to prevent mouse-leave gap between icon and drawer */
+            .nav-account.dropdown::after {
+                content: '';
+                position: absolute;
+                bottom: -15px;
+                left: 0;
+                width: 100%;
+                height: 20px;
+                display: none;
+            }
+            .nav-account.dropdown:hover::after {
+                display: block;
+            }
+            .nav-account.dropdown:hover > .after-login-drawer-menu,
+            .nav-account.dropdown > .after-login-drawer-menu:hover,
+            .nav-account.dropdown.show > .after-login-drawer-menu {
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                transform: translateY(0) !important;
+            }
+        }
+        .after-login-drawer-menu .dropdown-item {
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #333;
+            transition: background-color 0.15s, color 0.15s, padding-left 0.15s;
+        }
+        .after-login-drawer-menu .dropdown-item:hover {
+            background-color: #f4f8ff;
+            color: #2874f0;
+            padding-left: 1.25rem !important;
+        }
+        .after-login-drawer-menu .dropdown-item.text-danger:hover {
+            background-color: #fff5f5;
+            color: #dc3545 !important;
+        }
         </style>
 
         <script>
@@ -517,6 +598,40 @@
                     }
                 });
             });
+
+            // After-login user icon hover handler for desktop
+            var navAccount = document.querySelector('.nav-account.dropdown');
+            if (navAccount) {
+                var menu = navAccount.querySelector('.after-login-drawer-menu');
+                if (menu) {
+                    var closeTimer;
+                    var showDrawer = function() {
+                        if (window.innerWidth >= 992) {
+                            clearTimeout(closeTimer);
+                            menu.style.opacity = '1';
+                            menu.style.visibility = 'visible';
+                            menu.style.pointerEvents = 'auto';
+                            menu.style.transform = 'translateY(0)';
+                        }
+                    };
+                    var hideDrawer = function() {
+                        if (window.innerWidth >= 992) {
+                            closeTimer = setTimeout(function() {
+                                if (!navAccount.classList.contains('show')) {
+                                    menu.style.opacity = '0';
+                                    menu.style.visibility = 'hidden';
+                                    menu.style.pointerEvents = 'none';
+                                    menu.style.transform = 'translateY(8px)';
+                                }
+                            }, 150);
+                        }
+                    };
+                    navAccount.addEventListener('mouseenter', showDrawer);
+                    navAccount.addEventListener('mouseleave', hideDrawer);
+                    menu.addEventListener('mouseenter', showDrawer);
+                    menu.addEventListener('mouseleave', hideDrawer);
+                }
+            }
         });
         </script>
 

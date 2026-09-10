@@ -61,12 +61,19 @@
                   <span class="badge bg-<?= $cls; ?>"><?= ucfirst($ord['order_status']); ?></span>
                 </td>
                 <td>
-                  <a href="<?= site_url('orders/view/' . $ord['id']); ?>" class="btn btn-xs btn-outline-primary me-1">
+                  <a href="<?= site_url('orders/view/' . $ord['id']); ?>" class="btn btn-xs btn-outline-primary me-1" title="View Order">
                     <i class="fa-solid fa-eye me-1"></i> Details
                   </a>
-                  <a href="<?= site_url('orders/invoice/' . $ord['id']); ?>" target="_blank" class="btn btn-xs btn-outline-secondary">
-                    <i class="fa-solid fa-print"></i>
-                  </a>
+                  <?php $is_confirmed = in_array(strtolower($ord['order_status']), ['processing', 'shipped', 'delivered', 'completed']); ?>
+                  <?php if ($is_confirmed): ?>
+                    <a href="<?= site_url('orders/invoice/' . $ord['id']); ?>" target="_blank" class="btn btn-xs btn-outline-secondary" title="Download Invoice">
+                      <i class="fa-solid fa-file-invoice"></i>
+                    </a>
+                  <?php else: ?>
+                    <span class="btn btn-xs btn-outline-secondary disabled opacity-50" title="Invoice available after order confirmed" style="cursor: not-allowed;">
+                      <i class="fa-solid fa-file-invoice"></i>
+                    </span>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>

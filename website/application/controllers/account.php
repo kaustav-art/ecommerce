@@ -374,6 +374,13 @@ class account extends MY_Controller {
             show_404();
         }
 
+        // Invoice can only be downloaded by customer after order has been delivered
+        $status = strtolower($order['order_status']);
+        if (!in_array($status, ['delivered', 'completed'])) {
+            $this->session->set_flashdata('error', 'Invoice can only be downloaded after the order has been delivered.');
+            redirect('account/order/' . $order_number);
+        }
+
         $data = [
             'title'          => 'Invoice #' . $order_number,
             'order'          => $order,

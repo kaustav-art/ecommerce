@@ -38,6 +38,7 @@ class auth extends MY_Controller {
                         'user_last_name'  => $user['last_name'],
                         'user_email'      => $user['email'],
                         'user_phone'      => $user['phone'],
+                        'user_avatar'     => $user['avatar'] ?? null,
                         'user_logged_in'  => TRUE
                     ]);
 
@@ -99,6 +100,7 @@ class auth extends MY_Controller {
                     'user_last_name'  => $last_name,
                     'user_email'      => $email,
                     'user_phone'      => $this->input->post('phone', TRUE),
+                    'user_avatar'     => null,
                     'user_logged_in'  => TRUE
                 ]);
 
@@ -127,9 +129,9 @@ class auth extends MY_Controller {
             'user_last_name',
             'user_email',
             'user_phone',
+            'user_avatar',
             'user_logged_in'
         ]);
-        $this->session->set_flashdata('success', 'You have been signed out.');
         redirect('');
     }
 
@@ -236,6 +238,7 @@ class auth extends MY_Controller {
             'user_last_name'  => $user['last_name'],
             'user_email'      => $user['email'],
             'user_phone'      => $user['phone'],
+            'user_avatar'     => $user['avatar'] ?? null,
             'user_logged_in'  => TRUE
         ]);
 
