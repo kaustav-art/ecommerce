@@ -63,6 +63,14 @@
                 <small class="text-muted d-block" id="stock_qty_helper" style="font-size: 11px;">Default product inventory. When sizes are selected below, this auto-sums all size stocks.</small>
               </div>
             </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold" for="max_purchase_quantity">Max Purchase Quantity (Per Order)</label>
+                <input type="number" min="1" class="form-control" id="max_purchase_quantity" name="max_purchase_quantity" value="5" placeholder="e.g. 5" />
+                <small class="text-muted d-block" style="font-size: 11px;">How many products user can purchase together in one order (e.g. 5).</small>
+              </div>
+            </div>
           </div>
         </div>
 

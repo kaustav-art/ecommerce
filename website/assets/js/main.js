@@ -595,7 +595,7 @@
     /* Total Price Variant
   ------------------------------------------------------------------------------------- */
     var totalPriceVariant = function () {
-        $(".tf-product-info-list,.tf-cart-item").each(function () {
+        $(".tf-product-info-list").each(function () {
             var productItem = $(this);
             var basePrice =
                 parseFloat(
@@ -1280,10 +1280,22 @@
             setTimeout(function () {
                 $(".preload").fadeOut("slow", function () {
                     $(this).remove();
+                    window.dispatchEvent(new Event("resize"));
                 });
             }, 100);
         }
     };
+
+    $(window).on("load", function () {
+        setTimeout(function () {
+            if ($(".preload").length) {
+                $(".preload").fadeOut("fast", function () {
+                    $(this).remove();
+                    window.dispatchEvent(new Event("resize"));
+                });
+            }
+        }, 300);
+    });
 
     // Dom Ready
     $(function () {

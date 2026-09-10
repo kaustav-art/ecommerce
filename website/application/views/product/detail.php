@@ -777,11 +777,15 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <?php endif; ?>
 
                                         <!-- QUANTITY SELECTOR -->
+                                        <?php $max_allowed = !empty($product['max_purchase_quantity']) ? (int) $product['max_purchase_quantity'] : 5; ?>
                                         <div class="tf-product-info-quantity mb-4">
-                                            <div class="title mb-2 text-secondary fw-semibold">Quantity:</div>
+                                            <div class="title mb-2 text-secondary fw-semibold d-flex justify-content-between align-items-center">
+                                                <span>Quantity:</span>
+                                                <small class="text-muted fw-normal" style="font-size: 12px;">(Max <?= $max_allowed; ?> per order)</small>
+                                            </div>
                                             <div class="wg-quantity">
                                                 <span class="btn-quantity btn-qty-minus" onclick="changeQty(-1, event)">-</span>
-                                                <input class="quantity-product" type="number" id="product-qty-input" name="number" value="1" min="1" max="99" readonly>
+                                                <input class="quantity-product" type="number" id="product-qty-input" name="number" value="1" min="1" max="<?= $max_allowed; ?>" data-max-limit="<?= $max_allowed; ?>" readonly>
                                                 <span class="btn-quantity btn-qty-plus" onclick="changeQty(1, event)">+</span>
                                             </div>
                                         </div>
@@ -1918,8 +1922,9 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
         var input = document.getElementById('product-qty-input');
         if (input) {
+            var maxLimit = parseInt(input.getAttribute('data-max-limit') || input.getAttribute('max'), 10) || 5;
             var val = parseInt(input.value, 10) || 1;
-            val = Math.max(1, Math.min(99, val + delta));
+            val = Math.max(1, Math.min(maxLimit, val + delta));
             input.value = val;
 
             // Resolve unit price reliably without NaN

@@ -100,6 +100,7 @@ class order_model extends CI_Model {
         $orders = $this->db->where('user_id', (int) $user_id)->order_by('id', 'DESC')->get('orders')->result_array();
         foreach ($orders as &$ord) {
             $ord['items_count'] = $this->db->where('order_id', $ord['id'])->count_all_results('order_items');
+            $ord['items'] = $this->db->where('order_id', $ord['id'])->get('order_items')->result_array();
             $ord['returns_count'] = $this->db->table_exists('order_returns') 
                 ? $this->db->where('order_id', $ord['id'])->count_all_results('order_returns') 
                 : 0;

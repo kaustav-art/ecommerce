@@ -97,8 +97,13 @@ class cart extends MY_Controller {
         $items = $this->cart_model->get_items();
         $result['cart_items'] = array_values($items);
         $result['item_total'] = isset($items[$cart_key]) ? (float) $items[$cart_key]['total'] : 0.00;
+        $result['item_quantity'] = isset($items[$cart_key]) ? (int) $items[$cart_key]['quantity'] : 0;
 
-        if ($this->input->is_ajax_request()) {
+        $is_ajax = $this->input->is_ajax_request() 
+            || !empty($_SERVER['HTTP_X_REQUESTED_WITH']) 
+            || strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
+
+        if ($is_ajax) {
             $this->json_response($result);
         } else {
             redirect('cart');

@@ -77,6 +77,51 @@
             border-radius: 50% !important;
             display: block !important;
         }
+        /* Preloader Styles (Template Preload) */
+        .preload-wrapper .preload-container {
+            display: flex;
+        }
+        .preload-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            z-index: 99999999999;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .preload-logo {
+            position: relative;
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preload-logo .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 0, 0, 0.08);
+            border-top: 3px solid var(--primary, #111);
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: auto;
+            animation: spin 0.8s infinite linear;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 
     <!-- Favicon -->
@@ -94,6 +139,18 @@
         window.BASE_URL = '<?= base_url(); ?>';
         window.SITE_URL = '<?= site_url(); ?>';
         window.STORE_NAME = '<?= html_escape($site_name ?? 'Store'); ?>';
+
+        // Preloader failsafe: ensure overlay fades out even if external JS is delayed
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                var p = document.querySelector('.preload');
+                if (p) {
+                    p.style.transition = 'opacity 0.4s ease';
+                    p.style.opacity = '0';
+                    setTimeout(function() { if (p && p.parentNode) p.parentNode.removeChild(p); }, 400);
+                }
+            }, 600);
+        });
     </script>
 </head>
 <body class="preload-wrapper">
@@ -103,5 +160,13 @@
             <path d="M3 11.9175L12 2.91748L21 11.9175H16.5V20.1675C16.5 20.3664 16.421 20.5572 16.2803 20.6978C16.1397 20.8385 15.9489 20.9175 15.75 20.9175H8.25C8.05109 20.9175 7.86032 20.8385 7.71967 20.6978C7.57902 20.5572 7.5 20.3664 7.5 20.1675V11.9175H3Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg> 
     </button>
+
+    <!-- preload -->
+    <div class="preload preload-container">
+        <div class="preload-logo">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    <!-- /preload -->
 
     <div id="wrapper">

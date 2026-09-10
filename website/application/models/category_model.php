@@ -72,13 +72,24 @@ class category_model extends CI_Model {
         return $categories;
     }
 
-    public function get_featured()
+    public function get_featured($limit = 12)
     {
         $categories = $this->db->where('status', 'active')
                                ->where('is_featured', 1)
                                ->order_by('sort_order', 'ASC')
+                               ->limit($limit)
                                ->get('categories')
                                ->result_array();
+
+        // Fallback to active top-level categories if none are explicitly marked as featured
+        if (empty($categories)) {
+            $categories = $this->db->where('status', 'active')
+                                   ->where('parent_id', 0)
+                                   ->order_by('sort_order', 'ASC')
+                                   ->limit($limit)
+                                   ->get('categories')
+                                   ->result_array();
+        }
 
         foreach ($categories as &$c) {
             $descendants = $this->get_descendant_ids($c['id']);

@@ -24,6 +24,9 @@ class home extends MY_Controller {
         $brands            = $this->brand_model->get_all();
 
         // Fallbacks if tables have small datasets
+        if (empty($featured_cats)) {
+            $featured_cats = $this->category_model->get_root_categories();
+        }
         if (empty($new_arrivals)) {
             $new_arrivals = $featured_products;
         }

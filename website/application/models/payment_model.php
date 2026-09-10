@@ -28,46 +28,110 @@ class payment_model extends CI_Model {
         $secret_key  = $credentials['secret_key'] ?? '';
         $pub_key     = $credentials['publishable_key'] ?? '';
 
-        // Amount in cents
+        // Currency and amount
+        $currency     = !empty($order['currency']) ? strtolower($order['currency']) : 'inr';
         $amount_cents = (int) round($order['total_amount'] * 100);
 
-        // Attempt Stripe PaymentIntent API via cURL
-        $client_secret = 'pi_test_' . bin2hex(random_bytes(12)) . '_secret_' . bin2hex(random_bytes(10));
-        $intent_id     = 'pi_' . bin2hex(random_bytes(12));
+        // Build itemized line items if available
+        $line_items = [];
+        if (!empty($order['items']) && is_array($order['items'])) {
+            $items_sum = 0;
+            foreach ($order['items'] as $it) {
+                $item_price_subunit = (int) round(((float)$it['price']) * 100);
+                $qty = max(1, (int)($it['quantity'] ?? 1));
+                $items_sum += $item_price_subunit * $qty;
+                $line_items[] = [
+                    'price_data' => [
+                        'currency'     => $currency,
+                        'product_data' => [
+                            'name' => $it['product_title'] ?? ('Product #' . ($it['product_id'] ?? '')),
+                        ],
+                        'unit_amount'  => $item_price_subunit,
+                    ],
+                    'quantity'   => $qty,
+                ];
+            }
+            $diff = $amount_cents - $items_sum;
+            if ($diff > 0) {
+                $line_items[] = [
+                    'price_data' => [
+                        'currency'     => $currency,
+                        'product_data' => [
+                            'name' => 'Shipping & Packaging Fee',
+                        ],
+                        'unit_amount'  => $diff,
+                    ],
+                    'quantity'   => 1,
+                ];
+            } elseif ($diff < 0) {
+                // If coupon discount caused total to be less, use unified total
+                $line_items = [];
+            }
+        }
 
+        if (empty($line_items)) {
+            $line_items[] = [
+                'price_data' => [
+                    'currency'     => $currency,
+                    'product_data' => [
+                        'name' => 'Order #' . $order['order_number'],
+                    ],
+                    'unit_amount'  => $amount_cents,
+                ],
+                'quantity'   => 1,
+            ];
+        }
+
+        $checkout_url = '';
+        $session_id   = '';
+
+        // Call Stripe Checkout Sessions API
         if (!empty($secret_key) && function_exists('curl_version')) {
-            $ch = curl_init('https://api.stripe.com/v1/payment_intents');
+            $payload = [
+                'payment_method_types' => ['card'],
+                'line_items'           => $line_items,
+                'mode'                 => 'payment',
+                'client_reference_id'  => $order['order_number'],
+                'success_url'          => site_url('payment/stripe_success/' . $order['order_number'] . '?session_id={CHECKOUT_SESSION_ID}'),
+                'cancel_url'           => site_url('payment/failure/' . $order['order_number']),
+                'metadata'             => [
+                    'order_number' => $order['order_number']
+                ]
+            ];
+            if (!empty($order['customer_email'])) {
+                $payload['customer_email'] = $order['customer_email'];
+            }
+
+            $ch = curl_init('https://api.stripe.com/v1/checkout/sessions');
             curl_setopt($ch, CURLOPT_USERPWD, $secret_key . ':');
             curl_setopt($ch, CURLOPT_POST, TRUE);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-                'amount'                    => $amount_cents,
-                'currency'                  => strtolower($order['currency']),
-                'description'               => 'Order ' . $order['order_number'],
-                'receipt_email'             => $order['customer_email'],
-                'metadata[order_number]'    => $order['order_number']
-            ]));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            $response = curl_exec($ch);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            $response  = curl_exec($ch);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
             if ($http_code === 200) {
                 $res = json_decode($response, true);
-                if (!empty($res['client_secret'])) {
-                    $client_secret = $res['client_secret'];
-                    $intent_id     = $res['id'];
+                if (!empty($res['url'])) {
+                    $checkout_url = $res['url'];
+                    $session_id   = $res['id'];
                 }
             }
+        }
+
+        if (empty($checkout_url)) {
+            $checkout_url = site_url('payment/stripe/' . $order['order_number']);
         }
 
         return [
             'success'         => true,
             'publishable_key' => $pub_key,
-            'client_secret'   => $client_secret,
-            'intent_id'       => $intent_id,
+            'session_id'      => $session_id,
+            'checkout_url'    => $checkout_url,
             'amount_cents'    => $amount_cents,
-            'currency'        => strtolower($order['currency'])
+            'currency'        => $currency
         ];
     }
 

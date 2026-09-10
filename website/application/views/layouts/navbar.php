@@ -221,7 +221,8 @@
         </header>
         <!-- /Header -->
 
-        <!-- Flash Messages -->
+        <!-- Flash Messages (Only on pages that do not have their own contextual message container) -->
+        <?php if (!isset($active_page) || !in_array($active_page, ['account', 'cart', 'checkout'])): ?>
         <div class="container mt-3">
             <?php if ($this->session->flashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -236,6 +237,7 @@
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
 
         <style>
         /* Category Flyout Mega Menu Styles (Matching category.PNG) */

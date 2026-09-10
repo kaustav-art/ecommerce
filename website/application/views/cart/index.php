@@ -73,6 +73,7 @@
                             $disp_pin  = $active_address['postcode'] ?? '';
                             $disp_tag  = !empty($active_address['company']) ? strtoupper($active_address['company']) : 'HOME';
                             $disp_addr = implode(', ', array_filter([$active_address['address_1'] ?? '', $active_address['address_2'] ?? '', $active_address['city'] ?? '', $active_address['state'] ?? '']));
+                            $disp_phone = !empty($active_address['phone']) ? $active_address['phone'] : ($current_user['phone'] ?? '');
                         ?>
                         <div class="card border rounded-3 p-3 mb-4 bg-white shadow-sm tf-delivery-address-card">
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -96,6 +97,9 @@
                                         </div>
                                         <div class="text-secondary small text-line-clamp-1" id="display-address-full">
                                             <?= !empty($is_logged_in) ? html_escape($disp_addr ?: 'Choose or add your shipping address') : 'Please sign in or register to set your delivery address'; ?>
+                                        </div>
+                                        <div class="text-secondary small mt-1" id="display-address-phone-wrap" style="<?= empty($disp_phone) ? 'display: none;' : ''; ?>">
+                                            <span class="text-muted">Phone:</span> <strong class="text-dark fw-medium" id="display-address-phone"><?= html_escape($disp_phone); ?></strong>
                                         </div>
                                     </div>
                                 </div>
@@ -151,9 +155,9 @@
                                             </td>
                                             <td data-cart-title="Quantity" class="tf-cart-item_quantity">
                                                 <div class="wg-quantity mx-md-auto">
-                                                    <span class="btn-quantity btn-decrease" onclick="updateCartPageQty('<?= html_escape($item_key); ?>', -1)">-</span>
-                                                    <input type="text" class="quantity-product" id="cart-page-qty-<?= html_escape($item_key); ?>" name="quantity" value="<?= $item['quantity']; ?>" data-max="<?= $item['stock_max'] ?? 999; ?>" readonly>
-                                                    <span class="btn-quantity btn-increase" onclick="updateCartPageQty('<?= html_escape($item_key); ?>', 1)">+</span>
+                                                    <span class="btn-quantity btn-decrease user-select-none cursor-pointer" onclick="updateCartPageQty('<?= html_escape($item_key); ?>', -1, event)">-</span>
+                                                    <input type="text" class="quantity-product text-center" id="cart-page-qty-<?= html_escape($item_key); ?>" name="quantity" value="<?= $item['quantity']; ?>" data-max="<?= !empty($item['stock_max']) ? (int) $item['stock_max'] : 999; ?>" readonly>
+                                                    <span class="btn-quantity btn-increase user-select-none cursor-pointer" onclick="updateCartPageQty('<?= html_escape($item_key); ?>', 1, event)">+</span>
                                                 </div>
                                             </td>
                                             <td data-cart-title="Total" class="tf-cart-item_total text-center">
@@ -162,7 +166,7 @@
                                                 </div>
                                             </td>
                                             <td data-cart-title="Remove" class="remove-cart">
-                                                <span class="remove icon icon-close" onclick="removeCartPageItem('<?= html_escape($item_key); ?>')" title="Remove Item"></span>
+                                                <span class="cart-remove-item icon icon-close cursor-pointer" onclick="removeCartPageItem('<?= html_escape($item_key); ?>', event)" title="Remove Item"></span>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -411,9 +415,18 @@
             }, 4000);
         }
 
-        function updateCartPageQty(cartKey, delta) {
+        function updateCartPageQty(cartKey, delta, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
             var qtyInput = document.getElementById('cart-page-qty-' + cartKey);
             if (!qtyInput) return;
+
+            if (qtyInput.dataset.busy === '1') {
+                return;
+            }
 
             var currentVal = parseInt(qtyInput.value) || 1;
             var maxVal = parseInt(qtyInput.getAttribute('data-max')) || 999;
@@ -421,50 +434,93 @@
 
             if (newVal < 1) {
                 if (confirm('Remove this item from your cart?')) {
-                    removeCartPageItem(cartKey);
+                    removeCartPageItem(cartKey, event);
                 }
                 return;
             }
             if (newVal > maxVal) {
-                newVal = maxVal;
-                showCartToast('Maximum stock available is ' + maxVal, 'warning');
+                showCartToast('Maximum purchase limit of ' + maxVal + ' units reached for this item.', 'warning');
                 return;
             }
 
+            // Lock to prevent race condition during request
+            qtyInput.dataset.busy = '1';
             qtyInput.value = newVal;
 
-            // AJAX Update
             var formData = new FormData();
             formData.append('cart_key', cartKey);
             formData.append('quantity', newVal);
 
             fetch('<?= site_url("cart/update"); ?>', {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
                 body: formData
             })
             .then(function(res) { return res.json(); })
             .then(function(data) {
+                qtyInput.dataset.busy = '0';
+
                 if (data.success) {
-                    // Update item total
-                    var itemTotalEl = document.getElementById('cart-page-total-' + cartKey);
-                    if (itemTotalEl && data.item_total !== undefined) {
-                        itemTotalEl.textContent = CURRENCY + parseFloat(data.item_total).toFixed(2);
+                    // Sync quantity directly from server cart items
+                    var updatedItem = null;
+                    if (data.cart_items && Array.isArray(data.cart_items)) {
+                        updatedItem = data.cart_items.find(function(it) {
+                            return (it.cart_key === cartKey || String(it.id) === String(cartKey));
+                        });
                     }
+
+                    if (updatedItem) {
+                        qtyInput.value = updatedItem.quantity;
+                        var itemTotalEl = document.getElementById('cart-page-total-' + cartKey);
+                        if (itemTotalEl && updatedItem.total !== undefined) {
+                            itemTotalEl.textContent = CURRENCY + parseFloat(updatedItem.total).toFixed(2);
+                        }
+                    } else if (data.item_total !== undefined) {
+                        var itemTotalEl = document.getElementById('cart-page-total-' + cartKey);
+                        if (itemTotalEl) {
+                            itemTotalEl.textContent = CURRENCY + parseFloat(data.item_total).toFixed(2);
+                        }
+                    }
+
+                    if (data.message) {
+                        showCartToast(data.message, 'warning');
+                    }
+
                     // Update order summary
                     applySummaryUpdate(data.cart_summary, data.cart_count);
+
+                    // Update header cart badges
+                    var badges = document.querySelectorAll('.cart-count, .cart-badge');
+                    badges.forEach(function(b) { b.textContent = data.cart_count || 0; });
+
                     // Sync side cart if open
                     if (window.renderSideCart) {
                         window.renderSideCart(data.cart_items, data.cart_summary);
                     }
+                } else {
+                    qtyInput.value = currentVal;
+                    if (data.message) {
+                        showCartToast(data.message, 'warning');
+                    }
                 }
             })
             .catch(function(err) {
+                qtyInput.dataset.busy = '0';
+                qtyInput.value = currentVal;
                 console.error('Error updating cart:', err);
+                showCartToast('Unable to update quantity. Please try again.', 'danger');
             });
         }
 
-        function removeCartPageItem(cartKey) {
+        function removeCartPageItem(cartKey, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
             var row = document.getElementById('cart-row-' + cartKey);
             if (row) {
                 row.style.opacity = '0.4';
@@ -476,15 +532,25 @@
 
             fetch('<?= site_url("cart/remove"); ?>', {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
                 body: formData
             })
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 if (data.success) {
-                    if (row) row.remove();
+                    if (row) {
+                        row.remove();
+                    }
+
                     // Update order summary
                     applySummaryUpdate(data.cart_summary, data.cart_count);
+
+                    // Update header badges
+                    var badges = document.querySelectorAll('.cart-count, .cart-badge');
+                    badges.forEach(function(b) { b.textContent = data.cart_count || 0; });
 
                     // If cart count is 0, toggle to empty wrapper
                     if (!data.cart_count || data.cart_count === 0) {

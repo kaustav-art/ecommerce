@@ -25,6 +25,64 @@ class cart_model extends CI_Model {
             } else {
                 $item['discount_percent'] = 0;
             }
+
+            // Extract variant attributes (size, color) if not already set
+            if (empty($item['size']) || empty($item['color'])) {
+                if (!empty($item['variant_id'])) {
+                    $attr_rows = $this->db->select('a.slug as attr_slug, a.name as attr_name, av.value as attr_val')
+                                          ->from('product_variant_values pvv')
+                                          ->join('attributes a', 'a.id = pvv.attribute_id')
+                                          ->join('attribute_values av', 'av.id = pvv.attribute_value_id')
+                                          ->where('pvv.variant_id', (int) $item['variant_id'])
+                                          ->get()
+                                          ->result_array();
+                    foreach ($attr_rows as $ar) {
+                        $slug = strtolower($ar['attr_slug'] ?: $ar['attr_name']);
+                        if ($slug === 'size' && empty($item['size'])) {
+                            $item['size'] = $ar['attr_val'];
+                        } elseif ($slug === 'color' && empty($item['color'])) {
+                            $item['color'] = $ar['attr_val'];
+                        }
+                    }
+                }
+
+                // Fallback parsing from variant_title if size or color still empty
+                if ((empty($item['size']) || empty($item['color'])) && !empty($item['variant_title'])) {
+                    $opt_str = $item['variant_title'];
+                    if (strpos($opt_str, '-') !== false) {
+                        $dash_parts = explode('-', $opt_str);
+                        $opt_str = trim(end($dash_parts));
+                    }
+                    if (strpos($opt_str, '/') !== false) {
+                        $parts = array_map('trim', explode('/', $opt_str));
+                        $sizes_known = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', '28', '30', '32', '34', '36', '38', '40', '42'];
+                        foreach ($parts as $p) {
+                            if (in_array(strtolower($p), $sizes_known)) {
+                                if (empty($item['size'])) $item['size'] = $p;
+                            } else {
+                                if (empty($item['color'])) $item['color'] = $p;
+                            }
+                        }
+                    } else {
+                        if (empty($item['size'])) $item['size'] = $opt_str;
+                    }
+                }
+            }
+
+            // Ensure brand_name and max_purchase_quantity
+            if (!empty($item['id'])) {
+                $p_info = $this->db->select('b.name as brand_name, p.max_purchase_quantity, p.stock_quantity')
+                                   ->from('products p')
+                                   ->join('brands b', 'b.id = p.brand_id', 'left')
+                                   ->where('p.id', (int) $item['id'])
+                                   ->get()
+                                   ->row_array();
+                if (empty($item['brand_name'])) {
+                    $item['brand_name'] = !empty($p_info['brand_name']) ? $p_info['brand_name'] : 'VTEXX';
+                }
+                $max_p = !empty($p_info['max_purchase_quantity']) ? (int) $p_info['max_purchase_quantity'] : 5;
+                $item['stock_max'] = isset($item['stock_max']) ? min((int)$item['stock_max'], $max_p) : $max_p;
+            }
         }
         return $cart;
     }
@@ -49,12 +107,19 @@ class cart_model extends CI_Model {
         $cart = $this->get_items();
 
         $available_stock = $variant ? (int) $variant['stock_quantity'] : (int) $product['stock_quantity'];
+        $max_limit = !empty($product['max_purchase_quantity']) ? (int) $product['max_purchase_quantity'] : 999;
+        if ($max_limit > 0) {
+            $available_stock = min($available_stock, $max_limit);
+        }
         $existing_qty = isset($cart[$cart_key]) ? (int) $cart[$cart_key]['quantity'] : 0;
         $target_qty = $existing_qty + $quantity;
 
         if ($target_qty > $available_stock) {
             if ($available_stock <= 0) {
                 return ['success' => false, 'message' => 'This item is currently out of stock.'];
+            }
+            if ($max_limit > 0 && $target_qty > $max_limit) {
+                return ['success' => false, 'message' => "You can only purchase a maximum of {$max_limit} units of this product per order."];
             }
             return ['success' => false, 'message' => "Only {$available_stock} units available in stock."];
         }
@@ -76,11 +141,27 @@ class cart_model extends CI_Model {
         }
         $disc_pct = ($regular_price > $price) ? round((($regular_price - $price) / $regular_price) * 100) : 0;
 
+        $item_size = '';
+        $item_color = '';
+        if ($variant && !empty($variant['values'])) {
+            foreach ($variant['values'] as $vval) {
+                $aslug = strtolower($vval['attribute_slug'] ?? ($vval['attribute_name'] ?? ''));
+                if ($aslug === 'size' && empty($item_size)) {
+                    $item_size = $vval['attribute_value'];
+                } elseif ($aslug === 'color' && empty($item_color)) {
+                    $item_color = $vval['attribute_value'];
+                }
+            }
+        }
+
         $cart[$cart_key] = [
             'cart_key'         => $cart_key,
             'id'               => (int) $product['id'],
             'variant_id'       => $variant ? (int) $variant['id'] : NULL,
             'variant_title'    => $variant ? $variant['title'] : NULL,
+            'size'             => $item_size,
+            'color'            => $item_color,
+            'brand_name'       => !empty($product['brand_name']) ? $product['brand_name'] : 'VTEXX',
             'title'            => $product['title'],
             'slug'             => $product['slug'],
             'sku'              => $sku,
@@ -108,22 +189,42 @@ class cart_model extends CI_Model {
     {
         $cart = $this->get_items();
         $quantity = (int) $quantity;
+        $limit_msg = '';
 
         if ($quantity <= 0) {
             unset($cart[$cart_key]);
         } elseif (isset($cart[$cart_key])) {
             $item = $cart[$cart_key];
-            $stock_max = isset($item['stock_max']) ? (int) $item['stock_max'] : 999;
+            $stock_max = (!empty($item['stock_max']) && (int) $item['stock_max'] > 0) ? (int) $item['stock_max'] : 0;
+            if ($stock_max <= 0) {
+                // Fetch fresh stock and limit from database if missing from old session
+                $prod = $this->product_model->get_by_id($item['id']);
+                if ($prod) {
+                    $stock_max = (int) $prod['stock_quantity'];
+                    if (!empty($prod['max_purchase_quantity']) && (int) $prod['max_purchase_quantity'] > 0) {
+                        $stock_max = min($stock_max, (int) $prod['max_purchase_quantity']);
+                    }
+                }
+                if ($stock_max <= 0) $stock_max = 999;
+                $cart[$cart_key]['stock_max'] = $stock_max;
+            }
+
             if ($quantity > $stock_max) {
+                $limit_msg = "Maximum purchase limit of {$stock_max} units reached for this item.";
                 $quantity = $stock_max;
             }
             $cart[$cart_key]['quantity'] = $quantity;
-            $cart[$cart_key]['total']    = $cart[$cart_key]['price'] * $quantity;
+            $cart[$cart_key]['total']    = round($cart[$cart_key]['price'] * $quantity, 2);
         }
 
         $this->session->set_userdata('cart', $cart);
         $summary = $this->get_cart_summary();
-        return ['success' => true, 'cart_count' => $summary['item_count'], 'cart_summary' => $summary];
+        return [
+            'success'      => true,
+            'message'      => $limit_msg,
+            'cart_count'   => $summary['item_count'],
+            'cart_summary' => $summary
+        ];
     }
 
     public function remove_item($cart_key)
@@ -191,10 +292,16 @@ class cart_model extends CI_Model {
         $items = $this->get_items();
         $subtotal = 0.00;
         $item_count = 0;
+        $mrp_total = 0.00;
 
         foreach ($items as $item) {
             $subtotal += (float) $item['total'];
             $item_count += (int) $item['quantity'];
+            $reg = !empty($item['regular_price']) ? (float)$item['regular_price'] : round(((float)$item['price'] * 1.30), 2);
+            if ($reg <= (float)$item['price']) {
+                $reg = round((float)$item['price'] * 1.30, 2);
+            }
+            $mrp_total += $reg * (int)$item['quantity'];
         }
 
         // Applied coupon
@@ -226,9 +333,15 @@ class cart_model extends CI_Model {
         // Total
         $total = $taxable + $shipping + $tax;
 
+        $mrp_discount = max(0, $mrp_total - $subtotal);
+        $total_savings = $mrp_discount + $discount;
+
         return [
             'item_count'          => $item_count,
             'subtotal'            => $subtotal,
+            'mrp_total'           => $mrp_total,
+            'mrp_discount'        => $mrp_discount,
+            'total_savings'       => $total_savings,
             'discount'            => $discount,
             'coupon'              => $coupon,
             'shipping'            => $shipping,

@@ -1214,15 +1214,30 @@
         var fullAddr = [addr.address_1, addr.address_2, addr.city, (addr.state ? addr.state + ' - ' + addr.postcode : addr.postcode)].filter(Boolean).join(', ');
         var phone = addr.phone || '';
 
-        // Update Cart Page Delivery Card
+        // Update Cart & Checkout Page Delivery Cards
         var cartName = document.getElementById('display-address-name');
         if (cartName) cartName.textContent = fullName + (addr.postcode ? ', ' + addr.postcode : '');
         var cartTag = document.getElementById('display-address-tag');
         if (cartTag) cartTag.textContent = tag;
         var cartFull = document.getElementById('display-address-full');
         if (cartFull) cartFull.textContent = fullAddr;
+        var cartPhone = document.getElementById('display-address-phone');
+        if (cartPhone) cartPhone.textContent = phone;
+        var cartPhoneWrap = document.getElementById('display-address-phone-wrap');
+        if (cartPhoneWrap) cartPhoneWrap.style.display = phone ? '' : 'none';
 
-        // Update Checkout Page Delivery Card
+        // Update Checkout Page Delivery Card toggle boxes
+        var boxSelected = document.getElementById('address-box-selected');
+        var boxEmpty = document.getElementById('address-box-empty');
+        if (boxSelected) {
+            boxSelected.classList.remove('d-none');
+            boxSelected.classList.add('d-flex');
+        }
+        if (boxEmpty) {
+            boxEmpty.classList.add('d-none');
+            boxEmpty.classList.remove('d-flex');
+        }
+
         var chkName = document.getElementById('checkout-step-address-name');
         if (chkName) chkName.textContent = fullName;
         var chkTag = document.getElementById('checkout-step-address-tag');
@@ -1233,6 +1248,27 @@
         if (chkFull) chkFull.textContent = fullAddr;
         var chkPhone = document.getElementById('checkout-step-address-phone');
         if (chkPhone) chkPhone.textContent = phone;
+        var chkPhoneWrap = document.getElementById('checkout-step-address-phone-wrap');
+        if (chkPhoneWrap) chkPhoneWrap.style.display = phone ? '' : 'none';
+
+        // Update Top Stepper 1 state to completed checkmark (Black style)
+        var topStep1 = document.getElementById('top-stepper-1');
+        var topText1 = document.getElementById('top-stepper-text-1');
+        var topStepLine1 = document.getElementById('top-stepper-line-1');
+        if (topStep1) {
+            topStep1.innerHTML = '<i class="fa-solid fa-check"></i>';
+            topStep1.className = 'rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold';
+            topStep1.style.width = '26px';
+            topStep1.style.height = '26px';
+            topStep1.style.fontSize = '13px';
+            topStep1.style.backgroundColor = '#000';
+        }
+        if (topText1) {
+            topText1.className = 'small fw-semibold text-dark';
+        }
+        if (topStepLine1) {
+            topStepLine1.style.backgroundColor = '#000';
+        }
 
         // Update hidden inputs if present
         ['first_name', 'last_name', 'phone', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country'].forEach(function(field) {

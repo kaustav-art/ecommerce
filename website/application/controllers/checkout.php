@@ -16,8 +16,7 @@ class checkout extends MY_Controller {
     {
         $items = $this->cart_model->get_items();
         if (empty($items)) {
-            $this->session->set_flashdata('error', 'Your shopping cart is currently empty.');
-            redirect('shop');
+            redirect('cart');
         }
 
         // Require authentication: user cannot buy products or access checkout without logging in
@@ -31,14 +30,10 @@ class checkout extends MY_Controller {
         $summary = $this->cart_model->get_cart_summary($shipping_method);
         $gateways = $this->setting_model->get_active_gateways();
 
-        // Calculate MRP and Savings
-        $mrp_total = 0.00;
-        foreach ($items as $it) {
-            $reg = !empty($it['regular_price']) ? (float)$it['regular_price'] : ((float)$it['price'] * 1.30);
-            $mrp_total += $reg * (int)$it['quantity'];
-        }
-        $discount_total = max(0, $mrp_total - $summary['subtotal']);
-        $total_savings = $discount_total + $summary['discount'];
+        // Calculate MRP and Savings from summary
+        $mrp_total      = $summary['mrp_total'];
+        $discount_total = $summary['mrp_discount'];
+        $total_savings  = $summary['total_savings'];
 
         // Customer default address (User is logged in)
         $default_address = NULL;
@@ -64,6 +59,55 @@ class checkout extends MY_Controller {
         ];
 
         $this->render('checkout/index', $data);
+    }
+
+    public function payment()
+    {
+        $items = $this->cart_model->get_items();
+        if (empty($items)) {
+            redirect('cart');
+        }
+
+        // Require authentication
+        if (!$this->is_logged_in()) {
+            $this->session->set_userdata('redirect_url', site_url('checkout/payment'));
+            $this->session->set_flashdata('info', 'Please sign in or enter your mobile/email to complete your purchase.');
+            redirect('cart?login=1');
+        }
+
+        // User can ONLY access payment page if delivery address is present!
+        $default_address = NULL;
+        $selected_id = $this->session->userdata('selected_address_id');
+        if ($selected_id) {
+            $default_address = $this->user_model->get_address_by_id($selected_id, $this->current_user['id']);
+        }
+        if (!$default_address) {
+            $default_address = $this->user_model->get_default_address($this->current_user['id'], 'shipping');
+        }
+
+        if (!$default_address) {
+            $this->session->set_flashdata('error', 'Please add or select a delivery address before proceeding to payment.');
+            redirect('checkout');
+        }
+
+        $shipping_method = $this->session->userdata('shipping_method') ?: 'standard';
+        $summary = $this->cart_model->get_cart_summary($shipping_method);
+        $gateways = $this->setting_model->get_active_gateways();
+
+        $data = [
+            'title'           => 'Payment - ' . $this->site_name,
+            'active_page'     => 'checkout',
+            'cart_items'      => $items,
+            'cart_summary'    => $summary,
+            'gateways'        => $gateways,
+            'default_address' => $default_address,
+            'shipping_method' => $shipping_method,
+            'mrp_total'       => $summary['mrp_total'],
+            'discount_total'  => $summary['mrp_discount'],
+            'total_savings'   => $summary['total_savings']
+        ];
+
+        $this->render('checkout/payment', $data);
     }
 
     public function select_address()
@@ -272,11 +316,13 @@ class checkout extends MY_Controller {
             ]);
         } elseif ($payment_method === 'stripe') {
             $stripe_data = $this->payment_model->init_stripe($order);
+            $redirect_url = !empty($stripe_data['checkout_url']) ? $stripe_data['checkout_url'] : site_url('payment/stripe/' . $order_number);
             return $this->json_response([
                 'success'      => true,
                 'gateway'      => 'stripe',
                 'order_number' => $order_number,
                 'order'        => $order,
+                'redirect_url' => $redirect_url,
                 'stripe'       => $stripe_data
             ]);
         } elseif ($payment_method === 'payu') {
