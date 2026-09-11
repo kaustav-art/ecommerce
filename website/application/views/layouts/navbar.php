@@ -868,6 +868,9 @@
             .store-cat-slide-btn {
                 display: none !important;
             }
+            .store-cat-arrow-icon {
+                display: none !important;
+            }
             .store-cat-drawers-container,
             .store-cat-drawer {
                 display: none !important;
