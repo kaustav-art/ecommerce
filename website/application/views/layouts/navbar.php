@@ -118,7 +118,7 @@
                                            name="q" 
                                            id="storeNavSearchInput" 
                                            class="store-search-input" 
-                                           placeholder="Search for sarees, t-shirts & more" 
+                                           placeholder="Search for sarees, t-shirts &amp; more" 
                                            value="<?= html_escape($search_query ?? ($this->input->get('q') ?: '')); ?>" 
                                            autocomplete="off">
                                 </div>
@@ -284,41 +284,55 @@
         .store-search-input-wrap {
             display: flex;
             align-items: center;
-            border: 0;
-            height: 34px;
             background-color: #f0f5ff;
-            border-radius: 6px;
-            padding: 0 12px;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 8px;
+            height: 44px;
+            padding: 0 14px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border: 1px solid transparent;
         }
         .store-search-input-wrap:focus-within {
             background-color: #ffffff;
-            box-shadow: 0 0 0 1px #2874f0;
+            border-color: #2874f0;
+            box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12);
         }
         .store-search-icon-btn {
             background: transparent;
             border: none;
             color: #717478;
-            font-size: 14px;
+            font-size: 15px;
             padding: 0;
-            margin-right: 10px;
+            margin-right: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
         }
         .store-search-icon-btn:hover {
             color: #2874f0;
         }
         .store-search-input {
-            border: none;
-            background: transparent;
+            height: 34px;
+            border: 0 !important;
+            background-color: #f0f5ff;
             outline: none;
             width: 100%;
             font-size: 14px;
             color: #212121;
             font-weight: 400;
+            padding: 0 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        @media (min-width: 768px) {
+            .store-search-input {
+                background-color: #f0f5ff;
+            }
+            .store-search-input:focus,
+            #storeNavSearchInput:focus,
+            .store-search-input-wrap:focus-within .store-search-input {
+                background-color: #ffffff !important;
+            }
         }
         .store-search-input::placeholder {
             color: #717478;
@@ -760,7 +774,7 @@
             header.store-header-nav,
             #header.store-header-nav,
             .store-header-nav {
-                padding-top: 96px !important;
+                padding-top: 112px !important;
             }
 
             /* Brand logo mobile sizing */
@@ -805,30 +819,39 @@
                 width: 100% !important;
                 max-width: 100% !important;
                 flex-basis: 100% !important;
-                margin: 8px 0 2px 0 !important;
+                margin: 16px 0 2px 0 !important;
                 padding: 0 !important;
             }
             .store-search-input-wrap {
-                border: 0 !important;
-                height: 34px !important;
-                background-color: #f0f5ff !important;
+                background-color: #ffffff !important;
+                border: 1px solid #dcdcdc !important;
                 border-radius: 6px !important;
+                height: 42px !important;
                 padding: 0 12px !important;
                 box-shadow: none !important;
-                transition: background-color 0.2s ease, box-shadow 0.2s ease;
             }
             .store-search-input-wrap:focus-within {
-                background-color: #ffffff !important;
-                box-shadow: 0 0 0 1px #2874f0 !important;
+                border-color: #2874f0 !important;
+                box-shadow: 0 0 0 2px rgba(40, 116, 240, 0.15) !important;
             }
             .store-search-icon-btn {
-                color: #717478 !important;
-                font-size: 14px !important;
+                color: #2b2b2b !important;
+                font-size: 16px !important;
                 margin-right: 10px !important;
             }
             .store-search-input {
+                border: 0px !important;
+                height: 34px !important;
+                background-color: rgb(255 255 255) !important;
                 font-size: 13.5px !important;
                 color: #212121 !important;
+                padding: 0 8px !important;
+                border-radius: 4px;
+            }
+            .store-search-input:focus,
+            #storeNavSearchInput:focus,
+            .store-search-input-wrap:focus-within .store-search-input {
+                background-color: rgb(255 255 255) !important;
             }
             .store-search-input::placeholder {
                 color: #8c8c8c !important;
@@ -1091,19 +1114,49 @@
             window.addEventListener('load', syncTopNavHeight);
             window.addEventListener('orientationchange', syncTopNavHeight);
 
-            // 6. Responsive Search Placeholder (Matching mobie_view.jpeg on mobile)
-            function updateSearchPlaceholder() {
-                var searchInputEl = document.getElementById('storeNavSearchInput');
-                if (searchInputEl && !searchInputEl.value) {
+            // 6. Responsive Search Input & Placeholder (Matching mobie_view.jpeg on mobile)
+            var navSearchInput = document.getElementById('storeNavSearchInput');
+            function updateSearchStyles() {
+                if (navSearchInput) {
                     if (window.innerWidth < 768) {
-                        searchInputEl.placeholder = 'Search for sarees, t-shirts & more';
+                        navSearchInput.style.setProperty('border', '0px', 'important');
+                        navSearchInput.style.setProperty('height', '34px', 'important');
+                        navSearchInput.style.setProperty('background-color', 'rgb(255, 255, 255)', 'important');
+                        if (!navSearchInput.value) {
+                            navSearchInput.placeholder = 'Search for sarees, t-shirts & more';
+                        }
                     } else {
-                        searchInputEl.placeholder = 'Search for Products, Brands and More';
+                        navSearchInput.style.removeProperty('border');
+                        navSearchInput.style.removeProperty('height');
+                        if (document.activeElement === navSearchInput) {
+                            navSearchInput.style.setProperty('background-color', '#ffffff', 'important');
+                        } else {
+                            navSearchInput.style.setProperty('background-color', '#f0f5ff', 'important');
+                        }
+                        if (!navSearchInput.value) {
+                            navSearchInput.placeholder = 'Search for Products, Brands and More';
+                        }
                     }
                 }
             }
-            updateSearchPlaceholder();
-            window.addEventListener('resize', updateSearchPlaceholder);
+            updateSearchStyles();
+            window.addEventListener('resize', updateSearchStyles);
+
+            // 7. Desktop Focus & Blur Background Toggle
+            if (navSearchInput) {
+                navSearchInput.addEventListener('focus', function() {
+                    if (window.innerWidth >= 768) {
+                        this.style.setProperty('background-color', '#ffffff', 'important');
+                    }
+                });
+                navSearchInput.addEventListener('blur', function() {
+                    if (window.innerWidth >= 768) {
+                        this.style.setProperty('background-color', '#f0f5ff', 'important');
+                    } else {
+                        this.style.setProperty('background-color', 'rgb(255, 255, 255)', 'important');
+                    }
+                });
+            }
         });
         </script>
 
