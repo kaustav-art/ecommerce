@@ -132,7 +132,11 @@
             </div>
             <!-- /Top Navbar Row -->
 
-            <!-- Category Bar (Sliding horizontal bar with circular icons + hover subcategories) -->
+            <!-- Category Bar (Only displayed on Home and Shop pages) -->
+            <?php 
+            $current_controller = strtolower($this->router->fetch_class());
+            if (in_array($current_controller, ['home', 'shop'])): 
+            ?>
             <div class="store-category-bar bg-white border-bottom">
                 <div class="container px-2 px-lg-3 position-relative store-cat-container">
                     <!-- Left Arrow Button -->
@@ -219,13 +223,14 @@
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
             <!-- /Category Bar -->
         </header>
         <!-- /Header -->
 
         <!-- Flash Messages (Only on pages that do not have their own contextual message container) -->
         <?php if (!isset($active_page) || !in_array($active_page, ['account', 'cart', 'checkout'])): ?>
-        <div class="container mt-3">
+        <div class="container">
             <?php if ($this->session->flashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fa-solid fa-check me-2"></i> <?= $this->session->flashdata('success'); ?>
