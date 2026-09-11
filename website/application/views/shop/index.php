@@ -204,8 +204,6 @@
                                     <?php if (!empty($p['sale_price'])): ?>
                                         <?php $pct = round((($p['price'] - $p['sale_price']) / $p['price']) * 100); ?>
                                         <div class="on-sale-wrap"><span class="on-sale-item">-<?= $pct; ?>%</span></div>
-                                    <?php elseif (!empty($p['is_new'])): ?>
-                                        <span class="badge bg-primary position-absolute top-0 start-0 m-3">NEW</span>
                                     <?php endif; ?>
                                     <div class="list-product-btn">
                                         <a href="<?= site_url('wishlist/toggle/' . $p['id']); ?>" class="box-icon wishlist btn-icon-action" title="Add to Wishlist">

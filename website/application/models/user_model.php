@@ -10,12 +10,35 @@ class user_model extends CI_Model {
 
     public function get_by_email($email)
     {
-        return $this->db->where('email', $email)->get('users')->row_array();
+        $clean_email = strtolower(trim($email));
+        return $this->db->where('LOWER(email)', $clean_email)->get('users')->row_array();
     }
 
     public function get_by_phone($phone)
     {
-        return $this->db->where('phone', $phone)->get('users')->row_array();
+        $raw = trim($phone);
+        if (empty($raw)) return NULL;
+
+        // 1. Direct exact match
+        $user = $this->db->where('phone', $raw)->get('users')->row_array();
+        if ($user) return $user;
+
+        // 2. Normalized digits match (last 10 digits or full digits)
+        $clean = preg_replace('/[^0-9]/', '', $raw);
+        if (strlen($clean) >= 7) {
+            $last10 = (strlen($clean) >= 10) ? substr($clean, -10) : $clean;
+            $all = $this->db->select('id, first_name, last_name, email, phone, avatar, status')->get('users')->result_array();
+            foreach ($all as $u) {
+                if (!empty($u['phone'])) {
+                    $u_clean = preg_replace('/[^0-9]/', '', $u['phone']);
+                    if ($u_clean === $clean || (strlen($clean) >= 10 && strlen($u_clean) >= 10 && substr($u_clean, -10) === $last10)) {
+                        return $u;
+                    }
+                }
+            }
+        }
+
+        return NULL;
     }
 
     public function get_by_email_or_phone($identifier)
@@ -24,7 +47,7 @@ class user_model extends CI_Model {
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
             return $this->get_by_email($identifier);
         }
-        return $this->db->where('phone', $identifier)->get('users')->row_array();
+        return $this->get_by_phone($identifier);
     }
 
     public function get_by_id($id)

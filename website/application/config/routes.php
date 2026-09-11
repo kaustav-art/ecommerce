@@ -60,6 +60,7 @@ $route['order/track'] = 'order/track';
 $route['login'] = 'auth/login';
 $route['auth/send_otp'] = 'auth/send_otp';
 $route['auth/verify_otp'] = 'auth/verify_otp';
+$route['auth/complete_registration'] = 'auth/complete_registration';
 $route['register'] = 'auth/register';
 $route['logout'] = 'auth/logout';
 $route['wishlist'] = 'account/wishlist';

@@ -77,6 +77,11 @@ class MY_Controller extends CI_Controller {
         $data['cart_count']      = $this->cart_count;
         $data['cart_total']      = $this->cart_total;
         $data['cart_items']      = $this->cart_model->get_items();
+        $wishlist_count = 0;
+        if ($this->is_logged_in()) {
+            $wishlist_count = $this->db->where('user_id', (int) $this->current_user['id'])->count_all_results('wishlists');
+        }
+        $data['wishlist_count']  = $wishlist_count;
         $data['recommended_products'] = $this->product_model->get_products([], 4);
         $data['store_settings']  = $this->store_settings;
         $data['currency_symbol'] = $this->store_settings['currency_symbol'] ?? '$';
@@ -119,7 +124,6 @@ class MY_Controller extends CI_Controller {
 
         if ($return) {
             $content  = $this->load->view('layouts/header', $data, TRUE);
-            $content .= $this->load->view('layouts/topbar', $data, TRUE);
             $content .= $this->load->view('layouts/navbar', $data, TRUE);
             $content .= $this->load->view($view, $data, TRUE);
             $content .= $this->load->view('layouts/footer', $data, TRUE);
@@ -128,7 +132,6 @@ class MY_Controller extends CI_Controller {
         }
 
         $this->load->view('layouts/header', $data);
-        $this->load->view('layouts/topbar', $data);
         $this->load->view('layouts/navbar', $data);
         $this->load->view($view, $data);
         $this->load->view('layouts/footer', $data);

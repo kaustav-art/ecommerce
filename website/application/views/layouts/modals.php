@@ -155,6 +155,7 @@
                     <li class="py-2 border-bottom"><a href="<?= site_url('logout'); ?>" class="text-danger text-decoration-none fw-bold"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Logout</a></li>
                 <?php else: ?>
                     <li class="py-2 border-bottom"><a href="#loginModal" data-bs-toggle="modal" data-bs-dismiss="offcanvas" class="text-dark text-decoration-none fw-bold">Sign In / Register</a></li>
+                    <li class="py-2 border-bottom"><a href="#loginModal" data-bs-toggle="modal" data-bs-dismiss="offcanvas" data-redirect-to="<?= site_url('wishlist'); ?>" data-login-message="Please sign in to view your wishlist." onclick="if(typeof openLoginModal==='function'){openLoginModal('<?= site_url('wishlist'); ?>', 'Please sign in to view your wishlist.');}" class="text-dark text-decoration-none"><i class="fa-regular fa-heart text-primary me-2"></i>Wishlist</a></li>
                 <?php endif; ?>
                 <li class="py-2 border-bottom"><a href="<?= site_url('order/track'); ?>" class="text-dark text-decoration-none fw-bold">Order Tracking</a></li>
                 <li class="py-2 border-bottom"><a href="<?= site_url('about'); ?>" class="text-dark text-decoration-none">About Us</a></li>
@@ -326,12 +327,12 @@
                                         autocomplete="username"
                                         required>
                                     <div class="text-muted small mt-1" style="font-size: 11px;">
-                                        <i class="fa-solid fa-shield-halved text-success me-1"></i> A 6-digit verification code will be sent.
+                                        <i class="fa-solid fa-shield-halved text-success me-1"></i> Quick & secure authentication with OTP.
                                     </div>
                                 </div>
 
                                 <button type="submit" id="btn-send-otp" class="tf-btn w-100 btn-fill radius-4 py-2 mt-2">
-                                    <span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                                    <span class="text">Continue <i class="fa-solid fa-arrow-right ms-1"></i></span>
                                 </button>
                             </form>
 
@@ -345,7 +346,38 @@
                             </div>
                         </div>
 
-                        <!-- STEP 2: 6-Digit OTP Verification Form -->
+                        <!-- STEP 2 (When User enters Email first): Enter Mobile Number Form -->
+                        <div id="login-step-phone-for-email" class="d-none">
+                            <div class="bg-surface p-2 rounded-3 mb-3 border d-flex align-items-center justify-content-between">
+                                <div class="text-truncate small">
+                                    <i class="fa-solid fa-envelope text-primary me-2"></i>
+                                    <span class="text-muted" style="font-size: 11px;">Email: </span>
+                                    <strong id="email-preview-label" class="text-dark"></strong>
+                                </div>
+                                <a href="javascript:void(0);" onclick="backToIdentifierStep()" class="small text-primary text-decoration-underline ms-2 flex-shrink-0">Change</a>
+                            </div>
+
+                            <form id="phoneForEmailForm" onsubmit="handlePhoneForEmail(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small mb-1">Enter Mobile Number</label>
+                                    <input 
+                                        type="tel" 
+                                        id="login-phone-input" 
+                                        class="form-control rounded-3 py-2 px-3" 
+                                        placeholder="e.g. 9876543210"
+                                        required>
+                                    <div class="text-muted small mt-1" style="font-size: 11px;">
+                                        <i class="fa-solid fa-shield-halved text-success me-1"></i> We'll send a 6-digit OTP code to verify this phone number.
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="btn-phone-for-email" class="tf-btn w-100 btn-fill radius-4 py-2 mt-2">
+                                    <span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- STEP 3: 6-Digit OTP Verification Form -->
                         <div id="login-step-otp" class="d-none">
                             <form id="otpVerifyForm" onsubmit="handleVerifyOtp(event)">
                                 <div class="bg-surface p-3 rounded-3 mb-3 border">
@@ -353,8 +385,9 @@
                                         <div>
                                             <div class="text-muted small" style="font-size: 11px;">Verification code sent to</div>
                                             <div class="fw-bold text-dark" id="otp-target-label"></div>
+                                            <div id="otp-email-sublabel" class="text-muted small d-none" style="font-size: 11px;"></div>
                                         </div>
-                                        <a href="javascript:void(0);" onclick="backToIdentifierStep()" class="small text-primary text-decoration-underline">Change</a>
+                                        <a href="javascript:void(0);" onclick="handleChangeFromOtp()" class="small text-primary text-decoration-underline">Change</a>
                                     </div>
                                     <div id="demo-otp-badge" class="mt-2 py-1 px-2 bg-warning-subtle text-warning-emphasis border border-warning rounded small text-center" style="font-size: 12px; display: none;">
                                         <i class="fa-solid fa-key me-1"></i> Demo OTP: <strong id="demo-otp-code"></strong>
@@ -381,6 +414,74 @@
                                     <span class="text-muted">Didn't receive the code? </span>
                                     <a href="javascript:void(0);" id="btn-resend-otp" onclick="resendOtp()" class="fw-semibold text-primary text-decoration-none disabled">Resend in <span id="resend-timer-count">30</span>s</a>
                                 </div>
+                            </form>
+                        </div>
+
+                        <!-- STEP 4 (Phone was entered first, Phone is new): Asked for Email and Enter Name -->
+                        <div id="login-step-complete-email-name" class="d-none">
+                            <div class="alert alert-success py-2 px-3 small rounded-3 mb-3 d-flex align-items-center">
+                                <i class="fa-solid fa-circle-check fs-5 me-2 flex-shrink-0 text-success"></i>
+                                <div>
+                                    <span class="d-block text-muted" style="font-size: 11px;">Mobile number verified:</span>
+                                    <strong id="verified-phone-label-1" class="text-dark"></strong>
+                                </div>
+                            </div>
+
+                            <form id="completeEmailNameForm" onsubmit="handleCompleteEmailName(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small mb-1">Your Full Name <span class="text-danger">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        id="reg-name-1" 
+                                        class="form-control rounded-3 py-2 px-3" 
+                                        placeholder="e.g. John Doe" 
+                                        required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small mb-1">Email Address <span class="text-danger">*</span></label>
+                                    <input 
+                                        type="email" 
+                                        id="reg-email-1" 
+                                        class="form-control rounded-3 py-2 px-3" 
+                                        placeholder="e.g. user@example.com" 
+                                        required>
+                                    <div class="text-muted small mt-1" style="font-size: 11px;">
+                                        Order tracking and invoices will be sent to this email.
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="btn-complete-1" class="tf-btn w-100 btn-fill radius-4 py-2 mt-2">
+                                    <span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- STEP 5 (Email was entered first, Phone was new too): Next OTP verified then asked for enter name -->
+                        <div id="login-step-complete-name" class="d-none">
+                            <div class="bg-surface p-2 rounded-3 mb-3 border small">
+                                <div class="d-flex align-items-center text-muted mb-1">
+                                    <i class="fa-solid fa-circle-check text-success me-2"></i> Email: <strong id="verified-email-label-2" class="text-dark ms-1"></strong>
+                                </div>
+                                <div class="d-flex align-items-center text-muted">
+                                    <i class="fa-solid fa-circle-check text-success me-2"></i> Mobile: <strong id="verified-phone-label-2" class="text-dark ms-1"></strong>
+                                </div>
+                            </div>
+
+                            <form id="completeNameForm" onsubmit="handleCompleteName(event)">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small mb-1">Your Full Name <span class="text-danger">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        id="reg-name-2" 
+                                        class="form-control rounded-3 py-2 px-3" 
+                                        placeholder="e.g. John Doe" 
+                                        required>
+                                </div>
+
+                                <button type="submit" id="btn-complete-2" class="tf-btn w-100 btn-fill radius-4 py-2 mt-2">
+                                    <span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -840,10 +941,48 @@
         }
     };
 
-    // OTP Authentication & Checkout Interception Logic
+    // OTP Authentication & Registration Logic
     window.IS_USER_LOGGED_IN = <?= !empty($is_logged_in) ? 'true' : 'false'; ?>;
-    window.REDIRECT_AFTER_LOGIN = '<?= site_url("checkout"); ?>';
+    window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+    window.CUSTOM_REDIRECT_ACTIVE = false;
+    window.AUTH_FLOW_DATA = {
+        flow: 'phone_first', // 'phone_first' or 'email_first'
+        email: '',
+        phone: ''
+    };
     var resendInterval = null;
+
+    function resetAuthModalSteps() {
+        clearInterval(resendInterval);
+        hideLoginAlert();
+        window.AUTH_FLOW_DATA = { flow: 'phone_first', email: '', phone: '' };
+
+        var stepIds = [
+            'login-step-identifier',
+            'login-step-phone-for-email',
+            'login-step-otp',
+            'login-step-complete-email-name',
+            'login-step-complete-name'
+        ];
+        stepIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.add('d-none');
+        });
+
+        var s1 = document.getElementById('login-step-identifier');
+        if (s1) s1.classList.remove('d-none');
+
+        var tTitle = document.getElementById('login-modal-step-title');
+        var tDesc = document.getElementById('login-modal-step-desc');
+        if (tTitle) tTitle.textContent = 'Welcome to <?= html_escape($site_name ?? ($store_settings["site_name"] ?? "our store")); ?>';
+        if (tDesc) tDesc.textContent = 'Enter your Mobile Number or Email to sign in or create an account with a quick OTP.';
+
+        var badge = document.getElementById('demo-otp-badge');
+        if (badge) badge.style.display = 'none';
+
+        var otpSub = document.getElementById('otp-email-sublabel');
+        if (otpSub) otpSub.classList.add('d-none');
+    }
 
     window.handleCheckoutClick = function(e, redirectUrl) {
         if (!window.IS_USER_LOGGED_IN) {
@@ -857,7 +996,14 @@
     window.openLoginModal = function(redirectUrl, message) {
         if (redirectUrl) {
             window.REDIRECT_AFTER_LOGIN = redirectUrl;
+            window.CUSTOM_REDIRECT_ACTIVE = true;
+        } else {
+            window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+            window.CUSTOM_REDIRECT_ACTIVE = false;
         }
+
+        resetAuthModalSteps();
+
         if (message) {
             showLoginAlert('info', message);
         } else {
@@ -886,6 +1032,26 @@
 
         var loginModal = document.getElementById('loginModal');
         if (loginModal) {
+            if (!loginModal.dataset.authListenerAttached) {
+                loginModal.dataset.authListenerAttached = 'true';
+                loginModal.addEventListener('show.bs.modal', function(event) {
+                    var trigger = event ? event.relatedTarget : null;
+                    if (trigger && trigger.dataset && trigger.dataset.redirectTo) {
+                        window.REDIRECT_AFTER_LOGIN = trigger.dataset.redirectTo;
+                        window.CUSTOM_REDIRECT_ACTIVE = true;
+                        if (trigger.dataset.loginMessage) {
+                            showLoginAlert('info', trigger.dataset.loginMessage);
+                        }
+                    } else if (!window.CUSTOM_REDIRECT_ACTIVE) {
+                        window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+                    }
+                });
+                loginModal.addEventListener('hidden.bs.modal', function() {
+                    window.CUSTOM_REDIRECT_ACTIVE = false;
+                    window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+                    resetAuthModalSteps();
+                });
+            }
             if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(loginModal).show();
             } else if (typeof $ !== 'undefined') {
@@ -907,9 +1073,41 @@
         var identifier = identifierInput ? identifierInput.value.trim() : '';
         if (!identifier) return;
 
+        hideLoginAlert();
+
+        // Check if user entered an Email address first
+        var isEmail = (identifier.indexOf('@') !== -1 && identifier.indexOf('.') !== -1);
+
+        if (isEmail) {
+            // Flow: User entered Email first -> Next ask for Mobile Number
+            window.AUTH_FLOW_DATA.flow = 'email_first';
+            window.AUTH_FLOW_DATA.email = identifier.toLowerCase();
+            window.AUTH_FLOW_DATA.phone = '';
+
+            document.getElementById('login-step-identifier').classList.add('d-none');
+            document.getElementById('login-step-phone-for-email').classList.remove('d-none');
+
+            document.getElementById('email-preview-label').textContent = window.AUTH_FLOW_DATA.email;
+            document.getElementById('login-modal-step-title').textContent = 'Enter Mobile Number';
+            document.getElementById('login-modal-step-desc').textContent = 'Please enter your mobile number to link with ' + window.AUTH_FLOW_DATA.email + '.';
+
+            setTimeout(function() {
+                var phoneInput = document.getElementById('login-phone-input');
+                if (phoneInput) {
+                    phoneInput.value = '';
+                    phoneInput.focus();
+                }
+            }, 200);
+            return;
+        }
+
+        // Flow: User entered Phone Number first
+        window.AUTH_FLOW_DATA.flow = 'phone_first';
+        window.AUTH_FLOW_DATA.phone = identifier;
+        window.AUTH_FLOW_DATA.email = '';
+
         btnSend.disabled = true;
         btnSend.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending OTP...';
-        hideLoginAlert();
 
         var formData = new FormData();
         formData.append('identifier', identifier);
@@ -922,12 +1120,15 @@
         .then(function(res) { return res.json(); })
         .then(function(data) {
             btnSend.disabled = false;
-            btnSend.innerHTML = '<span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+            btnSend.innerHTML = '<span class="text">Continue <i class="fa-solid fa-arrow-right ms-1"></i></span>';
 
             if (data.success) {
-                document.getElementById('otp-target-label').textContent = data.identifier;
-                
-                // Show demo OTP for frictionless local testing
+                window.AUTH_FLOW_DATA.phone = data.phone || identifier;
+                document.getElementById('otp-target-label').textContent = window.AUTH_FLOW_DATA.phone;
+
+                var emailSub = document.getElementById('otp-email-sublabel');
+                if (emailSub) emailSub.classList.add('d-none');
+
                 var demoBadge = document.getElementById('demo-otp-badge');
                 var demoCode = document.getElementById('demo-otp-code');
                 if (data.demo_otp && demoBadge && demoCode) {
@@ -935,11 +1136,10 @@
                     demoBadge.style.display = 'block';
                 }
 
-                // Switch to Step 2
                 document.getElementById('login-step-identifier').classList.add('d-none');
                 document.getElementById('login-step-otp').classList.remove('d-none');
                 document.getElementById('login-modal-step-title').textContent = 'Verify OTP';
-                document.getElementById('login-modal-step-desc').textContent = 'Enter the 6-digit code we sent to verify your identity.';
+                document.getElementById('login-modal-step-desc').textContent = 'Enter the 6-digit code sent to verify your identity.';
 
                 startResendTimer();
                 initOtpInputs();
@@ -950,7 +1150,70 @@
         .catch(function(err) {
             console.error('Error sending OTP:', err);
             btnSend.disabled = false;
-            btnSend.innerHTML = '<span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+            btnSend.innerHTML = '<span class="text">Continue <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+            showLoginAlert('danger', 'An error occurred. Please try again.');
+        });
+    };
+
+    window.handlePhoneForEmail = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+
+        var phoneInput = document.getElementById('login-phone-input');
+        var btnPhone = document.getElementById('btn-phone-for-email');
+
+        var phone = phoneInput ? phoneInput.value.trim() : '';
+        if (!phone) return;
+
+        btnPhone.disabled = true;
+        btnPhone.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending OTP...';
+        hideLoginAlert();
+
+        var formData = new FormData();
+        formData.append('identifier', phone);
+        formData.append('email', window.AUTH_FLOW_DATA.email || '');
+
+        fetch('<?= site_url("auth/send_otp"); ?>', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            btnPhone.disabled = false;
+            btnPhone.innerHTML = '<span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+
+            if (data.success) {
+                window.AUTH_FLOW_DATA.phone = data.phone || phone;
+                document.getElementById('otp-target-label').textContent = window.AUTH_FLOW_DATA.phone;
+
+                var emailSub = document.getElementById('otp-email-sublabel');
+                if (emailSub && window.AUTH_FLOW_DATA.email) {
+                    emailSub.textContent = 'Email: ' + window.AUTH_FLOW_DATA.email;
+                    emailSub.classList.remove('d-none');
+                }
+
+                var demoBadge = document.getElementById('demo-otp-badge');
+                var demoCode = document.getElementById('demo-otp-code');
+                if (data.demo_otp && demoBadge && demoCode) {
+                    demoCode.textContent = data.demo_otp;
+                    demoBadge.style.display = 'block';
+                }
+
+                document.getElementById('login-step-phone-for-email').classList.add('d-none');
+                document.getElementById('login-step-otp').classList.remove('d-none');
+                document.getElementById('login-modal-step-title').textContent = 'Verify Mobile OTP';
+                document.getElementById('login-modal-step-desc').textContent = 'Enter the 6-digit code sent to verify ' + window.AUTH_FLOW_DATA.phone + '.';
+
+                startResendTimer();
+                initOtpInputs();
+            } else {
+                showLoginAlert('danger', data.message || 'Failed to send OTP. Please try again.');
+            }
+        })
+        .catch(function(err) {
+            console.error('Error sending OTP for phone:', err);
+            btnPhone.disabled = false;
+            btnPhone.innerHTML = '<span class="text">Continue with OTP <i class="fa-solid fa-arrow-right ms-1"></i></span>';
             showLoginAlert('danger', 'An error occurred. Please try again.');
         });
     };
@@ -958,7 +1221,7 @@
     window.handleVerifyOtp = function(e) {
         if (e && e.preventDefault) e.preventDefault();
 
-        var identifier = document.getElementById('otp-target-label').textContent.trim();
+        var phone = window.AUTH_FLOW_DATA.phone || document.getElementById('otp-target-label').textContent.trim();
         var inputs = document.querySelectorAll('.otp-digit-input');
         var otpCode = '';
         inputs.forEach(function(inp) { otpCode += inp.value.trim(); });
@@ -974,9 +1237,9 @@
         hideLoginAlert();
 
         var formData = new FormData();
-        formData.append('identifier', identifier);
+        formData.append('phone', phone);
         formData.append('otp', otpCode);
-        formData.append('redirect_to', window.REDIRECT_AFTER_LOGIN || '<?= site_url("checkout"); ?>');
+        formData.append('redirect_to', window.REDIRECT_AFTER_LOGIN || '<?= site_url("home"); ?>');
 
         fetch('<?= site_url("auth/verify_otp"); ?>', {
             method: 'POST',
@@ -985,15 +1248,44 @@
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
+            btnVerify.disabled = false;
+            btnVerify.innerHTML = '<span class="text">Verify & Continue <i class="fa-solid fa-check ms-1"></i></span>';
+
             if (data.success) {
-                showLoginAlert('success', data.message || 'Login successful!');
-                window.IS_USER_LOGGED_IN = true;
-                setTimeout(function() {
-                    window.location.href = data.redirect || window.REDIRECT_AFTER_LOGIN;
-                }, 600);
+                if (data.status === 'logged_in') {
+                    // Existing User -> Immediate Login!
+                    showLoginAlert('success', data.message || 'Login successful!');
+                    window.IS_USER_LOGGED_IN = true;
+                    setTimeout(function() {
+                        window.location.href = data.redirect || window.REDIRECT_AFTER_LOGIN;
+                    }, 600);
+                } else if (data.status === 'need_email_name') {
+                    // Phone was entered first & Phone is NEW -> Asked for Email and Enter Name
+                    document.getElementById('login-step-otp').classList.add('d-none');
+                    document.getElementById('login-step-complete-email-name').classList.remove('d-none');
+                    document.getElementById('verified-phone-label-1').textContent = data.phone || phone;
+                    document.getElementById('login-modal-step-title').textContent = 'Complete Your Profile';
+                    document.getElementById('login-modal-step-desc').textContent = 'Enter your name and email address to finish registration.';
+
+                    setTimeout(function() {
+                        var inp = document.getElementById('reg-name-1');
+                        if (inp) inp.focus();
+                    }, 200);
+                } else if (data.status === 'need_name') {
+                    // Email entered first, Phone was NEW too -> OTP verified -> Asked for Enter Name
+                    document.getElementById('login-step-otp').classList.add('d-none');
+                    document.getElementById('login-step-complete-name').classList.remove('d-none');
+                    document.getElementById('verified-email-label-2').textContent = data.email || window.AUTH_FLOW_DATA.email;
+                    document.getElementById('verified-phone-label-2').textContent = data.phone || phone;
+                    document.getElementById('login-modal-step-title').textContent = 'What Should We Call You?';
+                    document.getElementById('login-modal-step-desc').textContent = 'Enter your name to complete your registration.';
+
+                    setTimeout(function() {
+                        var inp = document.getElementById('reg-name-2');
+                        if (inp) inp.focus();
+                    }, 200);
+                }
             } else {
-                btnVerify.disabled = false;
-                btnVerify.innerHTML = '<span class="text">Verify & Continue <i class="fa-solid fa-check ms-1"></i></span>';
                 showLoginAlert('danger', data.message || 'Invalid code. Please try again.');
             }
         })
@@ -1005,25 +1297,165 @@
         });
     };
 
-    window.backToIdentifierStep = function() {
+    window.handleCompleteEmailName = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+
+        var nameInput = document.getElementById('reg-name-1');
+        var emailInput = document.getElementById('reg-email-1');
+        var btn = document.getElementById('btn-complete-1');
+
+        var name = nameInput ? nameInput.value.trim() : '';
+        var email = emailInput ? emailInput.value.trim() : '';
+
+        if (!name) {
+            showLoginAlert('warning', 'Please enter your name.');
+            return;
+        }
+        if (!email || email.indexOf('@') === -1) {
+            showLoginAlert('warning', 'Please enter a valid email address.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...';
+        hideLoginAlert();
+
+        var formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('redirect_to', window.REDIRECT_AFTER_LOGIN || '<?= site_url("home"); ?>');
+
+        fetch('<?= site_url("auth/complete_registration"); ?>', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+
+            if (data.success) {
+                showLoginAlert('success', data.message || 'Registration successful! Redirecting...');
+                window.IS_USER_LOGGED_IN = true;
+                setTimeout(function() {
+                    window.location.href = data.redirect || window.REDIRECT_AFTER_LOGIN;
+                }, 600);
+            } else {
+                showLoginAlert('danger', data.message || 'Registration failed. Please try again.');
+            }
+        })
+        .catch(function(err) {
+            console.error('Error completing registration:', err);
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+            showLoginAlert('danger', 'An error occurred during registration. Please try again.');
+        });
+    };
+
+    window.handleCompleteName = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+
+        var nameInput = document.getElementById('reg-name-2');
+        var btn = document.getElementById('btn-complete-2');
+
+        var name = nameInput ? nameInput.value.trim() : '';
+        if (!name) {
+            showLoginAlert('warning', 'Please enter your name.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...';
+        hideLoginAlert();
+
+        var formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', window.AUTH_FLOW_DATA.email || '');
+        formData.append('redirect_to', window.REDIRECT_AFTER_LOGIN || '<?= site_url("home"); ?>');
+
+        fetch('<?= site_url("auth/complete_registration"); ?>', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+
+            if (data.success) {
+                showLoginAlert('success', data.message || 'Registration successful! Redirecting...');
+                window.IS_USER_LOGGED_IN = true;
+                setTimeout(function() {
+                    window.location.href = data.redirect || window.REDIRECT_AFTER_LOGIN;
+                }, 600);
+            } else {
+                showLoginAlert('danger', data.message || 'Registration failed. Please try again.');
+            }
+        })
+        .catch(function(err) {
+            console.error('Error completing registration:', err);
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text">Complete Registration & Sign In <i class="fa-solid fa-arrow-right ms-1"></i></span>';
+            showLoginAlert('danger', 'An error occurred during registration. Please try again.');
+        });
+    };
+
+    window.handleChangeFromOtp = function() {
         clearInterval(resendInterval);
         hideLoginAlert();
         document.getElementById('login-step-otp').classList.add('d-none');
+
+        if (window.AUTH_FLOW_DATA && window.AUTH_FLOW_DATA.flow === 'email_first') {
+            document.getElementById('login-step-phone-for-email').classList.remove('d-none');
+            document.getElementById('login-modal-step-title').textContent = 'Enter Mobile Number';
+            document.getElementById('login-modal-step-desc').textContent = 'Please enter your mobile number to link with ' + window.AUTH_FLOW_DATA.email + '.';
+            setTimeout(function() {
+                var phoneInp = document.getElementById('login-phone-input');
+                if (phoneInp) phoneInp.focus();
+            }, 200);
+        } else {
+            backToIdentifierStep();
+        }
+    };
+
+    window.backToIdentifierStep = function() {
+        clearInterval(resendInterval);
+        hideLoginAlert();
+
+        var stepIds = [
+            'login-step-phone-for-email',
+            'login-step-otp',
+            'login-step-complete-email-name',
+            'login-step-complete-name'
+        ];
+        stepIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.add('d-none');
+        });
+
         document.getElementById('login-step-identifier').classList.remove('d-none');
         document.getElementById('login-modal-step-title').textContent = 'Welcome to <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'our store')); ?>';
         document.getElementById('login-modal-step-desc').textContent = 'Enter your Mobile Number or Email to sign in or create an account with a quick OTP.';
-        var inp = document.getElementById('login-identifier-input');
-        if (inp) inp.focus();
+
+        setTimeout(function() {
+            var inp = document.getElementById('login-identifier-input');
+            if (inp) inp.focus();
+        }, 200);
     };
 
     window.resendOtp = function() {
         var btn = document.getElementById('btn-resend-otp');
         if (btn.classList.contains('disabled')) return;
-        var identifier = document.getElementById('otp-target-label').textContent.trim();
+        var identifier = window.AUTH_FLOW_DATA.phone || document.getElementById('otp-target-label').textContent.trim();
         if (!identifier) return;
 
         var formData = new FormData();
         formData.append('identifier', identifier);
+        if (window.AUTH_FLOW_DATA.email) {
+            formData.append('email', window.AUTH_FLOW_DATA.email);
+        }
 
         btn.classList.add('disabled');
         btn.textContent = 'Sending...';
@@ -1056,6 +1488,7 @@
 
     function startResendTimer() {
         var btn = document.getElementById('btn-resend-otp');
+        if (!btn) return;
         var count = 30;
 
         btn.classList.add('disabled');
@@ -1382,4 +1815,44 @@
             console.error('Error refreshing addresses:', err);
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var modalEl = document.getElementById('loginModal');
+        if (modalEl) {
+            if (!modalEl.dataset.authListenerAttached) {
+                modalEl.dataset.authListenerAttached = 'true';
+                modalEl.addEventListener('show.bs.modal', function(event) {
+                    var trigger = event ? event.relatedTarget : null;
+                    if (trigger && trigger.dataset && trigger.dataset.redirectTo) {
+                        window.REDIRECT_AFTER_LOGIN = trigger.dataset.redirectTo;
+                        window.CUSTOM_REDIRECT_ACTIVE = true;
+                        if (trigger.dataset.loginMessage && typeof showLoginAlert === 'function') {
+                            showLoginAlert('info', trigger.dataset.loginMessage);
+                        }
+                    } else if (!window.CUSTOM_REDIRECT_ACTIVE) {
+                        window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+                    }
+                });
+                modalEl.addEventListener('hidden.bs.modal', function() {
+                    window.CUSTOM_REDIRECT_ACTIVE = false;
+                    window.REDIRECT_AFTER_LOGIN = '<?= site_url("home"); ?>';
+                    if (typeof resetAuthModalSteps === 'function') {
+                        resetAuthModalSteps();
+                    }
+                });
+            }
+        }
+
+        // Global interceptor: When any guest user clicks a wishlist heart or button anywhere in the project
+        document.addEventListener('click', function(e) {
+            var wishlistBtn = e.target.closest('.box-icon.wishlist, .btn-icon-action.wishlist, a[href*="wishlist/toggle"], .store-nav-wishlist > a[href="#loginModal"]');
+            if (wishlistBtn && !window.IS_USER_LOGGED_IN) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.openLoginModal === 'function') {
+                    window.openLoginModal('<?= site_url("wishlist"); ?>', 'Please sign in to view and save items to your wishlist.');
+                }
+            }
+        });
+    });
     </script>

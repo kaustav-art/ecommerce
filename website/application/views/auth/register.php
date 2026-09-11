@@ -7,6 +7,17 @@
                             <h3 class="fw-bold mb-2 text-center">Create an Account</h3>
                             <p class="text-muted text-center small mb-4">Join <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'us')); ?> for personalized shopping & fast checkout</p>
 
+                            <div class="card border-primary-subtle bg-light-subtle p-3 mb-4 rounded-3 text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-2 mb-1 text-primary fw-bold small">
+                                    <i class="fa-solid fa-bolt"></i> Instant OTP Registration (Recommended)
+                                </div>
+                                <p class="text-muted small mb-2" style="font-size: 11.5px;">Register with your mobile or email using a quick 6-digit OTP verification.</p>
+                                <?php $auth_redirect = $this->session->userdata('redirect_url') ?: site_url('home'); ?>
+                                <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="openLoginModal('<?= $auth_redirect; ?>')">
+                                    Register with Mobile / Email OTP <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+
                             <form action="<?= site_url('auth/register'); ?>" method="POST">
                                 <div class="row g-3 mb-3">
                                     <div class="col-6">

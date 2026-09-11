@@ -14,42 +14,57 @@ class home extends MY_Controller {
 
     public function index()
     {
-        $banners           = $this->banner_model->get_active_banners();
-        $featured_cats     = $this->category_model->get_featured();
-        $new_arrivals      = $this->product_model->get_products(['is_new' => 1], 8);
-        $best_sellers      = $this->product_model->get_products(['sort' => 'popular'], 8);
-        $on_sale           = $this->product_model->get_products(['on_sale' => 1], 8);
-        $featured_products = $this->product_model->get_featured(8);
-        $trending_products = $this->product_model->get_trending(8);
-        $brands            = $this->brand_model->get_all();
-
-        // Fallbacks if tables have small datasets
-        if (empty($featured_cats)) {
-            $featured_cats = $this->category_model->get_root_categories();
-        }
-        if (empty($new_arrivals)) {
-            $new_arrivals = $featured_products;
-        }
-        if (empty($best_sellers)) {
-            $best_sellers = $trending_products;
-        }
-        if (empty($on_sale)) {
-            $on_sale = $featured_products;
-        }
+        $banners        = $this->banner_model->get_active_banners();
+        $products       = $this->product_model->get_products([], 16, 0);
+        $total_products = $this->product_model->count_products([]);
+        $brands         = $this->brand_model->get_all();
 
         $data = [
-            'title'             => $this->site_name . ' - Multipurpose eCommerce',
-            'active_page'       => 'home',
-            'banners'           => $banners,
-            'featured_cats'     => $featured_cats,
-            'new_arrivals'      => $new_arrivals,
-            'best_sellers'      => $best_sellers,
-            'on_sale'           => $on_sale,
-            'trending_products' => $trending_products,
-            'featured_products' => $featured_products,
-            'brands'            => $brands
+            'title'          => $this->site_name . ' - Multipurpose eCommerce',
+            'active_page'    => 'home',
+            'banners'        => $banners,
+            'products'       => $products,
+            'total_products' => $total_products,
+            'brands'         => $brands
         ];
 
         $this->render('home/index', $data);
+    }
+
+    public function load_more()
+    {
+        $offset = (int) $this->input->get('offset');
+        $limit  = (int) ($this->input->get('limit') ?: 16);
+        if ($limit <= 0 || $limit > 50) {
+            $limit = 16;
+        }
+        if ($offset < 0) {
+            $offset = 0;
+        }
+
+        $products = $this->product_model->get_products([], $limit, $offset);
+        $total    = $this->product_model->count_products([]);
+        $has_more = ($offset + count($products)) < $total;
+
+        $currency_symbol = $this->store_settings['currency_symbol'] ?? '$';
+
+        $html = '';
+        if (!empty($products)) {
+            foreach ($products as $p) {
+                $html .= $this->load->view('home/_product_card', [
+                    'p'               => $p,
+                    'currency_symbol' => $currency_symbol
+                ], TRUE);
+            }
+        }
+
+        $this->output
+             ->set_content_type('application/json')
+             ->set_output(json_encode([
+                 'status'   => 'success',
+                 'count'    => count($products),
+                 'has_more' => $has_more,
+                 'html'     => $html
+             ]));
     }
 }
