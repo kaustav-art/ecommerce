@@ -82,14 +82,25 @@ class shop extends MY_Controller {
             'attr_value_ids' => $attr_value_ids
         ];
 
-        // Pagination
-        $page     = max(1, (int) $this->input->get('page'));
-        $per_page = 12;
-        $offset   = ($page - 1) * $per_page;
+        // Infinite scroll batching (16 products per batch: 16 initially, 16 on scrolling)
+        $limit = (int) ($this->input->get('limit') ?: 16);
+        if ($limit <= 0 || $limit > 50) {
+            $limit = 16;
+        }
 
+        if ($this->input->get('offset') !== NULL) {
+            $offset = max(0, (int) $this->input->get('offset'));
+            $page   = floor($offset / $limit) + 1;
+        } else {
+            $page   = max(1, (int) $this->input->get('page'));
+            $offset = ($page - 1) * $limit;
+        }
+
+        $per_page       = $limit;
         $total_products = $this->product_model->count_products($filters);
         $products       = $this->product_model->get_products($filters, $per_page, $offset);
         $total_pages    = ceil($total_products / $per_page);
+        $has_more       = ($offset + count($products)) < $total_products;
 
         // Brands with respect to selected product category
         $brands = $this->brand_model->get_brands_by_category_ids($category_ids);
@@ -171,11 +182,18 @@ class shop extends MY_Controller {
 
         $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
 
+        $is_append = ($this->input->get('append') == '1' || ($offset > 0 && !$this->input->get('page')));
+
         $data = [
             'title'              => $page_heading . ' - ' . $this->site_name,
             'active_page'        => 'shop',
+            'currency_symbol'    => $this->currency_symbol ?? ($this->store_settings['currency_symbol'] ?? '$'),
             'products'           => $products,
             'total_products'     => $total_products,
+            'has_more'           => $has_more,
+            'offset'             => $offset,
+            'limit'              => $limit,
+            'is_append'          => $is_append,
             'brands'             => $brands,
             'selected_brands'    => $selected_brands,
             'filter_sizes'       => $filter_sizes,
@@ -192,6 +210,22 @@ class shop extends MY_Controller {
             'total_pages'        => $total_pages,
             'per_page'           => $per_page
         ];
+
+        if ($this->input->is_ajax_request() || $this->input->get('ajax') == '1') {
+            $products_html = $this->load->view('shop/partials/product_grid', $data, TRUE);
+            $meta_html     = $is_append ? '' : $this->load->view('shop/partials/meta_bar', $data, TRUE);
+
+            $this->json_response([
+                'status'          => 'success',
+                'total_products'  => $total_products,
+                'count'           => count($products),
+                'offset'          => $offset + count($products),
+                'has_more'        => $has_more,
+                'products_html'   => $products_html,
+                'meta_html'       => $meta_html
+            ]);
+            return;
+        }
 
         $this->render('shop/index', $data);
     }

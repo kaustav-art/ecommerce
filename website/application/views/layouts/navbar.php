@@ -865,6 +865,12 @@
             }
 
             /* Category slider mobile view */
+            .store-cat-track {
+                gap: 0px !important;
+            }
+            .store-cat-name-row {
+                max-width: 80px !important;
+            }
             .store-cat-slide-btn {
                 display: none !important;
             }
