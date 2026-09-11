@@ -42,23 +42,40 @@ class shop extends MY_Controller {
             $top_subcategories = $this->category_model->get_root_categories();
         }
 
+        // Parse brand filter
+        $brand_param = $this->input->get('brand');
+        $selected_brands = [];
+        if (!empty($brand_param)) {
+            if (is_array($brand_param)) {
+                $selected_brands = array_values(array_filter($brand_param));
+            } else {
+                $selected_brands = [trim($brand_param)];
+            }
+        }
+
         // Parse attribute value filters
         $attr_params = $this->input->get('attrs');
         $attr_value_ids = [];
         if (!empty($attr_params) && is_array($attr_params)) {
-            $attr_value_ids = array_map('intval', $attr_params);
+            $attr_value_ids = array_values(array_filter(array_map('intval', $attr_params)));
         } elseif (!empty($attr_params) && is_numeric($attr_params)) {
             $attr_value_ids = [(int) $attr_params];
         }
 
+        // Sorting: only allow A-Z, Z-A, price-low-high, price-high-low; default to a-z
+        $sort_param = $this->input->get('sort');
+        $valid_sorts = ['a-z', 'z-a', 'price-low-high', 'price-high-low'];
+        $current_sort = in_array($sort_param, $valid_sorts) ? $sort_param : 'a-z';
+
         $filters = [
             'category_slug'  => empty($category_ids) ? $raw_category_slug : NULL,
             'category_ids'   => !empty($category_ids) ? $category_ids : NULL,
-            'brand_slug'     => $this->input->get('brand'),
+            'brand_slugs'    => $selected_brands,
+            'brand_slug'     => !empty($selected_brands) ? $selected_brands[0] : NULL,
             'search'         => $this->input->get('q'),
             'min_price'      => $this->input->get('min_price'),
             'max_price'      => $this->input->get('max_price'),
-            'sort'           => $this->input->get('sort') ?: 'best-selling',
+            'sort'           => $current_sort,
             'on_sale'        => $this->input->get('on_sale') ? 1 : NULL,
             'in_stock'       => $this->input->get('in_stock') ? 1 : NULL,
             'rating'         => $this->input->get('rating') ? (float) $this->input->get('rating') : NULL,
@@ -74,33 +91,106 @@ class shop extends MY_Controller {
         $products       = $this->product_model->get_products($filters, $per_page, $offset);
         $total_pages    = ceil($total_products / $per_page);
 
-        $categories = $this->category_model->get_all();
-        $brands     = $this->brand_model->get_all();
+        // Brands with respect to selected product category
+        $brands = $this->brand_model->get_brands_by_category_ids($category_ids);
 
-        // Load all attributes and their values for the filter offcanvas
-        $filter_attributes = $this->db->select('a.*')->from('attributes a')->order_by('a.id', 'ASC')->get()->result_array();
-        foreach ($filter_attributes as &$fa) {
-            $fa['values'] = $this->db->where('attribute_id', $fa['id'])->order_by('sort_order', 'ASC')->get('attribute_values')->result_array();
+        // Price range for current category / catalog
+        $price_query = $this->db->select('MIN(COALESCE(p.sale_price, p.price)) as min_p, MAX(COALESCE(p.sale_price, p.price)) as max_p')
+                                ->from('products p')
+                                ->where('p.status', 'published');
+        if (!empty($category_ids)) {
+            $price_query->where_in('p.category_id', $category_ids);
+        }
+        $price_row = $price_query->get()->row_array();
+        $min_catalog_price = !empty($price_row['min_p']) ? (int) floor($price_row['min_p']) : 0;
+        $max_catalog_price = !empty($price_row['max_p']) ? (int) ceil($price_row['max_p']) : 500;
+        if ($min_catalog_price >= $max_catalog_price) {
+            $min_catalog_price = 0;
+            $max_catalog_price = max(100, $max_catalog_price);
+        }
+
+        // Dynamic attributes (Size, Color, Other variants) with respect to product category
+        $attr_query = $this->db->select('a.id as attr_id, a.name as attr_name, a.slug as attr_slug, a.type as attr_type,
+                                         av.id as val_id, av.value as val_value, av.color_code, av.sort_order,
+                                         COUNT(DISTINCT p.id) as product_count')
+                                ->from('attributes a')
+                                ->join('attribute_values av', 'av.attribute_id = a.id')
+                                ->join('product_variant_values pvv', 'pvv.attribute_value_id = av.id')
+                                ->join('product_variants pv', 'pv.id = pvv.variant_id')
+                                ->join('products p', 'p.id = pv.product_id AND p.status = "published"');
+
+        if (!empty($category_ids)) {
+            $attr_query->where_in('p.category_id', $category_ids);
+        }
+
+        $raw_attrs = $attr_query->group_by(['a.id', 'av.id'])
+                                ->order_by('a.id', 'ASC')
+                                ->order_by('av.sort_order', 'ASC')
+                                ->order_by('av.id', 'ASC')
+                                ->get()
+                                ->result_array();
+
+        $filter_sizes = [];
+        $filter_colors = [];
+        $other_variants = [];
+
+        foreach ($raw_attrs as $ra) {
+            $slug = strtolower($ra['attr_slug']);
+            $type = strtolower($ra['attr_type']);
+            if ($slug === 'size') {
+                $filter_sizes[] = [
+                    'id'            => $ra['val_id'],
+                    'value'         => $ra['val_value'],
+                    'product_count' => $ra['product_count']
+                ];
+            } elseif ($slug === 'color' || $type === 'color') {
+                $filter_colors[] = [
+                    'id'            => $ra['val_id'],
+                    'value'         => $ra['val_value'],
+                    'color_code'    => $ra['color_code'],
+                    'product_count' => $ra['product_count']
+                ];
+            } else {
+                if (!isset($other_variants[$ra['attr_id']])) {
+                    $other_variants[$ra['attr_id']] = [
+                        'id'     => $ra['attr_id'],
+                        'name'   => $ra['attr_name'],
+                        'slug'   => $ra['attr_slug'],
+                        'type'   => $ra['attr_type'],
+                        'values' => []
+                    ];
+                }
+                $other_variants[$ra['attr_id']]['values'][] = [
+                    'id'            => $ra['val_id'],
+                    'value'         => $ra['val_value'],
+                    'color_code'    => $ra['color_code'],
+                    'product_count' => $ra['product_count']
+                ];
+            }
         }
 
         $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
 
         $data = [
-            'title'             => $page_heading . ' - ' . $this->site_name,
-            'active_page'       => 'shop',
-            'products'          => $products,
-            'total_products'    => $total_products,
-            'categories'        => $categories,
-            'brands'            => $brands,
-            'filter_attributes' => $filter_attributes,
-            'filters'           => $filters,
-            'selected_category' => $selected_category,
-            'breadcrumbs'       => $breadcrumbs,
-            'top_subcategories' => $top_subcategories,
-            'page_heading'      => $page_heading,
-            'current_page'      => $page,
-            'total_pages'       => $total_pages,
-            'per_page'          => $per_page
+            'title'              => $page_heading . ' - ' . $this->site_name,
+            'active_page'        => 'shop',
+            'products'           => $products,
+            'total_products'     => $total_products,
+            'brands'             => $brands,
+            'selected_brands'    => $selected_brands,
+            'filter_sizes'       => $filter_sizes,
+            'filter_colors'      => $filter_colors,
+            'other_variants'     => $other_variants,
+            'min_catalog_price'  => $min_catalog_price,
+            'max_catalog_price'  => $max_catalog_price,
+            'filters'            => $filters,
+            'selected_category'  => $selected_category,
+            'breadcrumbs'        => $breadcrumbs,
+            'top_subcategories'  => $top_subcategories,
+            'page_heading'       => $page_heading,
+            'current_page'       => $page,
+            'total_pages'        => $total_pages,
+            'per_page'           => $per_page
         ];
 
         $this->render('shop/index', $data);

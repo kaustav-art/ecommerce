@@ -26,7 +26,9 @@ class product_model extends CI_Model {
         if (!empty($filters['brand_id'])) {
             $this->db->where('p.brand_id', (int) $filters['brand_id']);
         }
-        if (!empty($filters['brand_slug'])) {
+        if (!empty($filters['brand_slugs']) && is_array($filters['brand_slugs'])) {
+            $this->db->where_in('b.slug', $filters['brand_slugs']);
+        } elseif (!empty($filters['brand_slug'])) {
             $this->db->where('b.slug', $filters['brand_slug']);
         }
         if (!empty($filters['search'])) {
@@ -69,7 +71,7 @@ class product_model extends CI_Model {
         }
 
         // Sorting
-        $sort = isset($filters['sort']) ? $filters['sort'] : 'newest';
+        $sort = isset($filters['sort']) ? $filters['sort'] : 'a-z';
         switch ($sort) {
             case 'price_low':
             case 'price-low-high':
@@ -79,22 +81,12 @@ class product_model extends CI_Model {
             case 'price-high-low':
                 $this->db->order_by('COALESCE(p.sale_price, p.price)', 'DESC');
                 break;
-            case 'a-z':
-                $this->db->order_by('p.title', 'ASC');
-                break;
             case 'z-a':
                 $this->db->order_by('p.title', 'DESC');
                 break;
-            case 'popular':
-            case 'best-selling':
-                $this->db->order_by('p.reviews_count', 'DESC')->order_by('p.id', 'DESC');
-                break;
-            case 'rating':
-                $this->db->order_by('p.rating', 'DESC');
-                break;
-            case 'newest':
+            case 'a-z':
             default:
-                $this->db->order_by('p.id', 'DESC');
+                $this->db->order_by('p.title', 'ASC');
                 break;
         }
 
@@ -126,7 +118,9 @@ class product_model extends CI_Model {
         if (!empty($filters['brand_id'])) {
             $this->db->where('p.brand_id', (int) $filters['brand_id']);
         }
-        if (!empty($filters['brand_slug'])) {
+        if (!empty($filters['brand_slugs']) && is_array($filters['brand_slugs'])) {
+            $this->db->where_in('b.slug', $filters['brand_slugs']);
+        } elseif (!empty($filters['brand_slug'])) {
             $this->db->where('b.slug', $filters['brand_slug']);
         }
         if (!empty($filters['search'])) {
