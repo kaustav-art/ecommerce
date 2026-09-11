@@ -26,20 +26,18 @@
         }
         #header,
         header.header-default {
-            position: sticky !important;
-            position: -webkit-sticky !important;
-            top: 0 !important;
+            position: relative !important;
+            top: auto !important;
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            z-index: 1000 !important;
+            z-index: 1020 !important;
             background-color: #ffffff !important;
-            transition: box-shadow 0.25s ease, background-color 0.25s ease;
         }
         #header.is-sticky,
         #header.header-bg {
             background-color: #ffffff !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+            box-shadow: none !important;
         }
 
         #header .nav-icon .nav-icon-item i[class*="fa-"] {

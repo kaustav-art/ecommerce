@@ -3,17 +3,10 @@
             <!-- Top Navbar Row -->
             <div class="store-top-navbar bg-white border-bottom">
                 <div class="container px-3 px-lg-4">
-                    <div class="d-flex align-items-center justify-content-between py-2 gap-2 gap-md-4">
-                        
-                        <!-- Mobile Hamburger Button -->
-                        <div class="d-xl-none me-1">
-                            <a href="#mobileMenu" class="mobile-menu text-dark text-decoration-none" data-bs-toggle="offcanvas" aria-controls="mobileMenu" aria-label="Open menu">
-                                <i class="fa-solid fa-bars fs-4"></i>
-                            </a>
-                        </div>
+                    <div class="store-nav-header-row d-flex flex-wrap align-items-center justify-content-between py-2">
 
                         <!-- Brand Logo -->
-                        <div class="store-logo-col flex-shrink-0">
+                        <div class="store-logo-col flex-shrink-0 order-1">
                             <a href="<?= site_url('home'); ?>" class="logo-header d-inline-block">
                                 <?php
                                   $web_logo = !empty($store_settings['site_logo'])
@@ -24,30 +17,10 @@
                             </a>
                         </div>
 
-                        <!-- Centered Wide Search Box (Store style) -->
-                        <div class="store-search-col flex-grow-1 mx-2 mx-lg-4 position-relative">
-                            <form action="<?= site_url('shop'); ?>" method="GET" class="store-search-form" id="storeNavSearchForm">
-                                <div class="store-search-input-wrap">
-                                    <button type="submit" class="store-search-icon-btn" aria-label="Search">
-                                        <i class="fa-solid fa-magnifying-glass"></i>
-                                    </button>
-                                    <input type="text" 
-                                           name="q" 
-                                           id="storeNavSearchInput" 
-                                           class="store-search-input" 
-                                           placeholder="Search for Products, Brands and More" 
-                                           value="<?= html_escape($search_query ?? ($this->input->get('q') ?: '')); ?>" 
-                                           autocomplete="off">
-                                </div>
-                            </form>
-                            <!-- Search Autocomplete Dropdown -->
-                            <div id="storeAutocompleteResults" class="store-autocomplete-dropdown shadow-lg d-none"></div>
-                        </div>
-
-                        <!-- Right Actions (Login / User Account & Cart) -->
-                        <div class="store-actions-col flex-shrink-0 d-flex align-items-center gap-3 gap-md-4">
+                        <!-- Right Actions (Login / User Account, Wishlist & Cart) -->
+                        <div class="store-actions-col flex-shrink-0 d-flex align-items-center gap-3 gap-md-4 order-2 order-md-3">
                             
-                            <!-- User Account / Login with Chevron -->
+                            <!-- User Account / Login -->
                             <div class="store-nav-account position-relative">
                                 <?php if ($this->is_logged_in()): 
                                     $u_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
@@ -55,10 +28,10 @@
                                     $u_email = $current_user['email'] ?? '';
                                     $u_avatar = (!empty($current_user['avatar']) && $current_user['avatar'] !== 'default-user.png' && file_exists(FCPATH . $current_user['avatar'])) ? base_url($current_user['avatar']) : null;
                                 ?>
-                                    <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none">
+                                    <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
                                         <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-sm-inline"><?= html_escape($current_user['first_name'] ?? 'Account'); ?></span>
-                                        <i class="fa-solid fa-chevron-down store-action-chevron"></i>
+                                        <span class="store-action-text d-none d-md-inline"><?= html_escape($current_user['first_name'] ?? 'Account'); ?></span>
+                                        <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
                                     </a>
 
                                     <!-- User Account Drawer Menu (Opens on hover) -->
@@ -93,10 +66,10 @@
                                         </div>
                                     </div>
                                 <?php else: ?>
-                                    <a href="#loginModal" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none">
+                                    <a href="#loginModal" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="Login">
                                         <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-sm-inline">Login</span>
-                                        <i class="fa-solid fa-chevron-down store-action-chevron"></i>
+                                        <span class="store-action-text d-none d-md-inline">Login</span>
+                                        <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
                                     </a>
                                 <?php endif; ?>
                             </div>
@@ -106,7 +79,7 @@
                                 <?php if ($this->is_logged_in()): ?>
                                     <a href="<?= site_url('wishlist'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
                                         <i class="fa-regular fa-heart store-action-icon"></i>
-                                        <span class="store-action-text d-none d-sm-inline">Wishlist</span>
+                                        <span class="store-action-text d-none d-md-inline">Wishlist</span>
                                         <?php if (!empty($wishlist_count) && $wishlist_count > 0): ?>
                                             <span class="store-cart-badge" id="wishlist-counter"><?= $wishlist_count; ?></span>
                                         <?php endif; ?>
@@ -114,7 +87,7 @@
                                 <?php else: ?>
                                     <a href="#loginModal" data-bs-toggle="modal" data-redirect-to="<?= site_url('wishlist'); ?>" data-login-message="Please sign in to access your wishlist." onclick="if(typeof openLoginModal==='function'){openLoginModal('<?= site_url('wishlist'); ?>', 'Please sign in to access your wishlist.'); return false;}" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
                                         <i class="fa-regular fa-heart store-action-icon"></i>
-                                        <span class="store-action-text d-none d-sm-inline">Wishlist</span>
+                                        <span class="store-action-text d-none d-md-inline">Wishlist</span>
                                     </a>
                                 <?php endif; ?>
                             </div>
@@ -123,7 +96,7 @@
                             <div class="store-nav-cart">
                                 <a href="#shoppingCart" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Cart">
                                     <i class="fa-solid fa-cart-shopping store-action-icon"></i>
-                                    <span class="store-action-text d-none d-sm-inline">Cart</span>
+                                    <span class="store-action-text d-none d-md-inline">Cart</span>
                                     <?php if (!empty($cart_count) && $cart_count > 0): ?>
                                         <span class="store-cart-badge" id="cart-counter"><?= $cart_count; ?></span>
                                     <?php else: ?>
@@ -133,6 +106,27 @@
                             </div>
 
                         </div>
+
+                        <!-- Centered Wide Search Box (Store style, wraps to 2nd row on mobile) -->
+                        <div class="store-search-col flex-grow-1 order-3 order-md-2 position-relative">
+                            <form action="<?= site_url('shop'); ?>" method="GET" class="store-search-form" id="storeNavSearchForm">
+                                <div class="store-search-input-wrap">
+                                    <button type="submit" class="store-search-icon-btn" aria-label="Search">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                    </button>
+                                    <input type="text" 
+                                           name="q" 
+                                           id="storeNavSearchInput" 
+                                           class="store-search-input" 
+                                           placeholder="Search for sarees, t-shirts & more" 
+                                           value="<?= html_escape($search_query ?? ($this->input->get('q') ?: '')); ?>" 
+                                           autocomplete="off">
+                                </div>
+                            </form>
+                            <!-- Search Autocomplete Dropdown -->
+                            <div id="storeAutocompleteResults" class="store-autocomplete-dropdown shadow-lg d-none"></div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -252,58 +246,67 @@
            Store / Flipkart Navbar & Category Bar Styles
            ========================================================== */
 
-        /* Header Container - Do NOT make entire header sticky */
+        /* Header Container */
         header.store-header-nav,
         #header.store-header-nav,
         .store-header-nav {
-            position: static !important;
+            position: relative !important;
             top: auto !important;
             background-color: #ffffff !important;
             box-shadow: none !important;
-            z-index: auto !important;
+            z-index: 1020 !important;
             transition: none !important;
+            padding-top: 61px !important; /* Preserves layout height for fixed store-top-navbar */
+        }
+        header.store-header-nav.is-sticky,
+        #header.store-header-nav.is-sticky {
+            position: relative !important;
+            box-shadow: none !important;
         }
 
-        /* Top Navbar Row - ONLY STICKY SECTION */
+        /* Top Navbar Row - FIXED / STICKY AT TOP */
         .store-top-navbar {
             background-color: #ffffff !important;
-            position: -webkit-sticky !important;
-            position: sticky !important;
+            position: fixed !important;
             top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
             z-index: 1040 !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
         }
 
         /* Search Box */
         .store-search-col {
             max-width: 680px;
+            margin: 0 1.25rem;
         }
         .store-search-input-wrap {
             display: flex;
             align-items: center;
+            border: 0;
+            height: 34px;
             background-color: #f0f5ff;
-            border-radius: 8px;
-            height: 44px;
-            padding: 0 14px;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0 12px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
         }
         .store-search-input-wrap:focus-within {
             background-color: #ffffff;
-            border-color: #2874f0;
-            box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12);
+            box-shadow: 0 0 0 1px #2874f0;
         }
         .store-search-icon-btn {
             background: transparent;
             border: none;
             color: #717478;
-            font-size: 15px;
+            font-size: 14px;
             padding: 0;
-            margin-right: 12px;
+            margin-right: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 100%;
         }
         .store-search-icon-btn:hover {
             color: #2874f0;
@@ -753,6 +756,87 @@
         }
 
         @media (max-width: 767.98px) {
+            /* Responsive header padding fallback */
+            header.store-header-nav,
+            #header.store-header-nav,
+            .store-header-nav {
+                padding-top: 96px !important;
+            }
+
+            /* Brand logo mobile sizing */
+            .store-logo-col .logo {
+                max-height: 36px !important;
+            }
+
+            /* Actions (User, Wishlist, Cart only) */
+            .store-actions-col {
+                gap: 16px !important;
+            }
+            .store-action-icon {
+                font-size: 20px !important;
+                margin-right: 0 !important;
+                color: #212121 !important;
+            }
+            .store-action-text,
+            .store-action-chevron {
+                display: none !important;
+            }
+            .store-nav-action-link {
+                padding: 4px 0 !important;
+                position: relative !important;
+                display: flex !important;
+                align-items: center !important;
+            }
+            .store-cart-badge {
+                position: absolute !important;
+                top: -3px !important;
+                right: -7px !important;
+                font-size: 9px !important;
+                min-width: 15px !important;
+                height: 15px !important;
+                line-height: 15px !important;
+                padding: 0 4px !important;
+                border-radius: 8px !important;
+                margin-left: 0 !important;
+            }
+
+            /* Search bar matching mobie_view.jpeg */
+            .store-search-col {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex-basis: 100% !important;
+                margin: 8px 0 2px 0 !important;
+                padding: 0 !important;
+            }
+            .store-search-input-wrap {
+                border: 0 !important;
+                height: 34px !important;
+                background-color: #f0f5ff !important;
+                border-radius: 6px !important;
+                padding: 0 12px !important;
+                box-shadow: none !important;
+                transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            }
+            .store-search-input-wrap:focus-within {
+                background-color: #ffffff !important;
+                box-shadow: 0 0 0 1px #2874f0 !important;
+            }
+            .store-search-icon-btn {
+                color: #717478 !important;
+                font-size: 14px !important;
+                margin-right: 10px !important;
+            }
+            .store-search-input {
+                font-size: 13.5px !important;
+                color: #212121 !important;
+            }
+            .store-search-input::placeholder {
+                color: #8c8c8c !important;
+                font-size: 13.5px !important;
+                font-weight: 400 !important;
+            }
+
+            /* Category slider mobile view */
             .store-cat-slide-btn {
                 display: none !important;
             }
@@ -990,6 +1074,36 @@
                     }
                 });
             }
+
+            // 5. Sync Top Navbar Height with Header Padding
+            var topNav = document.querySelector('.store-top-navbar');
+            var headerEl = document.querySelector('header.store-header-nav');
+            function syncTopNavHeight() {
+                if (topNav && headerEl) {
+                    var h = topNav.offsetHeight;
+                    if (h > 0) {
+                        headerEl.style.setProperty('padding-top', h + 'px', 'important');
+                    }
+                }
+            }
+            syncTopNavHeight();
+            window.addEventListener('resize', syncTopNavHeight);
+            window.addEventListener('load', syncTopNavHeight);
+            window.addEventListener('orientationchange', syncTopNavHeight);
+
+            // 6. Responsive Search Placeholder (Matching mobie_view.jpeg on mobile)
+            function updateSearchPlaceholder() {
+                var searchInputEl = document.getElementById('storeNavSearchInput');
+                if (searchInputEl && !searchInputEl.value) {
+                    if (window.innerWidth < 768) {
+                        searchInputEl.placeholder = 'Search for sarees, t-shirts & more';
+                    } else {
+                        searchInputEl.placeholder = 'Search for Products, Brands and More';
+                    }
+                }
+            }
+            updateSearchPlaceholder();
+            window.addEventListener('resize', updateSearchPlaceholder);
         });
         </script>
 
