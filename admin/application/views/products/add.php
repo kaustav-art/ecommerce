@@ -75,20 +75,14 @@
         </div>
 
         <!-- Assign Attributes & Product Variants Card -->
-        <div class="card mb-4 border border-primary border-opacity-25 shadow-none">
-          <div class="card-header d-flex justify-content-between align-items-center bg-light bg-opacity-50">
-            <div>
-              <h5 class="card-title mb-0 d-flex align-items-center text-dark">
-                <i class="fa-solid fa-tags text-primary me-2"></i> Assign Attributes & Variants
-              </h5>
-              <small class="text-muted">Assign attributes (Color, Size) and manage stock by size to create product variants automatically.</small>
-            </div>
-            <div class="form-check form-switch m-0">
-              <input class="form-check-input" type="checkbox" id="has_variants_toggle" name="has_variants" value="1" onchange="toggleVariantSection(this)">
-              <label class="form-check-label fw-bold text-primary" for="has_variants_toggle">Enable Variants</label>
-            </div>
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0 d-flex align-items-center text-dark">
+              <i class="fa-solid fa-tags text-primary me-2"></i> Assign Attributes & Variants
+            </h5>
+            <small class="text-muted">Assign attributes (Color, Size, etc.) and manage stock by size to create product variants automatically.</small>
           </div>
-          <div class="card-body" id="variants_config_panel" style="display: none;">
+          <div class="card-body" id="variants_config_panel">
             <?php if (!empty($attributes)): ?>
               <div class="row">
                 <?php 
@@ -419,14 +413,6 @@ function renderNewGalleryPreviews() {
   });
 }
 
-// Toggle Variant Section
-function toggleVariantSection(cb) {
-  var panel = document.getElementById('variants_config_panel');
-  if (panel) {
-    panel.style.display = cb.checked ? 'block' : 'none';
-  }
-}
-
 // Size Chip Toggle
 function toggleAddSizeChip(valId, valName) {
   var cb = document.getElementById('add_size_input_' + valId);
@@ -442,13 +428,6 @@ function toggleAddSizeChip(valId, valName) {
     chip.style.background = '#fff';
     chip.style.borderColor = '#d4d5d9';
     chip.style.color = '#515569';
-  }
-
-  // Ensure toggle is checked if sizes selected
-  var toggle = document.getElementById('has_variants_toggle');
-  if (toggle && !toggle.checked && cb.checked) {
-    toggle.checked = true;
-    toggleVariantSection(toggle);
   }
 
   renderAddSizeStockTable();
@@ -470,12 +449,6 @@ function selectAllAddSizes(enable) {
       }
     }
   });
-
-  var toggle = document.getElementById('has_variants_toggle');
-  if (toggle && !toggle.checked && enable) {
-    toggle.checked = true;
-    toggleVariantSection(toggle);
-  }
 
   renderAddSizeStockTable();
 }

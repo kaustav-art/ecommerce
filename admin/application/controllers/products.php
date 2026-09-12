@@ -70,16 +70,13 @@ class products extends MY_Controller {
                 // Handle Additional Gallery Images upload
                 $gallery_images = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
 
-                // Check if variants or attributes are enabled/assigned
-                $has_variants = (bool) $this->input->post('has_variants');
+                // Check if variants or attributes are assigned
                 $size_vals    = $this->input->post('size_vals');
                 $size_stocks  = $this->input->post('size_stock') ?: [];
                 $attr_vals    = array_filter((array) $this->input->post('attr_vals'));
                 $selected_sizes = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
 
-                if (!empty($selected_sizes) || !empty($attr_vals)) {
-                    $has_variants = true;
-                }
+                $has_variants = (!empty($selected_sizes) || !empty($attr_vals));
 
                 $product_type = $has_variants ? 'variable' : ($this->input->post('product_type', TRUE) ?: 'simple');
 

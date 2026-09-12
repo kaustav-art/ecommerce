@@ -10,10 +10,13 @@ class category_model extends CI_Model {
 
     public function get_all()
     {
-        $categories = $this->db->order_by('sort_order', 'ASC')->order_by('id', 'ASC')->get('categories')->result_array();
+        $categories = $this->db->get('categories')->result_array();
         $cat_map = [];
+        $children_map = [];
         foreach ($categories as $cat) {
             $cat_map[$cat['id']] = $cat;
+            $pid = (int) ($cat['parent_id'] ?? 0);
+            $children_map[$pid][] = $cat;
         }
 
         foreach ($categories as &$cat) {
@@ -23,7 +26,56 @@ class category_model extends CI_Model {
                 ? $cat_map[$cat['parent_id']]['name']
                 : 'Top Level';
         }
-        return $categories;
+        unset($cat);
+
+        // Update cat_map with enriched fields (breadcrumb_path, product_count, parent_name)
+        foreach ($categories as $cat) {
+            $cat_map[$cat['id']] = $cat;
+        }
+
+        // Arrange alphabetically by main categories, then their subcategories, then sub-subcategories
+        // Structure: a, a>1>1, a>1>2, a>2>1, then b, b>1>1, b>1>2
+        $ordered = [];
+        $visited = [];
+        $this->walk_tree_alphabetical(0, $children_map, $cat_map, $ordered, $visited, 0);
+
+        // Append any orphan categories if any exist
+        foreach ($categories as $c) {
+            if (!isset($visited[$c['id']])) {
+                $c['depth'] = 0;
+                $ordered[] = $c;
+            }
+        }
+
+        return $ordered;
+    }
+
+    private function walk_tree_alphabetical($parent_id, &$children_map, &$cat_map, &$result, &$visited, $depth = 0)
+    {
+        if (!isset($children_map[$parent_id])) {
+            return;
+        }
+
+        $children = $children_map[$parent_id];
+        // Sort direct children alphabetically by name (case-insensitive)
+        usort($children, function ($a, $b) {
+            return strcasecmp(trim($a['name']), trim($b['name']));
+        });
+
+        foreach ($children as $child) {
+            $id = $child['id'];
+            if (isset($visited[$id])) {
+                continue;
+            }
+            $visited[$id] = true;
+
+            $item = $cat_map[$id];
+            $item['depth'] = $depth;
+            $result[] = $item;
+
+            // Recursively walk children (subcategories and sub-subcategories)
+            $this->walk_tree_alphabetical($id, $children_map, $cat_map, $result, $visited, $depth + 1);
+        }
     }
 
     public function get_paginated($offset = 0, $limit = 10, $search = '')

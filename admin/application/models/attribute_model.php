@@ -52,6 +52,11 @@ class attribute_model extends CI_Model {
         return $this->db->where('id', (int) $id)->delete('attributes');
     }
 
+    public function get_value_by_id($id)
+    {
+        return $this->db->where('id', (int) $id)->get('attribute_values')->row_array();
+    }
+
     public function add_value($attribute_id, $value, $color_code = NULL, $sort_order = 0)
     {
         $data = [
@@ -62,6 +67,16 @@ class attribute_model extends CI_Model {
         ];
         $this->db->insert('attribute_values', $data);
         return $this->db->insert_id();
+    }
+
+    public function update_value($id, $value, $color_code = NULL, $sort_order = 0)
+    {
+        $data = [
+            'value'      => trim($value),
+            'color_code' => $color_code ? trim($color_code) : NULL,
+            'sort_order' => (int) $sort_order
+        ];
+        return $this->db->where('id', (int) $id)->update('attribute_values', $data);
     }
 
     public function delete_value($id)

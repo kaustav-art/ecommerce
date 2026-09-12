@@ -54,20 +54,34 @@ class attributes extends MY_Controller {
         if ($this->input->method() === 'post') {
             $this->form_validation->set_rules('value', 'Value', 'required|trim');
             if ($this->form_validation->run() === TRUE) {
+                $val_id     = $this->input->post('id');
                 $val        = $this->input->post('value', TRUE);
                 $color_code = $this->input->post('color_code', TRUE);
                 $sort_order = (int) $this->input->post('sort_order');
-                $this->attribute_model->add_value($attribute_id, $val, $color_code, $sort_order);
-                $this->session->set_flashdata('success', 'Attribute value added.');
+
+                if (!empty($val_id)) {
+                    $this->attribute_model->update_value($val_id, $val, $color_code, $sort_order);
+                    $this->session->set_flashdata('success', 'Attribute value updated successfully.');
+                } else {
+                    $this->attribute_model->add_value($attribute_id, $val, $color_code, $sort_order);
+                    $this->session->set_flashdata('success', 'Attribute value added successfully.');
+                }
                 redirect('attributes/values/' . $attribute_id);
             }
+        }
+
+        $edit_id = $this->input->get('edit');
+        $edit_value = null;
+        if (!empty($edit_id)) {
+            $edit_value = $this->attribute_model->get_value_by_id($edit_id);
         }
 
         $data = [
             'title'          => 'Values for ' . html_escape($attribute['name']) . ' | Admin',
             'active_menu'    => 'products',
             'active_submenu' => 'attributes',
-            'attribute'      => $attribute
+            'attribute'      => $attribute,
+            'edit_value'     => $edit_value
         ];
         $this->render('attributes/values', $data);
     }

@@ -24,7 +24,7 @@
             <option value="">All Categories</option>
             <?php foreach ($categories as $cat): ?>
               <option value="<?= $cat['id']; ?>" <?= ($selected_cat == $cat['id']) ? 'selected' : ''; ?>>
-                <?= html_escape($cat['name']); ?>
+                <?= html_escape($cat['breadcrumb_path'] ?? $cat['name']); ?>
               </option>
             <?php endforeach; ?>
           </select>
