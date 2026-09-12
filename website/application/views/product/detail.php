@@ -571,7 +571,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                     <div class="row gx-5">
                         
                         <!-- LEFT COLUMN: 2x2 Grid Gallery (product_image_shown.PNG) -->
-                        <div class="col-md-6 mb-4 mb-md-0">
+                        <div class="col-md-7 mb-4 mb-md-0">
                             <div class="tf-product-media-wrap sticky-top" style="top: 100px;">
                                 
                                 <div class="product-grid-gallery" id="product-grid-gallery">
@@ -619,7 +619,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                         <!-- /LEFT COLUMN -->
 
                         <!-- RIGHT COLUMN: Product Info & Variants (varient_products.PNG) -->
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                             <div class="tf-product-info-wrap position-relative">
                                 <div class="tf-product-info-list">
                                     
@@ -631,7 +631,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                 <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none"><?= html_escape($product['category_name']); ?></a>
                                             </div>
 
-                                            <h3 class="name fw-bold mb-2"><?= html_escape($product['title']); ?></h3>
+                                            <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title']); ?></h3>
 
                                             <!-- Brand Store Link (as in varient_products.PNG) -->
                                             <div>
@@ -775,6 +775,158 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                 </div>
                                             </div>
                                         <?php endif; ?>
+
+                                        <!-- PRODUCT HIGHLIGHTS & SPECIFICATIONS ACCORDIONS (specification.png) -->
+                                        <?php
+                                        // 1. Build Specifications (Default specs: Size, Color, Brand, Category + custom specs)
+                                        $merged_specs = [];
+                                        $seen_spec_keys = [];
+
+                                        // Brand
+                                        $spec_brand = !empty($product['brand_name']) ? trim($product['brand_name']) : '';
+                                        if (!empty($spec_brand)) {
+                                            $merged_specs[] = ['name' => 'Brand', 'value' => $spec_brand];
+                                            $seen_spec_keys['brand'] = true;
+                                        }
+
+                                        // Category
+                                        $spec_cat = !empty($product['category_name']) ? trim($product['category_name']) : '';
+                                        if (!empty($spec_cat)) {
+                                            $merged_specs[] = ['name' => 'Category', 'value' => $spec_cat];
+                                            $seen_spec_keys['category'] = true;
+                                        }
+
+                                        // Size
+                                        $spec_sizes = [];
+                                        if (!empty($product['attributes']['size']['values'])) {
+                                            foreach ($product['attributes']['size']['values'] as $sv) {
+                                                if (!empty($sv['value'])) $spec_sizes[] = $sv['value'];
+                                            }
+                                        } elseif (!empty($initial_size)) {
+                                            $spec_sizes[] = $initial_size;
+                                        }
+                                        if (!empty($spec_sizes)) {
+                                            $merged_specs[] = ['name' => 'Size', 'value' => implode(', ', array_unique($spec_sizes))];
+                                            $seen_spec_keys['size'] = true;
+                                        }
+
+                                        // Color
+                                        $spec_colors = [];
+                                        if (!empty($color_map)) {
+                                            $spec_colors = array_keys($color_map);
+                                        } elseif (!empty($product['attributes']['color']['values'])) {
+                                            foreach ($product['attributes']['color']['values'] as $cv) {
+                                                if (!empty($cv['value'])) $spec_colors[] = $cv['value'];
+                                            }
+                                        } elseif (!empty($initial_color)) {
+                                            $spec_colors[] = $initial_color;
+                                        }
+                                        if (!empty($spec_colors)) {
+                                            $merged_specs[] = ['name' => 'Color', 'value' => implode(', ', array_map('ucfirst', array_unique($spec_colors)))];
+                                            $seen_spec_keys['color'] = true;
+                                        }
+
+                                        // Custom specifications from database
+                                        if (!empty($product['specifications']) && is_array($product['specifications'])) {
+                                            foreach ($product['specifications'] as $csp) {
+                                                $cn = trim($csp['spec_name'] ?? '');
+                                                $cv = trim($csp['spec_value'] ?? '');
+                                                $ckey = strtolower($cn);
+                                                if ($cn !== '' && $cv !== '' && !isset($seen_spec_keys[$ckey])) {
+                                                    $seen_spec_keys[$ckey] = true;
+                                                    $merged_specs[] = ['name' => $cn, 'value' => $cv];
+                                                }
+                                            }
+                                        }
+
+                                        // Highlights
+                                        $product_highlights = !empty($product['highlights_decoded']) ? $product['highlights_decoded'] : [];
+                                        if (empty($product_highlights) && !empty($product['highlights'])) {
+                                            $product_highlights = json_decode($product['highlights'], true) ?: [];
+                                        }
+                                        ?>
+
+                                        <div class="product-highlights-specifications mb-4">
+                                            
+                                            <!-- Product Highlights (Always Open by Default) -->
+                                            <?php if (!empty($product_highlights)): ?>
+                                                <div class="card border rounded-3 mb-3 shadow-none overflow-hidden" style="border-color: #e5e7eb !important; background: #fff;">
+                                                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center" 
+                                                         onclick="toggleProductHighlights()" 
+                                                         style="cursor: pointer; user-select: none; border-bottom: 1px solid #f3f4f6;">
+                                                        <h5 class="fw-bold m-0" style="font-size: 15px; color: #1e2022; letter-spacing: -0.2px;">Product highlights</h5>
+                                                        <button type="button" class="btn btn-sm btn-light rounded-circle p-0 d-flex align-items-center justify-content-center" 
+                                                                style="width: 28px; height: 28px; background: #f3f4f6; border: none;" 
+                                                                aria-label="Toggle Product Highlights">
+                                                            <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px; color: #4b5563;"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div id="product-highlights-collapse" class="card-body p-3" style="display: block;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                                                            <?php foreach ($product_highlights as $hl): 
+                                                                $hl_k = trim($hl['key'] ?? '');
+                                                                $hl_v = trim($hl['value'] ?? '');
+                                                                if ($hl_k === '' && $hl_v === '') continue;
+                                                            ?>
+                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f2f5; padding-bottom: 6px;">
+                                                                    <div class="spec-item-key" style="font-size: 12px; color: #717478; margin-bottom: 2px;"><?= html_escape($hl_k); ?></div>
+                                                                    <div class="spec-item-val fw-semibold" style="font-size: 13.5px; color: #1e2022; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- Product Specifications (Collapsed by Default, 14 items limit) -->
+                                            <?php if (!empty($merged_specs)): ?>
+                                                <div class="card border rounded-3 mb-3 shadow-none overflow-hidden" style="border-color: #e5e7eb !important; background: #fff;">
+                                                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center" 
+                                                         onclick="toggleProductSpecifications()" 
+                                                         style="cursor: pointer; user-select: none; border-bottom: 1px solid #f3f4f6;">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <h5 class="fw-bold m-0" style="font-size: 15px; color: #1e2022; letter-spacing: -0.2px;">Specifications</h5>
+                                                            <span class="badge rounded-pill bg-light text-secondary border fw-normal" style="font-size: 10px; padding: 2px 7px;"><?= count($merged_specs); ?></span>
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-light rounded-circle p-0 d-flex align-items-center justify-content-center" 
+                                                                style="width: 28px; height: 28px; background: #f3f4f6; border: none;" 
+                                                                aria-label="Toggle Specifications">
+                                                            <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px; color: #4b5563;"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div id="product-specs-collapse" class="card-body p-3" style="display: none;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                                                            <?php 
+                                                            $s_idx = 0;
+                                                            foreach ($merged_specs as $sp): 
+                                                                $s_idx++;
+                                                                $is_extra = ($s_idx > 14);
+                                                            ?>
+                                                                <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
+                                                                     style="border-bottom: 1px solid #f0f2f5; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
+                                                                    <div class="spec-item-key" style="font-size: 12px; color: #717478; margin-bottom: 2px;"><?= html_escape($sp['name']); ?></div>
+                                                                    <div class="spec-item-val fw-semibold" style="font-size: 13.5px; color: #1e2022; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                        <?php if (count($merged_specs) > 14): ?>
+                                                            <div class="text-center mt-3 pt-2 border-top">
+                                                                <button type="button" 
+                                                                        class="btn btn-sm btn-outline-secondary px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
+                                                                        id="btn-see-more-specs" 
+                                                                        onclick="toggleSeeMoreSpecs(event)" 
+                                                                        style="font-size: 12.5px; border-radius: 20px;">
+                                                                    <span id="btn-see-more-text">See More (<?= count($merged_specs) - 14; ?> more)</span>
+                                                                    <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
+                                                                </button>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
+                                        </div>
 
                                         <!-- QUANTITY SELECTOR -->
                                         <?php $max_allowed = !empty($product['max_purchase_quantity']) ? (int) $product['max_purchase_quantity'] : 5; ?>
@@ -2172,4 +2324,53 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     }
 
 })();
+
+// Product Highlights & Specifications Accordions
+window.toggleProductHighlights = function() {
+    var body = document.getElementById('product-highlights-collapse');
+    var icon = document.getElementById('highlights-arrow-icon');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (icon) icon.className = 'fa-solid fa-chevron-up';
+    } else {
+        body.style.display = 'none';
+        if (icon) icon.className = 'fa-solid fa-chevron-down';
+    }
+};
+
+window.toggleProductSpecifications = function() {
+    var body = document.getElementById('product-specs-collapse');
+    var icon = document.getElementById('specs-arrow-icon');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (icon) icon.className = 'fa-solid fa-chevron-up';
+    } else {
+        body.style.display = 'none';
+        if (icon) icon.className = 'fa-solid fa-chevron-down';
+    }
+};
+
+window.areSpecsExpanded = false;
+window.toggleSeeMoreSpecs = function(e) {
+    if (e) e.stopPropagation();
+    window.areSpecsExpanded = !window.areSpecsExpanded;
+    var extras = document.querySelectorAll('.spec-overflow-item');
+    var btnText = document.getElementById('btn-see-more-text');
+    var btnIcon = document.getElementById('btn-see-more-icon');
+
+    extras.forEach(function(el) {
+        el.style.display = window.areSpecsExpanded ? 'block' : 'none';
+    });
+
+    if (window.areSpecsExpanded) {
+        if (btnText) btnText.textContent = 'See Less';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-up ms-1';
+    } else {
+        var count = extras.length;
+        if (btnText) btnText.textContent = 'See More (' + count + ' more)';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-down ms-1';
+    }
+};
 </script>

@@ -177,6 +177,7 @@ class product_model extends CI_Model {
 
         if ($product) {
             $product['gallery_images_decoded'] = json_decode($product['gallery_images'], true) ?: [];
+            $product['highlights_decoded']     = !empty($product['highlights']) ? (json_decode($product['highlights'], true) ?: []) : [];
             $product['reviews'] = $this->get_product_reviews($product['id']);
             $product['variants'] = $this->get_variants($product['id']);
             $product['attributes'] = $this->get_product_attributes_and_values($product['id']);
@@ -198,6 +199,7 @@ class product_model extends CI_Model {
 
         if ($product) {
             $product['gallery_images_decoded'] = json_decode($product['gallery_images'], true) ?: [];
+            $product['highlights_decoded']     = !empty($product['highlights']) ? (json_decode($product['highlights'], true) ?: []) : [];
             $product['variants'] = $this->get_variants($product['id']);
             $product['attributes'] = $this->get_product_attributes_and_values($product['id']);
             $product['specifications'] = $this->get_specifications($product['id']);

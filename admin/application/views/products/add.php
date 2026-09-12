@@ -220,6 +220,77 @@
             <?php endif; ?>
           </div>
         </div>
+
+        <!-- Product Highlights Card -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0 d-flex align-items-center text-dark">
+                <i class="fa-solid fa-highlighter text-primary me-2"></i> Product Highlights
+              </h5>
+              <small class="text-muted">Highlight key attributes prominently on the product page (e.g. Sleeve: Full Sleeve, Fabric: Cotton Blend).</small>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="enable_highlights" name="enable_highlights" value="1" onchange="toggleHighlightsPanel(this.checked)" style="width: 2.5em; height: 1.3em; cursor: pointer;">
+            </div>
+          </div>
+          <div class="card-body" id="highlights_panel" style="display: none;">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle" id="highlights_table">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 45%;">Highlight Key / Label</th>
+                    <th style="width: 45%;">Value</th>
+                    <th style="width: 10%;" class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="highlights_body">
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="addHighlightRow()">
+                <i class="fa-solid fa-plus me-1"></i> Add More Highlight
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Specifications Card -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0 d-flex align-items-center text-dark">
+                <i class="fa-solid fa-list-check text-primary me-2"></i> Product Specifications
+              </h5>
+              <small class="text-muted">Detailed specifications (Brand, Category, Size, and Color are automatically included on the product page).</small>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="enable_specifications" name="enable_specifications" value="1" onchange="toggleSpecificationsPanel(this.checked)" style="width: 2.5em; height: 1.3em; cursor: pointer;">
+            </div>
+          </div>
+          <div class="card-body" id="specifications_panel" style="display: none;">
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle" id="specifications_table">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 45%;">Specification Name</th>
+                    <th style="width: 45%;">Value</th>
+                    <th style="width: 10%;" class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="specifications_body">
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSpecificationRow()">
+                <i class="fa-solid fa-plus me-1"></i> Add Specification
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Right Column: Organize, Category, Image -->
@@ -561,5 +632,91 @@ function syncAddSkuWithVariants() {
 
 function updateVariantNameAndSkuPreview() {
   syncAddSkuWithVariants();
+}
+
+// Highlights & Specifications dynamic management
+function toggleHighlightsPanel(checked) {
+  var panel = document.getElementById('highlights_panel');
+  if (!panel) return;
+  panel.style.display = checked ? 'block' : 'none';
+  if (checked) {
+    var tbody = document.getElementById('highlights_body');
+    if (tbody && tbody.children.length === 0) {
+      addHighlightRow('Sleeve', 'Full Sleeve');
+    }
+  }
+}
+
+function addHighlightRow(key = '', val = '') {
+  var tbody = document.getElementById('highlights_body');
+  if (!tbody) return;
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <input type="text" name="highlight_keys[]" class="form-control form-control-sm" placeholder="e.g. Sleeve" value="${escapeHtml(key)}" required>
+    </td>
+    <td>
+      <input type="text" name="highlight_values[]" class="form-control form-control-sm" placeholder="e.g. Full Sleeve" value="${escapeHtml(val)}" required>
+    </td>
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeHighlightRow(this)" title="Delete row">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeHighlightRow(btn) {
+  var tr = btn.closest('tr');
+  if (tr) tr.remove();
+}
+
+function toggleSpecificationsPanel(checked) {
+  var panel = document.getElementById('specifications_panel');
+  if (!panel) return;
+  panel.style.display = checked ? 'block' : 'none';
+  if (checked) {
+    var tbody = document.getElementById('specifications_body');
+    if (tbody && tbody.children.length === 0) {
+      addSpecificationRow('Fabric', 'Cotton Blend');
+    }
+  }
+}
+
+function addSpecificationRow(name = '', val = '') {
+  var tbody = document.getElementById('specifications_body');
+  if (!tbody) return;
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <input type="text" name="spec_names[]" class="form-control form-control-sm" placeholder="e.g. Fabric" value="${escapeHtml(name)}" required>
+    </td>
+    <td>
+      <input type="text" name="spec_values[]" class="form-control form-control-sm" placeholder="e.g. Cotton Blend" value="${escapeHtml(val)}" required>
+    </td>
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSpecificationRow(this)" title="Delete row">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeSpecificationRow(btn) {
+  var tr = btn.closest('tr');
+  if (tr) tr.remove();
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 </script>

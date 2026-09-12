@@ -90,6 +90,20 @@ class products extends MY_Controller {
                     $initial_stock = $sum_size_stock;
                 }
 
+                // Highlights processing
+                $highlights = [];
+                if ($this->input->post('enable_highlights')) {
+                    $h_keys = $this->input->post('highlight_keys') ?: [];
+                    $h_vals = $this->input->post('highlight_values') ?: [];
+                    foreach ($h_keys as $idx => $k) {
+                        $k = trim($k);
+                        $v = isset($h_vals[$idx]) ? trim($h_vals[$idx]) : '';
+                        if ($k !== '' || $v !== '') {
+                            $highlights[] = ['key' => $k, 'value' => $v];
+                        }
+                    }
+                }
+
                 $insert_data = [
                     'category_id'         => (int) $this->input->post('category_id'),
                     'brand_id'            => $this->input->post('brand_id') ? (int) $this->input->post('brand_id') : NULL,
@@ -106,6 +120,7 @@ class products extends MY_Controller {
                     'stock_status'        => $initial_stock > 0 ? 'in_stock' : 'out_of_stock',
                     'short_description'   => $this->input->post('short_description', TRUE),
                     'description'         => $this->input->post('description'),
+                    'highlights'          => !empty($highlights) ? json_encode($highlights) : NULL,
                     'main_image'          => $main_image,
                     'gallery_images'      => json_encode($gallery_images),
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
@@ -116,13 +131,17 @@ class products extends MY_Controller {
 
                 $new_id = $this->product_model->create($insert_data);
 
-                // Save specifications
-                $spec_names  = $this->input->post('spec_names') ?: [];
-                $spec_values = $this->input->post('spec_values') ?: [];
+                // Save specifications if enabled
                 $specs = [];
-                foreach ($spec_names as $idx => $name) {
-                    if (!empty($name) && isset($spec_values[$idx])) {
-                        $specs[] = ['name' => $name, 'value' => $spec_values[$idx]];
+                if ($this->input->post('enable_specifications')) {
+                    $spec_names  = $this->input->post('spec_names') ?: [];
+                    $spec_values = $this->input->post('spec_values') ?: [];
+                    foreach ($spec_names as $idx => $name) {
+                        $name = trim($name);
+                        $val  = isset($spec_values[$idx]) ? trim($spec_values[$idx]) : '';
+                        if ($name !== '' || $val !== '') {
+                            $specs[] = ['name' => $name, 'value' => $val];
+                        }
                     }
                 }
                 $this->product_model->save_specifications($new_id, $specs);
@@ -291,6 +310,20 @@ class products extends MY_Controller {
                 $final_gallery = array_merge((array) $existing_gallery, $new_gallery);
                 $final_gallery = array_values(array_unique(array_filter($final_gallery)));
 
+                // Highlights processing
+                $highlights = [];
+                if ($this->input->post('enable_highlights')) {
+                    $h_keys = $this->input->post('highlight_keys') ?: [];
+                    $h_vals = $this->input->post('highlight_values') ?: [];
+                    foreach ($h_keys as $idx => $k) {
+                        $k = trim($k);
+                        $v = isset($h_vals[$idx]) ? trim($h_vals[$idx]) : '';
+                        if ($k !== '' || $v !== '') {
+                            $highlights[] = ['key' => $k, 'value' => $v];
+                        }
+                    }
+                }
+
                 $update_data = [
                     'category_id'         => (int) $this->input->post('category_id'),
                     'brand_id'            => $this->input->post('brand_id') ? (int) $this->input->post('brand_id') : NULL,
@@ -305,6 +338,7 @@ class products extends MY_Controller {
                     'stock_status'        => $this->input->post('stock_quantity') > 0 ? 'in_stock' : 'out_of_stock',
                     'short_description'   => $this->input->post('short_description', TRUE),
                     'description'         => $this->input->post('description'),
+                    'highlights'          => !empty($highlights) ? json_encode($highlights) : NULL,
                     'main_image'          => $main_image,
                     'gallery_images'      => json_encode($final_gallery),
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
@@ -315,13 +349,17 @@ class products extends MY_Controller {
 
                 $this->product_model->update($id, $update_data);
 
-                // Save specifications
-                $spec_names  = $this->input->post('spec_names') ?: [];
-                $spec_values = $this->input->post('spec_values') ?: [];
+                // Save specifications if enabled
                 $specs = [];
-                foreach ($spec_names as $idx => $name) {
-                    if (!empty($name) && isset($spec_values[$idx])) {
-                        $specs[] = ['name' => $name, 'value' => $spec_values[$idx]];
+                if ($this->input->post('enable_specifications')) {
+                    $spec_names  = $this->input->post('spec_names') ?: [];
+                    $spec_values = $this->input->post('spec_values') ?: [];
+                    foreach ($spec_names as $idx => $name) {
+                        $name = trim($name);
+                        $val  = isset($spec_values[$idx]) ? trim($spec_values[$idx]) : '';
+                        if ($name !== '' || $val !== '') {
+                            $specs[] = ['name' => $name, 'value' => $val];
+                        }
                     }
                 }
                 $this->product_model->save_specifications($id, $specs);
@@ -336,6 +374,7 @@ class products extends MY_Controller {
             'active_menu'         => 'products',
             'active_submenu'      => 'products_list',
             'product'             => $product,
+            'highlights'          => !empty($product['highlights']) ? (json_decode($product['highlights'], true) ?: []) : [],
             'categories'          => $this->category_model->get_all(),
             'brands'              => $this->brand_model->get_all(),
             'attributes'          => $this->attribute_model->get_all(),
