@@ -1,12 +1,58 @@
+<style>
+@media (min-width: 992px) {
+  .sticky-organization-wrapper {
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+  }
+  .sticky-organization-card {
+    max-height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+  }
+  .sticky-organization-card .card-header {
+    flex-shrink: 0;
+  }
+  .sticky-organization-card .card-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sticky-organization-card .card-footer {
+    flex-shrink: 0;
+  }
+}
+
+/* Elegant slim scrollbar for sticky organization card */
+.sticky-organization-card .card-body::-webkit-scrollbar {
+  width: 5px;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-thumb {
+  background: #d4d7dc;
+  border-radius: 4px;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-thumb:hover {
+  background: #b5b9c0;
+}
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Products /</span> Edit Product</h4>
-    <a href="<?= site_url('products'); ?>" class="btn btn-outline-secondary">
-      <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
-    </a>
+    <div class="d-flex gap-2">
+      <a href="<?= site_url('products'); ?>" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
+      </a>
+      <button type="submit" form="productEditForm" class="btn btn-primary d-none d-sm-inline-flex align-items-center">
+        <i class="fa-solid fa-floppy-disk me-1"></i> Update Product
+      </button>
+    </div>
   </div>
 
-  <form action="<?= site_url('products/edit/' . $product['id']); ?>" method="POST" enctype="multipart/form-data">
+  <form action="<?= site_url('products/edit/' . $product['id']); ?>" method="POST" enctype="multipart/form-data" id="productEditForm">
     <div class="row">
       <div class="col-12 col-lg-8">
         <div class="card mb-4">
@@ -246,141 +292,145 @@
 
       </div>
 
+      <!-- Right Column: Organize, Category, Image (Sticky so only left side scrolls) -->
       <div class="col-12 col-lg-4">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="card-title mb-0">Organization & Image</h5>
-          </div>
-          <div class="card-body">
-            <?php $existing_gallery = json_decode($product['gallery_images'], true) ?: []; ?>
-            <!-- Main Product Image -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
-              <div class="border rounded p-2 mb-2 bg-light text-center">
-                <img
-                  id="main_product_preview"
-                  src="<?= base_url('../website/assets/images/' . $product['main_image']); ?>"
-                  alt="Product Preview"
-                  class="rounded img-fluid"
-                  style="max-height: 150px; object-fit: contain;"
-                  onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'" />
-              </div>
-              <input
-                type="file"
-                class="form-control form-control-sm"
-                id="main_image_file"
-                name="main_image_file"
-                accept="image/*"
-                onchange="previewProductMainImage(this)" />
-              <input type="hidden" name="current_main_image" value="<?= html_escape($product['main_image']); ?>" />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Upload a new image to replace the current main image.</small>
+        <div class="sticky-organization-wrapper">
+          <div class="card mb-4 sticky-organization-card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
+              <h5 class="card-title mb-0">Organization & Image</h5>
+              <span class="badge bg-label-primary small">Media & Badges</span>
             </div>
-
-            <!-- Additional Gallery Images -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <label class="form-label fw-semibold mb-0" for="gallery_files">Upload Gallery Images</label>
+            <div class="card-body">
+              <?php $existing_gallery = json_decode($product['gallery_images'], true) ?: []; ?>
+              <!-- Main Product Image -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
+                <div class="border rounded p-2 mb-2 bg-light text-center">
+                  <img
+                    id="main_product_preview"
+                    src="<?= base_url('../website/assets/images/' . $product['main_image']); ?>"
+                    alt="Product Preview"
+                    class="rounded img-fluid"
+                    style="max-height: 140px; object-fit: contain;"
+                    onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'" />
+                </div>
+                <input
+                  type="file"
+                  class="form-control form-control-sm"
+                  id="main_image_file"
+                  name="main_image_file"
+                  accept="image/*"
+                  onchange="previewProductMainImage(this)" />
+                <input type="hidden" name="current_main_image" value="<?= html_escape($product['main_image']); ?>" />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Upload a new image to replace the current main image.</small>
               </div>
-              <input type="hidden" name="gallery_submitted" value="1" />
-              <input
-                type="file"
-                class="form-control form-control-sm"
-                id="gallery_files"
-                name="gallery_files[]"
-                accept="image/*"
-                multiple
-                onchange="handleNewGalleryFiles(this)" />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery. You can remove any image before saving.</small>
 
-              <!-- New Uploads Preview Container with individual remove buttons -->
-              <div id="new_gallery_container" class="mt-2" style="display: none;">
+              <!-- Additional Gallery Images -->
+              <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
-                  <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
-                    <i class="fa-solid fa-trash-can me-1"></i>Clear All New
-                  </button>
+                  <label class="form-label fw-semibold mb-0" for="gallery_files">Upload Gallery Images</label>
                 </div>
-                <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
-              </div>
+                <input type="hidden" name="gallery_submitted" value="1" />
+                <input
+                  type="file"
+                  class="form-control form-control-sm"
+                  id="gallery_files"
+                  name="gallery_files[]"
+                  accept="image/*"
+                  multiple
+                  onchange="handleNewGalleryFiles(this)" />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery. You can remove any image before saving.</small>
 
-              <!-- Existing Gallery Section -->
-              <div class="mt-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <label class="form-label small fw-semibold text-secondary mb-0" id="existing_gallery_label">
-                    Existing Gallery (<?= count($existing_gallery); ?>):
-                  </label>
+                <!-- New Uploads Preview Container with individual remove buttons -->
+                <div id="new_gallery_container" class="mt-2" style="display: none;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
+                    <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
+                      <i class="fa-solid fa-trash-can me-1"></i>Clear All New
+                    </button>
+                  </div>
+                  <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
                 </div>
-                <div class="d-flex flex-wrap gap-2" id="existing_gallery_list">
-                  <?php if (!empty($existing_gallery)): ?>
-                    <?php foreach ($existing_gallery as $g_idx => $g_file): ?>
-                      <div class="position-relative border rounded p-1 bg-white shadow-sm" id="gal_item_<?= $g_idx; ?>" style="width: 58px; height: 58px;">
-                        <img src="<?= base_url('../website/assets/images/' . $g_file); ?>" class="w-100 h-100 object-fit-cover rounded" alt="Gallery" onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'">
-                        <input type="hidden" name="existing_gallery[]" value="<?= html_escape($g_file); ?>" id="gal_input_<?= $g_idx; ?>">
-                        <button type="button" class="position-absolute d-flex align-items-center justify-content-center"
-                          style="top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d49; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); z-index: 10; cursor: pointer; padding: 0;"
-                          onclick="removeExistingGallery(<?= $g_idx; ?>, '<?= html_escape($g_file); ?>')"
-                          title="Remove from gallery">
-                          <i class="fa-solid fa-xmark" style="font-size: 10px; line-height: 1;"></i>
-                        </button>
-                      </div>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <span class="text-muted small fst-italic" id="no_existing_gallery_msg">No existing gallery images.</span>
-                  <?php endif; ?>
+
+                <!-- Existing Gallery Section -->
+                <div class="mt-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-semibold text-secondary mb-0" id="existing_gallery_label">
+                      Existing Gallery (<?= count($existing_gallery); ?>):
+                    </label>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2" id="existing_gallery_list">
+                    <?php if (!empty($existing_gallery)): ?>
+                      <?php foreach ($existing_gallery as $g_idx => $g_file): ?>
+                        <div class="position-relative border rounded p-1 bg-white shadow-sm" id="gal_item_<?= $g_idx; ?>" style="width: 58px; height: 58px;">
+                          <img src="<?= base_url('../website/assets/images/' . $g_file); ?>" class="w-100 h-100 object-fit-cover rounded" alt="Gallery" onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'">
+                          <input type="hidden" name="existing_gallery[]" value="<?= html_escape($g_file); ?>" id="gal_input_<?= $g_idx; ?>">
+                          <button type="button" class="position-absolute d-flex align-items-center justify-content-center"
+                            style="top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ff4d49; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); z-index: 10; cursor: pointer; padding: 0;"
+                            onclick="removeExistingGallery(<?= $g_idx; ?>, '<?= html_escape($g_file); ?>')"
+                            title="Remove from gallery">
+                            <i class="fa-solid fa-xmark" style="font-size: 10px; line-height: 1;"></i>
+                          </button>
+                        </div>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <span class="text-muted small fst-italic" id="no_existing_gallery_msg">No existing gallery images.</span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="category_id">Category</label>
+                <select class="form-select" id="category_id" name="category_id" required>
+                  <?php foreach ($categories as $cat): ?>
+                    <option value="<?= $cat['id']; ?>" <?= ($product['category_id'] == $cat['id']) ? 'selected' : ''; ?>>
+                      <?= html_escape($cat['breadcrumb_path'] ?? $cat['name']); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="brand_id">Brand</label>
+                <select class="form-select" id="brand_id" name="brand_id">
+                  <option value="">None</option>
+                  <?php foreach ($brands as $b): ?>
+                    <option value="<?= $b['id']; ?>" <?= ($product['brand_id'] == $b['id']) ? 'selected' : ''; ?>>
+                      <?= html_escape($b['name']); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="status">Publication Status</label>
+                <select class="form-select" id="status" name="status">
+                  <option value="published" <?= ($product['status'] === 'published') ? 'selected' : ''; ?>>Published</option>
+                  <option value="draft" <?= ($product['status'] === 'draft') ? 'selected' : ''; ?>>Draft</option>
+                </select>
+              </div>
+
+              <div class="border-top pt-3">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" <?= ($product['is_featured'] == 1) ? 'checked' : ''; ?> />
+                  <label class="form-check-label" for="is_featured">Featured Product</label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" <?= ($product['is_trending'] == 1) ? 'checked' : ''; ?> />
+                  <label class="form-check-label" for="is_trending">Trending Badge</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" <?= ($product['is_new'] == 1) ? 'checked' : ''; ?> />
+                  <label class="form-check-label" for="is_new">New Arrival Badge</label>
                 </div>
               </div>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="category_id">Category</label>
-              <select class="form-select" id="category_id" name="category_id" required>
-                <?php foreach ($categories as $cat): ?>
-                  <option value="<?= $cat['id']; ?>" <?= ($product['category_id'] == $cat['id']) ? 'selected' : ''; ?>>
-                    <?= html_escape($cat['breadcrumb_path'] ?? $cat['name']); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
+            <div class="card-footer bg-white border-top py-3">
+              <button type="submit" form="productEditForm" class="btn btn-primary w-100 shadow-sm py-2">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Update Product
+              </button>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="brand_id">Brand</label>
-              <select class="form-select" id="brand_id" name="brand_id">
-                <option value="">None</option>
-                <?php foreach ($brands as $b): ?>
-                  <option value="<?= $b['id']; ?>" <?= ($product['brand_id'] == $b['id']) ? 'selected' : ''; ?>>
-                    <?= html_escape($b['name']); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="status">Publication Status</label>
-              <select class="form-select" id="status" name="status">
-                <option value="published" <?= ($product['status'] === 'published') ? 'selected' : ''; ?>>Published</option>
-                <option value="draft" <?= ($product['status'] === 'draft') ? 'selected' : ''; ?>>Draft</option>
-              </select>
-            </div>
-
-            <div class="border-top pt-3">
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" <?= ($product['is_featured'] == 1) ? 'checked' : ''; ?> />
-                <label class="form-check-label" for="is_featured">Featured Product</label>
-              </div>
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" <?= ($product['is_trending'] == 1) ? 'checked' : ''; ?> />
-                <label class="form-check-label" for="is_trending">Trending Badge</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" <?= ($product['is_new'] == 1) ? 'checked' : ''; ?> />
-                <label class="form-check-label" for="is_new">New Arrival Badge</label>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <button type="submit" class="btn btn-primary w-100">
-              <i class="fa-solid fa-floppy-disk me-1"></i> Update Product
-            </button>
           </div>
         </div>
       </div>

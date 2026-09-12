@@ -1,12 +1,58 @@
+<style>
+@media (min-width: 992px) {
+  .sticky-organization-wrapper {
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+  }
+  .sticky-organization-card {
+    max-height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+  }
+  .sticky-organization-card .card-header {
+    flex-shrink: 0;
+  }
+  .sticky-organization-card .card-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sticky-organization-card .card-footer {
+    flex-shrink: 0;
+  }
+}
+
+/* Elegant slim scrollbar for sticky organization card */
+.sticky-organization-card .card-body::-webkit-scrollbar {
+  width: 5px;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-thumb {
+  background: #d4d7dc;
+  border-radius: 4px;
+}
+.sticky-organization-card .card-body::-webkit-scrollbar-thumb:hover {
+  background: #b5b9c0;
+}
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Products /</span> Add Product</h4>
-    <a href="<?= site_url('products'); ?>" class="btn btn-outline-secondary">
-      <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
-    </a>
+    <div class="d-flex gap-2">
+      <a href="<?= site_url('products'); ?>" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
+      </a>
+      <button type="submit" form="productAddForm" class="btn btn-primary d-none d-sm-inline-flex align-items-center">
+        <i class="fa-solid fa-floppy-disk me-1"></i> Save Product
+      </button>
+    </div>
   </div>
 
-  <form action="<?= site_url('products/add'); ?>" method="POST" enctype="multipart/form-data">
+  <form action="<?= site_url('products/add'); ?>" method="POST" enctype="multipart/form-data" id="productAddForm">
     <div class="row">
       <!-- Left Column: Main info -->
       <div class="col-12 col-lg-8">
@@ -293,108 +339,111 @@
 
       </div>
 
-      <!-- Right Column: Organize, Category, Image -->
+      <!-- Right Column: Organize, Category, Image (Sticky so only left side scrolls) -->
       <div class="col-12 col-lg-4">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="card-title mb-0">Organization</h5>
-          </div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label" for="category_id">Category <span class="text-danger">*</span></label>
-              <select class="form-select" id="category_id" name="category_id" required>
-                <option value="">Select Category</option>
-                <?php foreach ($categories as $cat): ?>
-                  <option value="<?= $cat['id']; ?>"><?= html_escape($cat['breadcrumb_path'] ?? $cat['name']); ?></option>
-                <?php endforeach; ?>
-              </select>
+        <div class="sticky-organization-wrapper">
+          <div class="card mb-4 sticky-organization-card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
+              <h5 class="card-title mb-0">Organization</h5>
+              <span class="badge bg-label-primary small">Media & Badges</span>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="brand_id">Brand</label>
-              <select class="form-select" id="brand_id" name="brand_id">
-                <option value="">Select Brand</option>
-                <?php foreach ($brands as $b): ?>
-                  <option value="<?= $b['id']; ?>"><?= html_escape($b['name']); ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label" for="status">Publication Status</label>
-              <select class="form-select" id="status" name="status">
-                <option value="published" selected>Published</option>
-                <option value="draft">Draft</option>
-              </select>
-            </div>
-
-            <!-- Main Product Image File Upload -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
-              <div class="border rounded p-2 mb-2 bg-light text-center">
-                <img
-                  id="main_product_preview"
-                  src="<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>"
-                  class="rounded img-fluid"
-                  style="max-height: 150px; object-fit: contain;"
-                  alt="Product Image Preview"
-                />
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label" for="category_id">Category <span class="text-danger">*</span></label>
+                <select class="form-select" id="category_id" name="category_id" required>
+                  <option value="">Select Category</option>
+                  <?php foreach ($categories as $cat): ?>
+                    <option value="<?= $cat['id']; ?>"><?= html_escape($cat['breadcrumb_path'] ?? $cat['name']); ?></option>
+                  <?php endforeach; ?>
+                </select>
               </div>
-              <input
-                type="file"
-                class="form-control form-control-sm"
-                id="main_image_file"
-                name="main_image_file"
-                accept="image/*"
-                onchange="previewMainProductFile(this)"
-              />
-              <input type="hidden" name="default_main_image" value="products/womens/women-1.jpg" />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Recommended: 800x1000px, JPG, PNG, WEBP (Max 10MB)</small>
-            </div>
 
-            <!-- Additional Gallery Images File Upload -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="gallery_files">Upload Gallery Images</label>
-              <input
-                type="file"
-                class="form-control form-control-sm"
-                id="gallery_files"
-                name="gallery_files[]"
-                accept="image/*"
-                multiple
-                onchange="handleNewGalleryFiles(this)"
-              />
-              <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery. You can remove any image before saving.</small>
-              <div id="new_gallery_container" class="mt-2" style="display: none;">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
-                  <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
-                    <i class="fa-solid fa-trash-can me-1"></i>Clear All
-                  </button>
+              <div class="mb-3">
+                <label class="form-label" for="brand_id">Brand</label>
+                <select class="form-select" id="brand_id" name="brand_id">
+                  <option value="">Select Brand</option>
+                  <?php foreach ($brands as $b): ?>
+                    <option value="<?= $b['id']; ?>"><?= html_escape($b['name']); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="status">Publication Status</label>
+                <select class="form-select" id="status" name="status">
+                  <option value="published" selected>Published</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+
+              <!-- Main Product Image File Upload -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold" for="main_image_file">Main Product Image</label>
+                <div class="border rounded p-2 mb-2 bg-light text-center">
+                  <img
+                    id="main_product_preview"
+                    src="<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>"
+                    class="rounded img-fluid"
+                    style="max-height: 140px; object-fit: contain;"
+                    alt="Product Image Preview"
+                  />
                 </div>
-                <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
+                <input
+                  type="file"
+                  class="form-control form-control-sm"
+                  id="main_image_file"
+                  name="main_image_file"
+                  accept="image/*"
+                  onchange="previewMainProductFile(this)"
+                />
+                <input type="hidden" name="default_main_image" value="products/womens/women-1.jpg" />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Recommended: 800x1000px, JPG, PNG, WEBP (Max 10MB)</small>
               </div>
-            </div>
 
-            <div class="border-top pt-3">
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" />
-                <label class="form-check-label" for="is_featured">Featured Product</label>
+              <!-- Additional Gallery Images File Upload -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold" for="gallery_files">Upload Gallery Images</label>
+                <input
+                  type="file"
+                  class="form-control form-control-sm"
+                  id="gallery_files"
+                  name="gallery_files[]"
+                  accept="image/*"
+                  multiple
+                  onchange="handleNewGalleryFiles(this)"
+                />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Select multiple images for the product gallery.</small>
+                <div id="new_gallery_container" class="mt-2" style="display: none;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-semibold text-primary" id="new_gallery_count_label">New Selected (0):</span>
+                    <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" style="font-size: 11px;" onclick="clearAllNewGalleryFiles()">
+                      <i class="fa-solid fa-trash-can me-1"></i>Clear All
+                    </button>
+                  </div>
+                  <div id="new_gallery_preview_list" class="d-flex flex-wrap gap-2"></div>
+                </div>
               </div>
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" checked />
-                <label class="form-check-label" for="is_trending">Trending Badge</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" checked />
-                <label class="form-check-label" for="is_new">New Arrival Badge</label>
+
+              <div class="border-top pt-3">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" />
+                  <label class="form-check-label" for="is_featured">Featured Product</label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" checked />
+                  <label class="form-check-label" for="is_trending">Trending Badge</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" checked />
+                  <label class="form-check-label" for="is_new">New Arrival Badge</label>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="card-footer">
-            <button type="submit" class="btn btn-primary w-100">
-              <i class="fa-solid fa-floppy-disk me-1"></i> Save Product
-            </button>
+            <div class="card-footer bg-white border-top py-3">
+              <button type="submit" form="productAddForm" class="btn btn-primary w-100 shadow-sm py-2">
+                <i class="fa-solid fa-floppy-disk me-1"></i> Save Product
+              </button>
+            </div>
           </div>
         </div>
       </div>

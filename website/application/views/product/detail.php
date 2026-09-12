@@ -846,56 +846,57 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         }
                                         ?>
 
-                                        <div class="product-highlights-specifications mb-4">
+                                        <div class="product-highlights-specifications my-4">
                                             
                                             <!-- Product Highlights (Always Open by Default) -->
                                             <?php if (!empty($product_highlights)): ?>
-                                                <div class="card border rounded-3 mb-3 shadow-none overflow-hidden" style="border-color: #e5e7eb !important; background: #fff;">
-                                                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center" 
+                                                <div class="product-highlights-block mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductHighlights()" 
-                                                         style="cursor: pointer; user-select: none; border-bottom: 1px solid #f3f4f6;">
-                                                        <h5 class="fw-bold m-0" style="font-size: 15px; color: #1e2022; letter-spacing: -0.2px;">Product highlights</h5>
-                                                        <button type="button" class="btn btn-sm btn-light rounded-circle p-0 d-flex align-items-center justify-content-center" 
-                                                                style="width: 28px; height: 28px; background: #f3f4f6; border: none;" 
+                                                         style="cursor: pointer;">
+                                                        <h4 class="m-0" style="font-size: 18px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
+                                                        <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
+                                                                style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
                                                                 aria-label="Toggle Product Highlights">
-                                                            <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px; color: #4b5563;"></i>
+                                                            <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px;"></i>
                                                         </button>
                                                     </div>
-                                                    <div id="product-highlights-collapse" class="card-body p-3" style="display: block;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                                                    
+                                                    <div id="product-highlights-collapse" class="pt-3" style="display: block;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; row-gap: 12px;">
                                                             <?php foreach ($product_highlights as $hl): 
                                                                 $hl_k = trim($hl['key'] ?? '');
                                                                 $hl_v = trim($hl['value'] ?? '');
                                                                 if ($hl_k === '' && $hl_v === '') continue;
                                                             ?>
-                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f2f5; padding-bottom: 6px;">
-                                                                    <div class="spec-item-key" style="font-size: 12px; color: #717478; margin-bottom: 2px;"><?= html_escape($hl_k); ?></div>
-                                                                    <div class="spec-item-val fw-semibold" style="font-size: 13.5px; color: #1e2022; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
+                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
+                                                                    <div class="spec-item-key" style="font-size: 13.5px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
+                                                                    <div class="spec-item-val" style="font-size: 14.5px; color: #212121; font-weight: 500; line-height: 1.35;"><?= html_escape($hl_v); ?></div>
                                                                 </div>
                                                             <?php endforeach; ?>
                                                         </div>
                                                     </div>
+                                                    
+                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 18px; margin-bottom: 18px;"></div>
                                                 </div>
                                             <?php endif; ?>
 
                                             <!-- Product Specifications (Collapsed by Default, 14 items limit) -->
                                             <?php if (!empty($merged_specs)): ?>
-                                                <div class="card border rounded-3 mb-3 shadow-none overflow-hidden" style="border-color: #e5e7eb !important; background: #fff;">
-                                                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center" 
+                                                <div class="product-specifications-block mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductSpecifications()" 
-                                                         style="cursor: pointer; user-select: none; border-bottom: 1px solid #f3f4f6;">
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <h5 class="fw-bold m-0" style="font-size: 15px; color: #1e2022; letter-spacing: -0.2px;">Specifications</h5>
-                                                            <span class="badge rounded-pill bg-light text-secondary border fw-normal" style="font-size: 10px; padding: 2px 7px;"><?= count($merged_specs); ?></span>
-                                                        </div>
-                                                        <button type="button" class="btn btn-sm btn-light rounded-circle p-0 d-flex align-items-center justify-content-center" 
-                                                                style="width: 28px; height: 28px; background: #f3f4f6; border: none;" 
+                                                         style="cursor: pointer;">
+                                                        <h4 class="m-0" style="font-size: 18px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
+                                                        <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
+                                                                style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
                                                                 aria-label="Toggle Specifications">
-                                                            <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px; color: #4b5563;"></i>
+                                                            <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px;"></i>
                                                         </button>
                                                     </div>
-                                                    <div id="product-specs-collapse" class="card-body p-3" style="display: none;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                                                    
+                                                    <div id="product-specs-collapse" class="pt-3" style="display: none;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; row-gap: 12px;">
                                                             <?php 
                                                             $s_idx = 0;
                                                             foreach ($merged_specs as $sp): 
@@ -903,26 +904,28 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                                 $is_extra = ($s_idx > 14);
                                                             ?>
                                                                 <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
-                                                                     style="border-bottom: 1px solid #f0f2f5; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
-                                                                    <div class="spec-item-key" style="font-size: 12px; color: #717478; margin-bottom: 2px;"><?= html_escape($sp['name']); ?></div>
-                                                                    <div class="spec-item-val fw-semibold" style="font-size: 13.5px; color: #1e2022; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
+                                                                     style="border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; <?= $is_extra ? 'display: none;' : ''; ?>">
+                                                                    <div class="spec-item-key" style="font-size: 13.5px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
+                                                                    <div class="spec-item-val" style="font-size: 14.5px; color: #212121; font-weight: 500; line-height: 1.35;"><?= html_escape($sp['value']); ?></div>
                                                                 </div>
                                                             <?php endforeach; ?>
                                                         </div>
 
                                                         <?php if (count($merged_specs) > 14): ?>
-                                                            <div class="text-center mt-3 pt-2 border-top">
+                                                            <div class="text-center mt-3 pt-2">
                                                                 <button type="button" 
-                                                                        class="btn btn-sm btn-outline-secondary px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
+                                                                        class="btn btn-sm btn-outline-secondary px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
                                                                         id="btn-see-more-specs" 
                                                                         onclick="toggleSeeMoreSpecs(event)" 
-                                                                        style="font-size: 12.5px; border-radius: 20px;">
-                                                                    <span id="btn-see-more-text">See More (<?= count($merged_specs) - 14; ?> more)</span>
+                                                                        style="font-size: 13px; border-radius: 20px; border-color: #d1d5db; color: #374151;">
+                                                                    <span id="btn-see-more-text">See More</span>
                                                                     <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
                                                                 </button>
                                                             </div>
                                                         <?php endif; ?>
                                                     </div>
+
+                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 18px; margin-bottom: 18px;"></div>
                                                 </div>
                                             <?php endif; ?>
 
@@ -2368,8 +2371,7 @@ window.toggleSeeMoreSpecs = function(e) {
         if (btnText) btnText.textContent = 'See Less';
         if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-up ms-1';
     } else {
-        var count = extras.length;
-        if (btnText) btnText.textContent = 'See More (' + count + ' more)';
+        if (btnText) btnText.textContent = 'See More';
         if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-down ms-1';
     }
 };
