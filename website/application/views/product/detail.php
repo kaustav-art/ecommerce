@@ -284,7 +284,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 .product-tax-note {
     color: #565959;
     font-size: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 }
 
 /* Color Badge Selection (matching color_badge.PNG) */
@@ -292,7 +292,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     display: flex;
     align-items: baseline;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .color-badge-title {
     font-size: 16px;
@@ -311,7 +311,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 .color-variant-container {
     position: relative;
     width: 100%;
-    margin-bottom: 22px;
+    margin-bottom: 10px;
 }
 
 .color-slider-track {
@@ -811,6 +811,14 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     }
 }
 
+/* Breadcrumb compact spacing */
+.tf-breadcrumb {
+    padding: 8px 0;
+}
+.tf-breadcrumb-wrap {
+    padding: 0 !important;
+}
+
 /* Desktop styles */
 @media (min-width: 768px) {
     .product-grid-item.grid-overflow-item {
@@ -821,6 +829,13 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     .mobile-slider-indicator-container,
     .mobile-bottom-action-bar {
         display: none !important;
+    }
+    .flat-spacing {
+        padding-top: 18px !important;
+        padding-bottom: 24px !important;
+    }
+    .tf-product-info-list .tf-product-info-choose-option {
+        gap: 12px !important;
     }
 }
 </style>
@@ -920,11 +935,6 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                     </div>
                                 </div>
 
-                                <!-- Subtle gallery helper note (desktop only) -->
-                                <div class="text-center mt-2 text-secondary small d-none d-md-block" id="product-grid-counter-note">
-                                    <i class="fa-regular fa-images me-1"></i> Showing <?= min(4, $total_images); ?> of <?= $total_images; ?> photos. Click any photo to view full gallery.
-                                </div>
-
                             </div>
                         </div>
                         <!-- /LEFT COLUMN -->
@@ -936,10 +946,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                     
                                     <!-- ALL PRODUCT VARIANTS (Color, Size) - Top of Product Name (varient_products.PNG) -->
                                     <?php if (($has_color && !empty($color_map)) || ($has_size && !empty($product['attributes']['size']['values']))): ?>
-                                        <div class="tf-product-info-variants mb-3">
+                                        <div class="tf-product-info-variants mb-2">
                                             <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS (color_badge.PNG) -->
                                             <?php if ($has_color && !empty($color_map)): ?>
-                                                <div class="variant-picker-item mb-3">
+                                                <div class="variant-picker-item mb-2">
                                                     <div class="color-badge-heading mb-2">
                                                         <span class="color-badge-title">Selected Color:</span>
                                                         <span class="color-badge-name" id="selected-color-name"><?= ucwords(html_escape($initial_color)); ?></span>
@@ -975,7 +985,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
                                             <!-- 2. SIZE SELECTION WITH SIZE CHART MODAL & OUT-OF-STOCK STYLING -->
                                             <?php if ($has_size && !empty($product['attributes']['size']['values'])): ?>
-                                                <div class="variant-picker-item mb-3">
+                                                <div class="variant-picker-item mb-2">
                                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                                         <div class="variant-picker-label">
                                                             <span class="text-dark fw-bold" style="font-size: 15px;">Select Size</span>
@@ -1056,7 +1066,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         </div>
 
                                         <!-- Pricing Block (as in varient_products.PNG) -->
-                                        <div class="tf-product-info-desc mt-3">
+                                        <div class="tf-product-info-desc mt-2">
                                             <div class="product-price-block">
                                                 <?php if ($discount_percent > 0): ?>
                                                     <div class="product-discount-rate" id="display-discount-rate">
@@ -1078,7 +1088,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                             <div class="product-tax-note">Inclusive of all taxes</div>
 
                                             <?php if (!empty($product['short_description'])): ?>
-                                                <p class="text-secondary mb-3"><?= nl2br(html_escape($product['short_description'])); ?></p>
+                                                <p class="text-secondary mb-2"><?= nl2br(html_escape($product['short_description'])); ?></p>
                                             <?php endif; ?>
 
                                             <!-- Live view note -->
@@ -1090,7 +1100,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                     </div>
 
                                     <!-- Product Options & Specifications Accordions (varient_products.PNG) -->
-                                    <div class="tf-product-info-choose-option mt-4">
+                                    <div class="tf-product-info-choose-option mt-2">
 
                                         <!-- PRODUCT HIGHLIGHTS & SPECIFICATIONS ACCORDIONS (specification.png) -->
                                         <?php
@@ -1162,11 +1172,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         }
                                         ?>
 
-                                        <div class="product-highlights-specifications my-4">
+                                        <div class="product-highlights-specifications my-2">
                                             
                                             <!-- Product Highlights (Always Open by Default) -->
                                             <?php if (!empty($product_highlights)): ?>
-                                                <div class="product-highlights-block mb-3">
+                                                <div class="product-highlights-block mb-2">
                                                     <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductHighlights()" 
                                                          style="cursor: pointer;">
@@ -1178,28 +1188,28 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                         </button>
                                                     </div>
                                                     
-                                                    <div id="product-highlights-collapse" class="pt-3" style="display: block;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; row-gap: 12px;">
+                                                    <div id="product-highlights-collapse" class="pt-2" style="display: block;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
                                                             <?php foreach ($product_highlights as $hl): 
                                                                 $hl_k = trim($hl['key'] ?? '');
                                                                 $hl_v = trim($hl['value'] ?? '');
                                                                 if ($hl_k === '' && $hl_v === '') continue;
                                                             ?>
-                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
-                                                                    <div class="spec-item-key" style="font-size: 13.5px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
-                                                                    <div class="spec-item-val" style="font-size: 14.5px; color: #212121; font-weight: 500; line-height: 1.35;"><?= html_escape($hl_v); ?></div>
+                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+                                                                    <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
+                                                                    <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
                                                                 </div>
                                                             <?php endforeach; ?>
                                                         </div>
                                                     </div>
                                                     
-                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 18px; margin-bottom: 18px;"></div>
+                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
                                                 </div>
                                             <?php endif; ?>
 
                                             <!-- Product Specifications (Collapsed by Default, 14 items limit) -->
                                             <?php if (!empty($merged_specs)): ?>
-                                                <div class="product-specifications-block mb-3">
+                                                <div class="product-specifications-block mb-2">
                                                     <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductSpecifications()" 
                                                          style="cursor: pointer;">
@@ -1211,8 +1221,8 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                         </button>
                                                     </div>
                                                     
-                                                    <div id="product-specs-collapse" class="pt-3" style="display: none;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; row-gap: 12px;">
+                                                    <div id="product-specs-collapse" class="pt-2" style="display: none;">
+                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
                                                             <?php 
                                                             $s_idx = 0;
                                                             foreach ($merged_specs as $sp): 
@@ -1220,15 +1230,15 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                                 $is_extra = ($s_idx > 14);
                                                             ?>
                                                                 <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
-                                                                     style="border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; <?= $is_extra ? 'display: none;' : ''; ?>">
-                                                                    <div class="spec-item-key" style="font-size: 13.5px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
-                                                                    <div class="spec-item-val" style="font-size: 14.5px; color: #212121; font-weight: 500; line-height: 1.35;"><?= html_escape($sp['value']); ?></div>
+                                                                     style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
+                                                                    <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
+                                                                    <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
                                                                 </div>
                                                             <?php endforeach; ?>
                                                         </div>
 
                                                         <?php if (count($merged_specs) > 14): ?>
-                                                            <div class="text-center mt-3 pt-2">
+                                                            <div class="text-center mt-2 pt-2">
                                                                 <button type="button" 
                                                                         class="btn btn-sm btn-outline-secondary px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
                                                                         id="btn-see-more-specs" 
@@ -1241,29 +1251,14 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                         <?php endif; ?>
                                                     </div>
 
-                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 18px; margin-bottom: 18px;"></div>
+                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
                                                 </div>
                                             <?php endif; ?>
 
                                         </div>
 
-                                        <!-- QUANTITY (Hidden input default = 1 for cart / checkout) -->
-                                        <input type="hidden" id="product-qty-input" name="number" value="1">
-
-                                        <!-- ACTION BUTTONS (Side by Side) -->
-                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3">
-                                            <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
-                                                <span>Add to cart -&nbsp;</span>
-                                                <span class="tf-qty-price total-price" id="atc-btn-price"><?= $currency_symbol . number_format($current_price, 2); ?></span>
-                                            </button>
-
-                                            <button type="button" class="btn-style-3 flex-grow-1 text-btn-uppercase fw-bold py-3" id="btn-buy-now" onclick="buyNow()" style="width: 50%; flex: 1 1 0; min-width: 0;">
-                                                Buy it now
-                                            </button>
-                                        </div>
-
                                         <!-- Extra Links & Delivery Info (from product-detail.html) -->
-                                        <div class="tf-product-info-help mt-4">
+                                        <div class="tf-product-info-help mt-2">
                                             <div class="tf-product-info-extra-link d-flex justify-content-between">
                                                 <a href="#delivery_return" data-bs-toggle="modal" class="tf-product-extra-icon d-flex align-items-center gap-2 text-decoration-none">
                                                     <div class="icon"><i class="icon-shipping"></i></div>
@@ -1279,18 +1274,18 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                 </a>
                                             </div>
 
-                                            <div class="tf-product-info-time d-flex align-items-center gap-2 mt-3">
+                                            <div class="tf-product-info-time d-flex align-items-center gap-2 mt-2">
                                                 <div class="icon"><i class="icon-timer"></i></div>
                                                 <p class="text-caption-1 mb-0">Estimated Delivery:&nbsp;&nbsp;<span>3-6 business days</span></p>
                                             </div>
-                                            <div class="tf-product-info-return d-flex align-items-center gap-2 mt-2">
+                                            <div class="tf-product-info-return d-flex align-items-center gap-2 mt-1">
                                                 <div class="icon"><i class="icon-arrowClockwise"></i></div>
                                                 <p class="text-caption-1 mb-0">Return within <span>30 days</span> of purchase. Hassle-free refunds.</p>
                                             </div>
                                         </div>
 
                                         <!-- SKU / Metadata -->
-                                        <ul class="tf-product-info-sku list-unstyled border-top pt-3 mt-3">
+                                        <ul class="tf-product-info-sku list-unstyled border-top pt-2 mt-2 mb-0">
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">SKU:</p>
                                                 <p class="text-caption-1 mb-0 fw-semibold" id="display-sku"><?= html_escape($initial_sku); ?></p>
@@ -1309,17 +1304,18 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                             </li>
                                         </ul>
 
-                                        <!-- Guaranteed Safe Checkout -->
-                                        <div class="tf-product-info-guranteed border-top pt-3 mt-3">
-                                            <div class="text-title small text-secondary mb-2">Guaranteed safe checkout:</div>
-                                            <div class="tf-payment d-flex gap-2 flex-wrap">
-                                                <img src="<?= base_url('assets/images/payment/img-1.png'); ?>" alt="Visa" style="height: 24px;" onerror="this.style.display='none'">
-                                                <img src="<?= base_url('assets/images/payment/img-2.png'); ?>" alt="MasterCard" style="height: 24px;" onerror="this.style.display='none'">
-                                                <img src="<?= base_url('assets/images/payment/img-3.png'); ?>" alt="Amex" style="height: 24px;" onerror="this.style.display='none'">
-                                                <img src="<?= base_url('assets/images/payment/img-4.png'); ?>" alt="PayPal" style="height: 24px;" onerror="this.style.display='none'">
-                                                <img src="<?= base_url('assets/images/payment/img-5.png'); ?>" alt="UPI" style="height: 24px;" onerror="this.style.display='none'">
-                                                <img src="<?= base_url('assets/images/payment/img-6.png'); ?>" alt="ApplePay" style="height: 24px;" onerror="this.style.display='none'">
-                                            </div>
+                                        <!-- QUANTITY (Hidden input default = 1 for cart / checkout) -->
+                                        <input type="hidden" id="product-qty-input" name="number" value="1">
+
+                                        <!-- ACTION BUTTONS (Side by Side) at end before description & review tabs -->
+                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1">
+                                            <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
+                                                <span>Add to cart</span>
+                                            </button>
+
+                                            <button type="button" class="btn-style-3 flex-grow-1 text-btn-uppercase fw-bold py-3" id="btn-buy-now" onclick="buyNow()" style="width: 50%; flex: 1 1 0; min-width: 0;">
+                                                Buy it now
+                                            </button>
                                         </div>
 
                                     </div>
@@ -1347,7 +1343,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         </div>
 
         <!-- Product_Description_Tabs -->
-        <section class="" id="tab-customer-reviews">
+        <section class="mt-5" id="tab-customer-reviews">
             <div class="container">
                 <div class="row">
                     <div class="col-12">
