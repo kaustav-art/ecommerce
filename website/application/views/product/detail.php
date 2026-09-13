@@ -550,12 +550,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         padding-bottom: 30px !important;
     }
     .tf-main-product {
-        padding-bottom: 80px !important;
+        padding-bottom: 12px !important;
     }
-    .tf-breadcrumb {
-        padding: 6px 0 !important;
-        background: #fbfbfb;
-        border-bottom: 1px solid #f0f0f0;
+    .tf-breadcrumb,
+    .tf-breadcrumb-prev-next {
+        display: none !important;
     }
     .tf-product-media-wrap {
         position: relative !important;
@@ -778,6 +777,13 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         z-index: 1040;
         display: flex;
         gap: 10px;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+        will-change: transform, opacity;
+    }
+    .mobile-bottom-action-bar.mobile-bar-hidden {
+        transform: translateY(100%) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
     .btn-mobile-action {
         flex: 1;
@@ -808,6 +814,160 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         background: #ffc200;
         border: none;
         color: #1e2022;
+    }
+
+    /* In-page action buttons styled consistently on mobile when attached before tabs */
+    .product-action-buttons-wrap {
+        padding-bottom: 6px;
+    }
+    .product-action-buttons-wrap .btn-add-to-cart {
+        background: #ffffff !important;
+        border: 1.5px solid #d1d5db !important;
+        color: #1e2022 !important;
+        border-radius: 10px !important;
+        height: 48px !important;
+        padding: 0 12px !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        text-transform: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: opacity 0.15s ease, transform 0.1s ease !important;
+    }
+    .product-action-buttons-wrap #btn-buy-now {
+        background: #ffc200 !important;
+        border: none !important;
+        color: #1e2022 !important;
+        border-radius: 10px !important;
+        height: 48px !important;
+        padding: 0 12px !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        text-transform: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: opacity 0.15s ease, transform 0.1s ease !important;
+    }
+    .product-action-buttons-wrap .btn-add-to-cart:active,
+    .product-action-buttons-wrap #btn-buy-now:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
+    /* Mobile Responsive Tabs (Description, Reviews, Shipping, Policies) */
+    #tab-customer-reviews {
+        margin-top: 24px !important;
+    }
+    .widget-tabs.style-1 .widget-menu-tab {
+        display: flex !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 18px !important;
+        padding: 0 2px 10px !important;
+        margin-bottom: 14px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        border-bottom: 1.5px solid #e5e7eb !important;
+        white-space: nowrap !important;
+    }
+    .widget-tabs.style-1 .widget-menu-tab::-webkit-scrollbar {
+        display: none !important;
+    }
+    .widget-tabs.style-1 .widget-menu-tab .item-title {
+        font-size: 14.5px !important;
+        line-height: 1.35 !important;
+        min-width: max-content !important;
+        padding: 4px 2px 10px !important;
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        position: relative !important;
+    }
+    .widget-tabs.style-1 .widget-menu-tab .item-title.active {
+        color: #111827 !important;
+        font-weight: 700 !important;
+    }
+    .widget-tabs.style-1 .widget-menu-tab .item-title::after {
+        bottom: -1.5px !important;
+        height: 2.5px !important;
+        background-color: #111827 !important;
+        border-radius: 2px !important;
+    }
+    .widget-tabs.style-1 .widget-content-inner {
+        padding: 16px 12px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 10px !important;
+        background: #ffffff !important;
+    }
+    .tab-description {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 18px !important;
+    }
+    .tab-description .right,
+    .tab-description .left {
+        width: 100% !important;
+    }
+    .tab-description .table-responsive {
+        margin-top: 10px !important;
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+    }
+    .tab-description .list-icon-guideline {
+        gap: 12px !important;
+        flex-wrap: wrap !important;
+    }
+    .tab-reviews .tab-reviews-heading {
+        gap: 18px !important;
+        margin-bottom: 20px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .tab-reviews .tab-reviews-heading .top {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+    .tab-reviews .rating-score {
+        width: 100% !important;
+    }
+    .tab-reviews .rating-score .item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+    .tab-reviews .rating-score .line-bg {
+        flex: 1 !important;
+    }
+    .tab-reviews .btn-comment-review {
+        width: 100% !important;
+        text-align: center !important;
+        margin-top: 6px !important;
+    }
+    .form-write-review .cols {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    .form-write-review .cols fieldset {
+        width: 100% !important;
+        margin-bottom: 0 !important;
+    }
+    .reply-comment-wrap .reply-comment-item {
+        padding: 12px 0 !important;
+    }
+    .tab-shipping,
+    .tab-policies {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
     }
 }
 
@@ -841,7 +1001,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 </style>
 
         <!-- breadcrumb -->
-        <div class="tf-breadcrumb">
+        <div class="tf-breadcrumb d-none d-md-block">
             <div class="container">
                 <div class="tf-breadcrumb-wrap">
                     <div class="tf-breadcrumb-list">
@@ -1308,7 +1468,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <input type="hidden" id="product-qty-input" name="number" value="1">
 
                                         <!-- ACTION BUTTONS (Side by Side) at end before description & review tabs -->
-                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1">
+                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1" id="in-page-action-buttons">
                                             <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
                                                 <span>Add to cart</span>
                                             </button>
@@ -2692,11 +2852,47 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
 
 
+    // 13. Mobile Bottom Action Bar: Fixed until scrolling reaches in-page buttons (attached before tabs)
+    function setupMobileBottomBarScroll() {
+        var inPageBtns = document.getElementById('in-page-action-buttons');
+        var mobileBar = document.getElementById('mobile-bottom-action-bar');
+        if (!inPageBtns || !mobileBar) return;
+
+        var ticking = false;
+        function updateMobileBarVisibility() {
+            if (window.innerWidth >= 768) {
+                ticking = false;
+                return;
+            }
+            var rect = inPageBtns.getBoundingClientRect();
+            var vh = window.innerHeight || document.documentElement.clientHeight;
+            // When in-page action buttons reach or enter the viewport (attached before tabs)
+            if (rect.top <= vh) {
+                mobileBar.classList.add('mobile-bar-hidden');
+            } else {
+                mobileBar.classList.remove('mobile-bar-hidden');
+            }
+            ticking = false;
+        }
+
+        function requestUpdate() {
+            if (!ticking) {
+                window.requestAnimationFrame(updateMobileBarVisibility);
+                ticking = true;
+            }
+        }
+
+        window.addEventListener('scroll', requestUpdate, { passive: true });
+        window.addEventListener('resize', requestUpdate, { passive: true });
+        requestUpdate();
+    }
+
     // Initial setup
     updateSizeAvailability();
     syncCurrentVariant();
     updateColorSliderArrows();
     updateMobileSliderIndicator();
+    setupMobileBottomBarScroll();
 
     window.addEventListener('resize', function() {
         updateColorSliderArrows();
