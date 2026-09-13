@@ -539,6 +539,290 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     color: #c7511f;
     text-decoration: underline !important;
 }
+
+/* ==========================================================================
+   MOBILE SCREEN PRODUCT DETAILS (as in product_deatils_mobile.jpeg)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    /* Layout & Spacing */
+    .flat-spacing {
+        padding-top: 10px !important;
+        padding-bottom: 30px !important;
+    }
+    .tf-main-product {
+        padding-bottom: 80px !important;
+    }
+    .tf-breadcrumb {
+        padding: 6px 0 !important;
+        background: #fbfbfb;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .tf-product-media-wrap {
+        position: relative !important;
+        top: 0 !important;
+        margin: 0 -12px !important;
+        border-radius: 0 !important;
+        background: #ffffff;
+    }
+    .product-gallery-stage {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+
+    /* Single Prominent Swipeable Image Slider */
+    .product-grid-gallery {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        gap: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+    }
+    .product-grid-gallery::-webkit-scrollbar {
+        display: none !important;
+    }
+    .product-grid-item {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        scroll-snap-align: start !important;
+        aspect-ratio: 3 / 4 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background-color: #f8f9fa !important;
+        overflow: hidden !important;
+        border: none !important;
+    }
+    .product-grid-item img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: 0 !important;
+        display: block !important;
+    }
+    .product-grid-overlay {
+        display: none !important;
+    }
+
+    /* Top-Right Floating Actions (Wishlist & Share in product_deatils_mobile.jpeg) */
+    .mobile-gallery-floating-actions {
+        position: absolute !important;
+        top: 14px !important;
+        right: 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        z-index: 20 !important;
+    }
+    .mobile-floating-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e2022;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease;
+        padding: 0;
+        outline: none;
+    }
+    .mobile-floating-btn:active {
+        transform: scale(0.92);
+    }
+    .mobile-floating-btn.active, .mobile-floating-btn.active i {
+        color: #e53935 !important;
+    }
+
+    /* Bottom-Left Floating Rating Badge (4 ★ | 683 in product_deatils_mobile.jpeg) */
+    .mobile-gallery-rating-badge {
+        position: absolute !important;
+        bottom: 14px !important;
+        left: 14px !important;
+        background: #ffffff !important;
+        padding: 4px 9px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #212121 !important;
+        z-index: 20 !important;
+        cursor: pointer;
+        line-height: 1;
+        user-select: none;
+    }
+    .mobile-gallery-rating-badge .rating-star {
+        color: #388e3c !important;
+        font-size: 11px !important;
+    }
+    .mobile-gallery-rating-badge .rating-divider {
+        color: #d1d5db !important;
+        font-weight: 300 !important;
+    }
+    .mobile-gallery-rating-badge .rating-count {
+        color: #616161 !important;
+        font-weight: 500 !important;
+        font-size: 12.5px !important;
+    }
+
+    /* Horizontal Slide Progress Indicator Bar underneath image */
+    .mobile-slider-indicator-container {
+        width: 100% !important;
+        padding: 8px 16px 4px !important;
+        display: flex !important;
+        align-items: center !important;
+        background: #ffffff !important;
+    }
+    .mobile-slider-indicator-track {
+        width: 100% !important;
+        height: 3px !important;
+        background: #e5e7eb !important;
+        border-radius: 2px !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    .mobile-slider-indicator-bar {
+        height: 100% !important;
+        background: #111827 !important;
+        border-radius: 2px !important;
+        transition: transform 0.12s ease-out !important;
+        will-change: transform;
+    }
+
+    /* Info wrap & Typography */
+    .tf-product-info-wrap {
+        padding: 10px 4px 20px !important;
+    }
+    .tf-product-info-heading .name {
+        font-size: 20px !important;
+        line-height: 1.35 !important;
+    }
+
+    /* Color badge section */
+    .color-badge-heading {
+        font-size: 15px !important;
+        margin-bottom: 10px !important;
+    }
+    .color-badge-title {
+        font-weight: 700 !important;
+        color: #1e2022 !important;
+    }
+    .color-badge-name {
+        font-weight: 500 !important;
+        color: #1e2022 !important;
+        text-transform: capitalize !important;
+    }
+    .color-thumb-card {
+        width: 66px !important;
+        height: 82px !important;
+        border-radius: 10px !important;
+        padding: 3px !important;
+        border: 1px solid #e5e7eb !important;
+        background: #ffffff !important;
+    }
+    .color-thumb-card.active {
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .color-thumb-card img {
+        border-radius: 7px !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    /* Size selector section */
+    .variant-size-chip {
+        min-width: 52px !important;
+        height: 42px !important;
+        border-radius: 8px !important;
+        border: 1px solid #d1d5db !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        color: #1e2022 !important;
+        background: #ffffff !important;
+    }
+    .variant-size-chip.active {
+        border: 2px solid #000000 !important;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+    }
+
+    /* Fixed mobile bottom action bar: Add to cart & Buy now (product_deatils_mobile.jpeg) */
+    .mobile-bottom-action-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.1);
+        z-index: 1040;
+        display: flex;
+        gap: 10px;
+    }
+    .btn-mobile-action {
+        flex: 1;
+        height: 48px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-transform: none;
+        letter-spacing: 0.1px;
+        transition: opacity 0.15s ease, transform 0.1s ease;
+        outline: none;
+        text-decoration: none;
+    }
+    .btn-mobile-action:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+    .btn-mobile-atc {
+        background: #ffffff;
+        border: 1.5px solid #d1d5db;
+        color: #1e2022;
+    }
+    .btn-mobile-buy {
+        background: #ffc200;
+        border: none;
+        color: #1e2022;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+    .product-grid-item.grid-overflow-item {
+        display: none !important;
+    }
+    .mobile-gallery-floating-actions,
+    .mobile-gallery-rating-badge,
+    .mobile-slider-indicator-container,
+    .mobile-bottom-action-bar {
+        display: none !important;
+    }
+}
 </style>
 
         <!-- breadcrumb -->
@@ -574,44 +858,71 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                         <div class="col-md-7 mb-4 mb-md-0">
                             <div class="tf-product-media-wrap sticky-top" style="top: 100px;">
                                 
-                                <div class="product-grid-gallery" id="product-grid-gallery">
-                                    <?php
-                                    // Render up to 4 grid items
-                                    $grid_slots = min(4, $total_images);
-                                    for ($i = 0; $i < $grid_slots; $i++):
-                                        $img_src = base_url('assets/images/' . $all_images[$i]);
-                                        $is_last_slot = ($i === 3);
-                                        $show_overlay = ($is_last_slot && $total_images > 4);
-                                        $remaining_count = $total_images - 4;
-                                    ?>
-                                        <div class="product-grid-item" onclick="openLightbox(<?= $i; ?>)" id="grid-item-<?= $i; ?>">
-                                            <img src="<?= $img_src; ?>" alt="<?= html_escape($product['title']) . ' - ' . ($i + 1); ?>" id="grid-img-<?= $i; ?>" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                            
-                                            <!-- Floating Actions in Top-Right corner of 2nd image (Slot 1) -->
-                                            <?php if ($i === 1 || ($grid_slots === 1 && $i === 0)): ?>
-                                                <div class="grid-floating-actions" onclick="event.stopPropagation();">
-                                                    <button type="button" class="grid-action-btn wishlist-btn <?= !empty($is_in_wishlist) ? 'active' : ''; ?>" id="btn-grid-wishlist" onclick="toggleWishlist(<?= $product['id']; ?>, this)" title="Wishlist">
-                                                        <i class="<?= !empty($is_in_wishlist) ? 'fa-solid' : 'fa-regular'; ?> fa-heart"></i>
-                                                    </button>
-                                                    <button type="button" class="grid-action-btn zoom-btn" onclick="openLightbox(<?= $i; ?>)" title="Fullscreen Gallery">
-                                                        <i class="fa-solid fa-expand"></i>
-                                                    </button>
-                                                </div>
-                                            <?php endif; ?>
+                                <div class="product-gallery-stage position-relative">
+                                    <!-- Mobile Floating Action Buttons (Wishlist & Share in product_deatils_mobile.jpeg) -->
+                                    <div class="mobile-gallery-floating-actions d-md-none">
+                                        <button type="button" class="mobile-floating-btn mobile-wishlist-btn <?= !empty($is_in_wishlist) ? 'active' : ''; ?>" id="btn-mobile-wishlist" onclick="toggleWishlist(<?= $product['id']; ?>, this)" title="Wishlist" aria-label="Wishlist">
+                                            <i class="<?= !empty($is_in_wishlist) ? 'fa-solid fa-heart text-danger' : 'fa-regular fa-heart'; ?>"></i>
+                                        </button>
+                                        <button type="button" class="mobile-floating-btn mobile-share-btn" id="btn-mobile-share" onclick="handleMobileShare()" title="Share" aria-label="Share">
+                                            <i class="fa-regular fa-paper-plane" style="transform: rotate(10deg); font-size: 16px;"></i>
+                                        </button>
+                                    </div>
 
-                                            <!-- +N Overlay on 4th slot if > 4 images -->
-                                            <?php if ($show_overlay): ?>
-                                                <div class="product-grid-overlay">
-                                                    <span class="overlay-text">+<?= $remaining_count; ?></span>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endfor; ?>
+                                    <!-- Mobile Floating Rating Badge (4 ★ | 683 in product_deatils_mobile.jpeg) -->
+                                    <div class="mobile-gallery-rating-badge d-md-none" onclick="activateReviewTab()">
+                                        <span class="rating-score"><?= number_format($product['rating'] ?: 4.0, 1); ?></span>
+                                        <i class="fa-solid fa-star rating-star"></i>
+                                        <span class="rating-divider">|</span>
+                                        <span class="rating-count"><?= number_format($product['reviews_count'] ?: 683); ?></span>
+                                    </div>
+
+                                    <div class="product-grid-gallery" id="product-grid-gallery" onscroll="updateMobileSliderIndicator()">
+                                        <?php
+                                        // Render all images for mobile carousel; desktop hides items 5+ via .grid-overflow-item CSS
+                                        for ($i = 0; $i < $total_images; $i++):
+                                            $img_src = base_url('assets/images/' . $all_images[$i]);
+                                            $is_last_slot = ($i === 3);
+                                            $show_overlay = ($is_last_slot && $total_images > 4);
+                                            $remaining_count = $total_images - 4;
+                                            $is_overflow_item = ($i >= 4);
+                                        ?>
+                                            <div class="product-grid-item <?= $is_overflow_item ? 'grid-overflow-item' : ''; ?>" onclick="openLightbox(<?= $i; ?>)" id="grid-item-<?= $i; ?>">
+                                                <img src="<?= $img_src; ?>" alt="<?= html_escape($product['title']) . ' - ' . ($i + 1); ?>" id="grid-img-<?= $i; ?>" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
+                                                
+                                                <!-- Desktop Floating Actions in Top-Right corner of 2nd image (Slot 1) -->
+                                                <?php if ($i === 1 || ($total_images === 1 && $i === 0)): ?>
+                                                    <div class="grid-floating-actions d-none d-md-flex" onclick="event.stopPropagation();">
+                                                        <button type="button" class="grid-action-btn wishlist-btn <?= !empty($is_in_wishlist) ? 'active' : ''; ?>" id="btn-grid-wishlist" onclick="toggleWishlist(<?= $product['id']; ?>, this)" title="Wishlist">
+                                                            <i class="<?= !empty($is_in_wishlist) ? 'fa-solid' : 'fa-regular'; ?> fa-heart"></i>
+                                                        </button>
+                                                        <button type="button" class="grid-action-btn zoom-btn" onclick="openLightbox(<?= $i; ?>)" title="Fullscreen Gallery">
+                                                            <i class="fa-solid fa-expand"></i>
+                                                        </button>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <!-- Desktop +N Overlay on 4th slot if > 4 images -->
+                                                <?php if ($show_overlay): ?>
+                                                    <div class="product-grid-overlay d-none d-md-flex">
+                                                        <span class="overlay-text">+<?= $remaining_count; ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endfor; ?>
+                                    </div>
                                 </div>
 
-                                <!-- Subtle gallery helper note -->
-                                <div class="text-center mt-2 text-secondary small" id="product-grid-counter-note">
-                                    <i class="fa-regular fa-images me-1"></i> Showing <?= $grid_slots; ?> of <?= $total_images; ?> photos. Click any photo to view full gallery.
+                                <!-- Mobile Slide Indicator Bar underneath the image as in product_deatils_mobile.jpeg -->
+                                <div class="mobile-slider-indicator-container d-md-none" id="mobile-indicator-wrap">
+                                    <div class="mobile-slider-indicator-track">
+                                        <div class="mobile-slider-indicator-bar" id="mobile-slide-indicator"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Subtle gallery helper note (desktop only) -->
+                                <div class="text-center mt-2 text-secondary small d-none d-md-block" id="product-grid-counter-note">
+                                    <i class="fa-regular fa-images me-1"></i> Showing <?= min(4, $total_images); ?> of <?= $total_images; ?> photos. Click any photo to view full gallery.
                                 </div>
 
                             </div>
@@ -623,22 +934,100 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                             <div class="tf-product-info-wrap position-relative">
                                 <div class="tf-product-info-list">
                                     
+                                    <!-- ALL PRODUCT VARIANTS (Color, Size) - Top of Product Name (varient_products.PNG) -->
+                                    <?php if (($has_color && !empty($color_map)) || ($has_size && !empty($product['attributes']['size']['values']))): ?>
+                                        <div class="tf-product-info-variants mb-3">
+                                            <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS (color_badge.PNG) -->
+                                            <?php if ($has_color && !empty($color_map)): ?>
+                                                <div class="variant-picker-item mb-3">
+                                                    <div class="color-badge-heading mb-2">
+                                                        <span class="color-badge-title">Selected Color:</span>
+                                                        <span class="color-badge-name" id="selected-color-name"><?= ucwords(html_escape($initial_color)); ?></span>
+                                                    </div>
+
+                                                    <!-- Horizontal color slider with navigation arrows (color_badge.PNG) -->
+                                                    <div class="color-variant-container">
+                                                        <button type="button" class="color-slider-arrow prev" id="color-arrow-prev" onclick="slideColorTrack(-1)" aria-label="Previous Color" style="display: none;">
+                                                            <i class="fa-solid fa-chevron-left"></i>
+                                                        </button>
+                                                        
+                                                        <div class="color-slider-track" id="color-slider-track" onscroll="updateColorSliderArrows()">
+                                                            <?php foreach ($color_map as $c_name => $c_info): 
+                                                                $is_active_color = ($c_name === $initial_color);
+                                                                $c_img = !empty($c_info['image']) ? $c_info['image'] : $product['main_image'];
+                                                            ?>
+                                                                <div class="color-thumb-card <?= $is_active_color ? 'active' : ''; ?>" 
+                                                                     data-color="<?= html_escape($c_name); ?>"
+                                                                     data-image="<?= base_url('assets/images/' . $c_img); ?>"
+                                                                     onclick="selectColor('<?= html_escape($c_name); ?>', this)"
+                                                                     title="<?= html_escape($c_name); ?>">
+                                                                    <img src="<?= base_url('assets/images/' . $c_img); ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= base_url('assets/images/' . $product['main_image']); ?>'">
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                        <button type="button" class="color-slider-arrow next" id="color-arrow-next" onclick="slideColorTrack(1)" aria-label="Next Color">
+                                                            <i class="fa-solid fa-chevron-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- 2. SIZE SELECTION WITH SIZE CHART MODAL & OUT-OF-STOCK STYLING -->
+                                            <?php if ($has_size && !empty($product['attributes']['size']['values'])): ?>
+                                                <div class="variant-picker-item mb-3">
+                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                        <div class="variant-picker-label">
+                                                            <span class="text-dark fw-bold" style="font-size: 15px;">Select Size</span>
+                                                            <span class="text-secondary ms-1 small" id="selected-size-name-wrap">(<strong id="selected-size-name" class="text-dark"><?= html_escape($initial_size); ?></strong>)</span>
+                                                        </div>
+                                                        <a href="#size-guide" data-bs-toggle="modal" class="text-decoration-none fw-semibold" style="color: #2874f0 !important; font-size: 14px;">
+                                                            Size Chart <i class="fa-solid fa-chevron-right ms-1" style="font-size: 11px;"></i>
+                                                        </a>
+                                                    </div>
+
+                                                    <div class="d-flex flex-wrap gap-2" id="size-chips-wrapper">
+                                                        <?php 
+                                                        foreach ($product['attributes']['size']['values'] as $s_val): 
+                                                            $s_name = $s_val['value'];
+                                                            $is_active_size = ($s_name === $initial_size);
+                                                            
+                                                            // Check stock for initial color
+                                                            $in_stock = true;
+                                                            if (!empty($color_map[$initial_color]['sizes'][$s_name])) {
+                                                                $in_stock = ($color_map[$initial_color]['sizes'][$s_name]['stock'] > 0);
+                                                            }
+                                                        ?>
+                                                            <button type="button" 
+                                                                    class="variant-size-chip <?= $is_active_size ? 'active' : ''; ?> <?= !$in_stock ? 'is-out-of-stock' : ''; ?>" 
+                                                                    data-size="<?= html_escape($s_name); ?>"
+                                                                    onclick="selectSize('<?= html_escape($s_name); ?>', this)"
+                                                                    title="<?= !$in_stock ? 'Out of stock' : 'Size ' . html_escape($s_name); ?>">
+                                                                <?= html_escape($s_name); ?>
+                                                            </button>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <!-- Heading / Brand / Rating -->
                                     <div class="tf-product-info-heading">
                                         <div class="tf-product-info-name">
                                             
-                                            <div class="text text-btn-uppercase text-secondary mb-1">
-                                                <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none"><?= html_escape($product['category_name']); ?></a>
-                                            </div>
-
-                                            <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title']); ?></h3>
-
                                             <!-- Brand Store Link (as in varient_products.PNG) -->
-                                            <div>
+                                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                                 <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '')); ?>" class="brand-store-link fw-semibold">
                                                     Visit the <?= html_escape($product['brand_name'] ?: 'VTEXX'); ?> Store
                                                 </a>
+                                                <?php if (!empty($product['category_name'])): ?>
+                                                    <span class="text-secondary" style="font-size: 11px;">•</span>
+                                                    <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                                <?php endif; ?>
                                             </div>
+
+                                            <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title']); ?></h3>
 
                                             <!-- Rating & Review Count -->
                                             <div class="sub d-flex align-items-center gap-2 mt-1">
@@ -700,81 +1089,8 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         </div>
                                     </div>
 
-                                    <!-- Variant Options Picker (varient_products.PNG) -->
+                                    <!-- Product Options & Specifications Accordions (varient_products.PNG) -->
                                     <div class="tf-product-info-choose-option mt-4">
-                                        
-                                        <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS (color_badge.PNG) -->
-                                        <?php if ($has_color && !empty($color_map)): ?>
-                                            <div class="variant-picker-item mb-4">
-                                                <div class="color-badge-heading mb-2">
-                                                    <span class="color-badge-title">Selected Color:</span>
-                                                    <span class="color-badge-name" id="selected-color-name"><?= strtoupper(html_escape($initial_color)); ?></span>
-                                                </div>
-
-                                                <!-- Horizontal color slider with navigation arrows (color_badge.PNG) -->
-                                                <div class="color-variant-container">
-                                                    <button type="button" class="color-slider-arrow prev" id="color-arrow-prev" onclick="slideColorTrack(-1)" aria-label="Previous Color" style="display: none;">
-                                                        <i class="fa-solid fa-chevron-left"></i>
-                                                    </button>
-                                                    
-                                                    <div class="color-slider-track" id="color-slider-track" onscroll="updateColorSliderArrows()">
-                                                        <?php foreach ($color_map as $c_name => $c_info): 
-                                                            $is_active_color = ($c_name === $initial_color);
-                                                            $c_img = !empty($c_info['image']) ? $c_info['image'] : $product['main_image'];
-                                                        ?>
-                                                            <div class="color-thumb-card <?= $is_active_color ? 'active' : ''; ?>" 
-                                                                 data-color="<?= html_escape($c_name); ?>"
-                                                                 data-image="<?= base_url('assets/images/' . $c_img); ?>"
-                                                                 onclick="selectColor('<?= html_escape($c_name); ?>', this)"
-                                                                 title="<?= html_escape($c_name); ?>">
-                                                                <img src="<?= base_url('assets/images/' . $c_img); ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= base_url('assets/images/' . $product['main_image']); ?>'">
-                                                            </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-
-                                                    <button type="button" class="color-slider-arrow next" id="color-arrow-next" onclick="slideColorTrack(1)" aria-label="Next Color">
-                                                        <i class="fa-solid fa-chevron-right"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-
-                                        <!-- 2. SIZE SELECTION WITH SIZE CHART MODAL & OUT-OF-STOCK STYLING -->
-                                        <?php if ($has_size && !empty($product['attributes']['size']['values'])): ?>
-                                            <div class="variant-picker-item mb-4">
-                                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                                    <div class="variant-picker-label">
-                                                        <span class="text-secondary">Select Size:</span>
-                                                        <strong class="ms-1" id="selected-size-name"><?= html_escape($initial_size); ?></strong>
-                                                    </div>
-                                                    <a href="#size-guide" data-bs-toggle="modal" class="text-primary text-decoration-none small fw-semibold">
-                                                        <i class="fa-solid fa-ruler-horizontal me-1"></i> Size Chart <i class="fa-solid fa-chevron-right small ms-1"></i>
-                                                    </a>
-                                                </div>
-
-                                                <div class="d-flex flex-wrap gap-2" id="size-chips-wrapper">
-                                                    <?php 
-                                                    foreach ($product['attributes']['size']['values'] as $s_val): 
-                                                        $s_name = $s_val['value'];
-                                                        $is_active_size = ($s_name === $initial_size);
-                                                        
-                                                        // Check stock for initial color
-                                                        $in_stock = true;
-                                                        if (!empty($color_map[$initial_color]['sizes'][$s_name])) {
-                                                            $in_stock = ($color_map[$initial_color]['sizes'][$s_name]['stock'] > 0);
-                                                        }
-                                                    ?>
-                                                        <button type="button" 
-                                                                class="variant-size-chip <?= $is_active_size ? 'active' : ''; ?> <?= !$in_stock ? 'is-out-of-stock' : ''; ?>" 
-                                                                data-size="<?= html_escape($s_name); ?>"
-                                                                onclick="selectSize('<?= html_escape($s_name); ?>', this)"
-                                                                title="<?= !$in_stock ? 'Out of stock' : 'Size ' . html_escape($s_name); ?>">
-                                                            <?= html_escape($s_name); ?>
-                                                        </button>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
 
                                         <!-- PRODUCT HIGHLIGHTS & SPECIFICATIONS ACCORDIONS (specification.png) -->
                                         <?php
@@ -931,38 +1247,17 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
                                         </div>
 
-                                        <!-- QUANTITY SELECTOR -->
-                                        <?php $max_allowed = !empty($product['max_purchase_quantity']) ? (int) $product['max_purchase_quantity'] : 5; ?>
-                                        <div class="tf-product-info-quantity mb-4">
-                                            <div class="title mb-2 text-secondary fw-semibold d-flex justify-content-between align-items-center">
-                                                <span>Quantity:</span>
-                                                <small class="text-muted fw-normal" style="font-size: 12px;">(Max <?= $max_allowed; ?> per order)</small>
-                                            </div>
-                                            <div class="wg-quantity">
-                                                <span class="btn-quantity btn-qty-minus" onclick="changeQty(-1, event)">-</span>
-                                                <input class="quantity-product" type="number" id="product-qty-input" name="number" value="1" min="1" max="<?= $max_allowed; ?>" data-max-limit="<?= $max_allowed; ?>" readonly>
-                                                <span class="btn-quantity btn-qty-plus" onclick="changeQty(1, event)">+</span>
-                                            </div>
-                                        </div>
+                                        <!-- QUANTITY (Hidden input default = 1 for cart / checkout) -->
+                                        <input type="hidden" id="product-qty-input" name="number" value="1">
 
-                                        <!-- ACTION BUTTONS -->
-                                        <div>
-                                            <div class="tf-product-info-by-btn mb-2 d-flex gap-2">
-                                                <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart" id="main-btn-atc" onclick="addToCartAjax(event)">
-                                                    <span>Add to cart -&nbsp;</span>
-                                                    <span class="tf-qty-price total-price" id="atc-btn-price"><?= $currency_symbol . number_format($current_price, 2); ?></span>
-                                                </button>
-                                                <a href="<?= site_url('compare'); ?>" class="box-icon hover-tooltip compare btn-icon-action" title="Compare">
-                                                    <span class="icon icon-gitDiff"></span>
-                                                    <span class="tooltip text-caption-2">Compare</span>
-                                                </a>
-                                                <a href="javascript:void(0);" class="box-icon hover-tooltip wishlist btn-icon-action <?= !empty($is_in_wishlist) ? 'active' : ''; ?>" onclick="toggleWishlist(<?= $product['id']; ?>, this)" title="Wishlist">
-                                                    <span class="icon icon-heart"></span>
-                                                    <span class="tooltip text-caption-2">Wishlist</span>
-                                                </a>
-                                            </div>
+                                        <!-- ACTION BUTTONS (Side by Side) -->
+                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3">
+                                            <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
+                                                <span>Add to cart -&nbsp;</span>
+                                                <span class="tf-qty-price total-price" id="atc-btn-price"><?= $currency_symbol . number_format($current_price, 2); ?></span>
+                                            </button>
 
-                                            <button type="button" class="btn-style-3 text-btn-uppercase w-100 py-3 fw-bold" id="btn-buy-now" onclick="buyNow()">
+                                            <button type="button" class="btn-style-3 flex-grow-1 text-btn-uppercase fw-bold py-3" id="btn-buy-now" onclick="buyNow()" style="width: 50%; flex: 1 1 0; min-width: 0;">
                                                 Buy it now
                                             </button>
                                         </div>
@@ -1040,6 +1335,16 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
         </section>
         <!-- /Product_Main -->
+
+        <!-- Mobile Sticky Bottom Action Bar (as in product_deatils_mobile.jpeg) -->
+        <div class="mobile-bottom-action-bar d-md-none" id="mobile-bottom-action-bar">
+            <button type="button" class="btn-mobile-action btn-mobile-atc" onclick="addToCartAjax(event)">
+                Add to cart
+            </button>
+            <button type="button" class="btn-mobile-action btn-mobile-buy" onclick="buyNow()">
+                Buy now
+            </button>
+        </div>
 
         <!-- Product_Description_Tabs -->
         <section class="" id="tab-customer-reviews">
@@ -1801,26 +2106,26 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
     }
 
-    // Dynamic 2x2 Grid Rendering when switching color variants
+    // Dynamic Grid / Slider Rendering when switching color variants
     function renderProductGrid(imgs) {
         var gridEl = document.getElementById('product-grid-gallery');
         if (!gridEl) return;
 
         var count = imgs.length;
-        var slots = Math.min(4, count);
         var html = '';
 
-        for (var i = 0; i < slots; i++) {
+        for (var i = 0; i < count; i++) {
             var imgSrc = imgs[i];
             var isLastSlot = (i === 3);
             var showOverlay = (isLastSlot && count > 4);
             var remainingCount = count - 4;
+            var isOverflow = (i >= 4);
 
-            html += '<div class="product-grid-item" onclick="openLightbox(' + i + ')" id="grid-item-' + i + '">';
+            html += '<div class="product-grid-item ' + (isOverflow ? 'grid-overflow-item' : '') + '" onclick="openLightbox(' + i + ')" id="grid-item-' + i + '">';
             html += '  <img src="' + imgSrc + '" alt="Product Image ' + (i + 1) + '" id="grid-img-' + i + '" onerror="this.src=\'<?= base_url("assets/images/products/womens/women-1.jpg"); ?>\'">';
 
-            if (i === 1 || (slots === 1 && i === 0)) {
-                html += '  <div class="grid-floating-actions" onclick="event.stopPropagation();">';
+            if (i === 1 || (count === 1 && i === 0)) {
+                html += '  <div class="grid-floating-actions d-none d-md-flex" onclick="event.stopPropagation();">';
                 html += '    <button type="button" class="grid-action-btn wishlist-btn ' + (isProductInWishlist ? 'active' : '') + '" id="btn-grid-wishlist" onclick="toggleWishlist(' + productId + ', this)" title="Wishlist">';
                 html += '      <i class="' + (isProductInWishlist ? 'fa-solid' : 'fa-regular') + ' fa-heart"></i>';
                 html += '    </button>';
@@ -1831,7 +2136,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             }
 
             if (showOverlay) {
-                html += '  <div class="product-grid-overlay">';
+                html += '  <div class="product-grid-overlay d-none d-md-flex">';
                 html += '    <span class="overlay-text">+' + remainingCount + '</span>';
                 html += '  </div>';
             }
@@ -1840,6 +2145,8 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
 
         gridEl.innerHTML = html;
+        gridEl.scrollLeft = 0;
+        updateMobileSliderIndicator();
 
         var stickyImg = document.getElementById('sticky-bar-img');
         if (stickyImg && imgs.length > 0) {
@@ -1848,6 +2155,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
         var noteEl = document.getElementById('product-grid-counter-note');
         if (noteEl) {
+            var slots = Math.min(4, count);
             noteEl.innerHTML = '<i class="fa-regular fa-images me-1"></i> Showing ' + slots + ' of ' + count + ' photos. Click any photo to view full gallery.';
         }
     }
@@ -1874,6 +2182,51 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             counterEl.textContent = 'Image 1 of ' + imgs.length;
         }
     }
+
+    // Mobile Slider Indicator Sync (as in product_deatils_mobile.jpeg)
+    window.updateMobileSliderIndicator = function() {
+        var indicator = document.getElementById('mobile-slide-indicator');
+        var gallery = document.getElementById('product-grid-gallery');
+        if (!indicator || !gallery) return;
+
+        var count = galleryImages.length;
+        if (count <= 1) {
+            indicator.style.width = '100%';
+            indicator.style.transform = 'translateX(0%)';
+            return;
+        }
+
+        var segWidth = 100 / count;
+        indicator.style.width = segWidth + '%';
+
+        var maxScroll = gallery.scrollWidth - gallery.clientWidth;
+        if (maxScroll <= 0) {
+            indicator.style.transform = 'translateX(0%)';
+            return;
+        }
+
+        var progress = gallery.scrollLeft / maxScroll;
+        var maxTranslate = (count - 1) * 100;
+        indicator.style.transform = 'translateX(' + (progress * maxTranslate) + '%)';
+    };
+
+    // Mobile Native Share handler
+    window.handleMobileShare = function() {
+        if (navigator.share) {
+            navigator.share({
+                title: <?= json_encode($product['title']); ?>,
+                url: window.location.href
+            }).catch(function(err) {
+                if (err.name !== 'AbortError') {
+                    var m = bootstrap.Modal.getOrCreateInstance(document.getElementById('share_social'));
+                    m.show();
+                }
+            });
+        } else {
+            var m = bootstrap.Modal.getOrCreateInstance(document.getElementById('share_social'));
+            m.show();
+        }
+    };
 
     // Keyboard support for Lightbox
     document.addEventListener('keydown', function(e) {
@@ -1915,9 +2268,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     window.selectColor = function(colorName, cardEl) {
         selectedColor = colorName;
 
-        // Update label (uppercase as in color_badge.PNG)
+        // Update label (Capitalized as in product_deatils_mobile.jpeg)
         var label = document.getElementById('selected-color-name');
-        if (label) label.textContent = colorName.toUpperCase();
+        if (label) {
+            label.textContent = colorName.charAt(0).toUpperCase() + colorName.slice(1);
+        }
 
         // Update active class on cards
         var cards = document.querySelectorAll('.color-thumb-card');
@@ -1930,7 +2285,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             }
         }
 
-        // Swap images in 2x2 grid and Lightbox for this variant color
+        // Swap images in 2x2 grid / mobile slider and Lightbox for this variant color
         if (colorMap[colorName] && colorMap[colorName].images && colorMap[colorName].images.length > 0) {
             var colorImgs = colorMap[colorName].images.map(function(img) {
                 return (img.indexOf('://') !== -1) ? img : ("<?= base_url('assets/images/'); ?>" + img);
@@ -1943,11 +2298,12 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             renderLightboxStrip(galleryImages);
         } else if (colorMap[colorName] && colorMap[colorName].image) {
             var newImgSrc = "<?= base_url('assets/images/'); ?>" + colorMap[colorName].image;
-            galleryImages[0] = newImgSrc;
-            var gridImg0 = document.getElementById('grid-img-0');
-            if (gridImg0) gridImg0.src = newImgSrc;
-            var stickyImg = document.getElementById('sticky-bar-img');
-            if (stickyImg) stickyImg.src = newImgSrc;
+            galleryImages = [newImgSrc];
+            totalGallery = 1;
+            activeLightboxIdx = 0;
+
+            renderProductGrid(galleryImages);
+            renderLightboxStrip(galleryImages);
         }
 
         // Re-evaluate size chips for this color
@@ -2111,11 +2467,17 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         var qtyInput = document.getElementById('product-qty-input');
         var qty = parseInt(qtyInput ? qtyInput.value : '1', 10) || 1;
         var btn = document.getElementById('main-btn-atc');
+        var btnMobile = document.querySelector('.btn-mobile-atc');
         var originalHtml = btn ? btn.innerHTML : '';
+        var originalMobileText = btnMobile ? btnMobile.innerHTML : 'Add to cart';
 
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
+        }
+        if (btnMobile) {
+            btnMobile.disabled = true;
+            btnMobile.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
         }
 
         var payload = new URLSearchParams();
@@ -2138,6 +2500,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
+            }
+            if (btnMobile) {
+                btnMobile.disabled = false;
+                btnMobile.innerHTML = originalMobileText;
             }
 
             if (data.status === 'success' || data.success) {
@@ -2175,6 +2541,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
             }
+            if (btnMobile) {
+                btnMobile.disabled = false;
+                btnMobile.innerHTML = originalMobileText;
+            }
             console.error('Add to cart error:', err);
             // Open side modal as fallback
             if (typeof openSideCartModal === 'function') {
@@ -2185,12 +2555,20 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
     // 9. BUY IT NOW DIRECT CHECKOUT
     window.buyNow = function() {
-        var qty = parseInt(document.getElementById('product-qty-input').value) || 1;
+        var qty = parseInt(document.getElementById('product-qty-input')?.value || '1', 10) || 1;
         var payload = new URLSearchParams();
         payload.append('product_id', productId);
         payload.append('quantity', qty);
         if (selectedVariantId) {
             payload.append('variant_id', selectedVariantId);
+        }
+
+        var btnBuy = document.getElementById('btn-buy-now');
+        var btnMobileBuy = document.querySelector('.btn-mobile-buy');
+        if (btnBuy) btnBuy.disabled = true;
+        if (btnMobileBuy) {
+            btnMobileBuy.disabled = true;
+            btnMobileBuy.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Please wait...';
         }
 
         fetch('<?= site_url("cart/add"); ?>', {
@@ -2222,25 +2600,30 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         .then(function(res) { return res.json(); })
         .then(function(data) {
             if (data.status === 'success' || data.success) {
-                if (btnEl) {
-                    btnEl.classList.toggle('active');
-                    var icon = btnEl.querySelector('i');
-                    if (icon) {
-                        if (icon.classList.contains('fa-regular')) {
-                            icon.classList.remove('fa-regular');
-                            icon.classList.add('fa-solid');
-                        } else {
-                            icon.classList.remove('fa-solid');
-                            icon.classList.add('fa-regular');
+                isProductInWishlist = !isProductInWishlist;
+                // Sync all wishlist buttons across desktop and mobile
+                var allWishlistBtns = document.querySelectorAll('.wishlist-btn, #btn-grid-wishlist, #btn-mobile-wishlist, .box-icon.wishlist');
+                allWishlistBtns.forEach(function(b) {
+                    if (isProductInWishlist) {
+                        b.classList.add('active');
+                        var icon = b.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fa-solid fa-heart text-danger';
+                        }
+                    } else {
+                        b.classList.remove('active');
+                        var icon = b.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fa-regular fa-heart';
                         }
                     }
-                }
+                });
             } else if (data.redirect) {
                 window.location.href = data.redirect;
             }
         })
-        .catch(function() {
-            if (btnEl) btnEl.classList.toggle('active');
+        .catch(function(err) {
+            console.error('Wishlist toggle error:', err);
         });
     };
 
@@ -2317,7 +2700,17 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     updateSizeAvailability();
     syncCurrentVariant();
     updateColorSliderArrows();
-    window.addEventListener('resize', updateColorSliderArrows);
+    updateMobileSliderIndicator();
+
+    window.addEventListener('resize', function() {
+        updateColorSliderArrows();
+        updateMobileSliderIndicator();
+    });
+
+    var galleryEl = document.getElementById('product-grid-gallery');
+    if (galleryEl) {
+        galleryEl.addEventListener('scroll', updateMobileSliderIndicator, { passive: true });
+    }
 
     // Prevent duplicate listeners from theme scripts
     if (window.jQuery) {
