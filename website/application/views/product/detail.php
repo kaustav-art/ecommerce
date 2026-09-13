@@ -816,44 +816,13 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         color: #1e2022;
     }
 
-    /* In-page action buttons styled consistently on mobile when attached before tabs */
-    .product-action-buttons-wrap {
-        padding-bottom: 6px;
-    }
-    .product-action-buttons-wrap .btn-add-to-cart {
-        background: #ffffff !important;
-        border: 1.5px solid #d1d5db !important;
-        color: #1e2022 !important;
-        border-radius: 10px !important;
-        height: 48px !important;
-        padding: 0 12px !important;
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        text-transform: none !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: opacity 0.15s ease, transform 0.1s ease !important;
-    }
-    .product-action-buttons-wrap #btn-buy-now {
-        background: #ffc200 !important;
-        border: none !important;
-        color: #1e2022 !important;
-        border-radius: 10px !important;
-        height: 48px !important;
-        padding: 0 12px !important;
-        font-size: 15px !important;
-        font-weight: 700 !important;
-        text-transform: none !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: opacity 0.15s ease, transform 0.1s ease !important;
-    }
-    .product-action-buttons-wrap .btn-add-to-cart:active,
-    .product-action-buttons-wrap #btn-buy-now:active {
-        transform: scale(0.98);
-        opacity: 0.9;
+    /* In-page mobile attached action bar (exact same style as mobile bottom bar) */
+    .mobile-bottom-action-bar-attached {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 0 4px 0;
+        margin-top: 10px;
     }
 
     /* Mobile Responsive Tabs (Description, Reviews, Shipping, Policies) */
@@ -987,7 +956,8 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     .mobile-gallery-floating-actions,
     .mobile-gallery-rating-badge,
     .mobile-slider-indicator-container,
-    .mobile-bottom-action-bar {
+    .mobile-bottom-action-bar,
+    .mobile-bottom-action-bar-attached {
         display: none !important;
     }
     .flat-spacing {
@@ -1030,7 +1000,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                     <div class="row gx-5">
                         
                         <!-- LEFT COLUMN: 2x2 Grid Gallery (product_image_shown.PNG) -->
-                        <div class="col-md-7 mb-4 mb-md-0">
+                        <div class="col-md-7 mb-md-0">
                             <div class="tf-product-media-wrap sticky-top" style="top: 100px;">
                                 
                                 <div class="product-gallery-stage position-relative">
@@ -1467,14 +1437,24 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <!-- QUANTITY (Hidden input default = 1 for cart / checkout) -->
                                         <input type="hidden" id="product-qty-input" name="number" value="1">
 
-                                        <!-- ACTION BUTTONS (Side by Side) at end before description & review tabs -->
-                                        <div class="product-action-buttons-wrap d-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1" id="in-page-action-buttons">
+                                        <!-- DESKTOP ACTION BUTTONS (Side by Side) -->
+                                        <div class="product-action-buttons-wrap d-none d-md-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1">
                                             <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
                                                 <span>Add to cart</span>
                                             </button>
 
                                             <button type="button" class="btn-style-3 flex-grow-1 text-btn-uppercase fw-bold py-3" id="btn-buy-now" onclick="buyNow()" style="width: 50%; flex: 1 1 0; min-width: 0;">
-                                                Buy it now
+                                                Buy now
+                                            </button>
+                                        </div>
+
+                                        <!-- MOBILE ATTACHED ACTION BUTTONS (Exact same buttons, same style, and same text) -->
+                                        <div class="mobile-bottom-action-bar-attached d-md-none" id="in-page-action-buttons">
+                                            <button type="button" class="btn-mobile-action btn-mobile-atc" onclick="addToCartAjax(event)">
+                                                Add to cart
+                                            </button>
+                                            <button type="button" class="btn-mobile-action btn-mobile-buy" onclick="buyNow()">
+                                                Buy now
                                             </button>
                                         </div>
 
@@ -2622,19 +2602,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
         var qtyInput = document.getElementById('product-qty-input');
         var qty = parseInt(qtyInput ? qtyInput.value : '1', 10) || 1;
-        var btn = document.getElementById('main-btn-atc');
-        var btnMobile = document.querySelector('.btn-mobile-atc');
-        var originalHtml = btn ? btn.innerHTML : '';
-        var originalMobileText = btnMobile ? btnMobile.innerHTML : 'Add to cart';
-
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
-        }
-        if (btnMobile) {
-            btnMobile.disabled = true;
-            btnMobile.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
-        }
+        var allAtcBtns = document.querySelectorAll('#main-btn-atc, .btn-mobile-atc');
+        allAtcBtns.forEach(function(b) {
+            b.disabled = true;
+            b.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
+        });
 
         var payload = new URLSearchParams();
         payload.append('product_id', productId);
@@ -2653,14 +2625,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-            }
-            if (btnMobile) {
-                btnMobile.disabled = false;
-                btnMobile.innerHTML = originalMobileText;
-            }
+            allAtcBtns.forEach(function(b) {
+                b.disabled = false;
+                b.innerHTML = 'Add to cart';
+            });
 
             if (data.status === 'success' || data.success) {
                 // 1. Update cart count badges
@@ -2693,14 +2661,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             }
         })
         .catch(function(err) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-            }
-            if (btnMobile) {
-                btnMobile.disabled = false;
-                btnMobile.innerHTML = originalMobileText;
-            }
+            allAtcBtns.forEach(function(b) {
+                b.disabled = false;
+                b.innerHTML = 'Add to cart';
+            });
             console.error('Add to cart error:', err);
             // Open side modal as fallback
             if (typeof openSideCartModal === 'function') {
@@ -2719,13 +2683,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             payload.append('variant_id', selectedVariantId);
         }
 
-        var btnBuy = document.getElementById('btn-buy-now');
-        var btnMobileBuy = document.querySelector('.btn-mobile-buy');
-        if (btnBuy) btnBuy.disabled = true;
-        if (btnMobileBuy) {
-            btnMobileBuy.disabled = true;
-            btnMobileBuy.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Please wait...';
-        }
+        var allBuyBtns = document.querySelectorAll('#btn-buy-now, .btn-mobile-buy');
+        allBuyBtns.forEach(function(b) {
+            b.disabled = true;
+            b.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Please wait...';
+        });
 
         fetch('<?= site_url("cart/add"); ?>', {
             method: 'POST',
@@ -2867,7 +2829,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
             var rect = inPageBtns.getBoundingClientRect();
             var vh = window.innerHeight || document.documentElement.clientHeight;
             // When in-page action buttons reach or enter the viewport (attached before tabs)
-            if (rect.top <= vh) {
+            if (rect.bottom <= vh + 10 || rect.top <= vh - 40) {
                 mobileBar.classList.add('mobile-bar-hidden');
             } else {
                 mobileBar.classList.remove('mobile-bar-hidden');
