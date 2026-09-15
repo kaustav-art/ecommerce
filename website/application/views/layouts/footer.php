@@ -71,7 +71,7 @@
                     </div>
                 </div>
 
-                <div class="border-top border-secondary pt-3 mt-4 d-flex flex-wrap justify-content-between align-items-center text-white-50 small">
+                <div class="border-top border-secondary pt-3 mt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 gap-sm-0 text-white-50 small text-center text-sm-start">
                     <div>
                         © <?= date('Y'); ?> <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>. All Rights Reserved.
                     </div>

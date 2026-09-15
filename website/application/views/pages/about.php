@@ -10,12 +10,12 @@
             </div>
         </div>
 
-        <section class="py-5">
+        <section class="py-4 py-md-5">
             <div class="container">
-                <div class="row align-items-center mb-5">
+                <div class="row align-items-center mb-4 mb-md-5">
                     <div class="col-lg-6 mb-4 mb-lg-0">
                         <span class="text-uppercase text-primary fw-bold small">Our Mission & Story</span>
-                        <h2 class="display-6 fw-bold mb-3">Modern Multipurpose eCommerce Excellence</h2>
+                        <h2 class="fs-3 fs-md-2 fw-bold mb-3">Modern Multipurpose eCommerce Excellence</h2>
                         <p class="text-muted leading-relaxed mb-3">
                             <?= html_escape($site_name); ?> is built as a next-generation multipurpose eCommerce destination providing seamless shopping experiences across fashion, consumer tech, lifestyle, and home goods.
                         </p>

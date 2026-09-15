@@ -11,12 +11,12 @@
         </div>
 
         <!-- Order Tracking Section -->
-        <section class="py-5 bg-light">
+        <section class="py-4 py-md-5 bg-light">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-8">
-                        <div class="card border shadow-sm p-4 p-md-5 bg-white mb-4">
-                            <h3 class="fw-bold mb-2 text-center">Track Your Order</h3>
+                        <div class="card border shadow-sm p-3 p-md-5 bg-white mb-4">
+                            <h3 class="fw-bold mb-2 text-center fs-4 fs-md-3">Track Your Order</h3>
                             <p class="text-muted text-center small mb-4">Enter your Order ID (found in your receipt/confirmation) and Billing Email Address to track shipping and delivery status.</p>
 
                             <form action="<?= site_url('order/track'); ?>" method="GET" class="row g-3 justify-content-center mb-4">

@@ -12,11 +12,11 @@
         </div>
 
         <!-- Compare Section -->
-        <section class="py-5">
+        <section class="py-4 py-md-5">
             <div class="container">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-sm-center align-items-start flex-column flex-sm-row gap-3 mb-4">
                     <div>
-                        <h3 class="fw-bold mb-1">Product Comparison</h3>
+                        <h3 class="fw-bold mb-1 fs-4 fs-md-3">Product Comparison</h3>
                         <p class="text-muted small mb-0">Compare specifications, prices, and features side by side.</p>
                     </div>
                     <?php if (!empty($products)): ?>

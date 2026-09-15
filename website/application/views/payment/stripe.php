@@ -1,9 +1,9 @@
         <!-- Stripe Payment Screen -->
-        <section class="py-5 bg-light">
+        <section class="py-4 py-md-5 bg-light min-vh-100">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-md-6">
-                        <div class="card border shadow-sm p-4">
+                        <div class="card border shadow-sm p-3 p-md-4">
                             <div class="text-center mb-4">
                                 <span class="badge bg-primary fs-6 px-3 py-2 mb-2">
                                     <i class="fa-solid fa-shield-halved me-1"></i> Stripe Secure Checkout

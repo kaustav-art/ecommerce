@@ -34,30 +34,30 @@
                             <?php if (!empty($wishlist)): ?>
                                 <div class="row g-3">
                                     <?php foreach ($wishlist as $item): ?>
-                                        <div class="col-md-4 col-sm-6 col-12">
+                                        <div class="col-6 col-md-4">
                                             <div class="card border rounded-1 p-2 h-100 position-relative shadow-none" style="border-color: #e0e0e0 !important;">
-                                                <a href="<?= site_url('wishlist/toggle/' . $item['id']); ?>" class="position-absolute top-0 end-0 m-2 text-danger bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Remove from wishlist">
-                                                    <i class="fa-solid fa-heart text-danger"></i>
+                                                <a href="<?= site_url('wishlist/toggle/' . $item['id']); ?>" class="position-absolute top-0 end-0 m-1 m-sm-2 text-danger bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; z-index: 2;" title="Remove from wishlist">
+                                                    <i class="fa-solid fa-heart text-danger small"></i>
                                                 </a>
-                                                <a href="<?= site_url('product/' . $item['slug']); ?>" class="text-center d-block mb-2">
-                                                    <img src="<?= base_url('assets/images/' . $item['main_image']); ?>" alt="<?= html_escape($item['title']); ?>" class="img-fluid rounded-1" style="height: 180px; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
+                                                <a href="<?= site_url('product/' . $item['slug']); ?>" class="text-center d-block mb-2 overflow-hidden" style="height: 150px;">
+                                                    <img src="<?= base_url('assets/images/' . $item['main_image']); ?>" alt="<?= html_escape($item['title']); ?>" class="img-fluid rounded-1 w-100 h-100 object-fit-contain" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                                                 </a>
-                                                <div class="p-2">
-                                                    <a href="<?= site_url('product/' . $item['slug']); ?>" class="text-dark fw-bold text-decoration-none d-block mb-1 text-truncate" style="font-size: 14px;">
+                                                <div class="p-1 p-sm-2 d-flex flex-column flex-grow-1">
+                                                    <a href="<?= site_url('product/' . $item['slug']); ?>" class="text-dark fw-bold text-decoration-none d-block mb-1 text-truncate" style="font-size: 13px;" title="<?= html_escape($item['title']); ?>">
                                                         <?= html_escape($item['title']); ?>
                                                     </a>
-                                                    <div class="fw-bold text-dark mb-2" style="font-size: 15px;">
+                                                    <div class="fw-bold text-dark mb-2" style="font-size: 14px;">
                                                         <?php if (!empty($item['sale_price'])): ?>
                                                             <span class="text-dark"><?= $currency_symbol . number_format($item['sale_price'], 2); ?></span>
-                                                            <span class="text-muted text-decoration-line-through small ms-1"><?= $currency_symbol . number_format($item['price'], 2); ?></span>
+                                                            <span class="text-muted text-decoration-line-through small ms-1" style="font-size: 11px;"><?= $currency_symbol . number_format($item['price'], 2); ?></span>
                                                         <?php else: ?>
                                                             <span><?= $currency_symbol . number_format($item['price'], 2); ?></span>
                                                         <?php endif; ?>
                                                     </div>
-                                                    <form action="<?= site_url('cart/add'); ?>" method="POST">
+                                                    <form action="<?= site_url('cart/add'); ?>" method="POST" class="mt-auto">
                                                         <input type="hidden" name="product_id" value="<?= $item['id']; ?>">
                                                         <input type="hidden" name="quantity" value="1">
-                                                        <button type="submit" class="btn btn-primary btn-sm w-100 rounded-1 fw-semibold" style="background-color: #2874f0; border-color: #2874f0; height: 36px; font-size: 13px;">
+                                                        <button type="submit" class="btn btn-primary btn-sm w-100 rounded-1 fw-semibold py-1" style="background-color: #2874f0; border-color: #2874f0; min-height: 34px; font-size: 12px;">
                                                             Add To Cart
                                                         </button>
                                                     </form>

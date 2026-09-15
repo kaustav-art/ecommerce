@@ -10,12 +10,12 @@
             </div>
         </div>
 
-        <section class="py-5">
+        <section class="py-4 py-md-5">
             <div class="container">
-                <div class="row gx-5">
-                    <div class="col-lg-5 mb-5 mb-lg-0">
+                <div class="row gx-lg-5">
+                    <div class="col-lg-5 mb-4 mb-lg-0">
                         <span class="text-uppercase text-primary fw-bold small">Get In Touch</span>
-                        <h3 class="fw-bold mb-3">We'd Love to Hear From You</h3>
+                        <h3 class="fw-bold mb-3 fs-4 fs-md-3">We'd Love to Hear From You</h3>
                         <p class="text-muted mb-4">Have questions about an order, our products, or payment options? Reach out and our support staff will assist you promptly.</p>
 
                         <div class="d-flex align-items-start gap-3 mb-3">
@@ -44,8 +44,8 @@
                     </div>
 
                     <div class="col-lg-7">
-                        <div class="card border p-4 p-md-5 bg-white shadow-sm">
-                            <h4 class="fw-bold mb-3">Send a Message</h4>
+                        <div class="card border p-3 p-md-5 bg-white shadow-sm rounded-3">
+                            <h4 class="fw-bold mb-3 fs-5 fs-md-4">Send a Message</h4>
                             <form action="<?= site_url('contact'); ?>" method="POST">
                                 <div class="row g-3">
                                     <div class="col-md-6">

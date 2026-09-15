@@ -1,9 +1,9 @@
         <!-- Payment Failure Section -->
-        <section class="py-5 bg-light">
+        <section class="py-4 py-md-5 bg-light min-vh-100">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-6">
-                        <div class="card border-0 shadow-sm p-4 p-md-5 bg-white text-center">
+                        <div class="card border-0 shadow-sm p-3 p-md-5 bg-white text-center">
                             <div class="mb-3 text-danger">
                                 <i class="fa-solid fa-circle-xmark fs-1"></i>
                             </div>

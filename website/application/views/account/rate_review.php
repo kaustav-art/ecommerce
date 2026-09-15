@@ -54,9 +54,9 @@
                 <!-- Main Form Card (Matching rate_review_form.PNG) -->
                 <div class="card border rounded-1 bg-white shadow-none overflow-hidden" style="border-color: #e0e0e0 !important;">
                     <div class="row g-0">
-                        <!-- Left Guidelines Column -->
-                        <div class="col-lg-3 col-md-4 col-12 border-end p-4 bg-white">
-                            <h6 class="fw-bold text-dark mb-4" style="font-size: 14px;">What makes a good review</h6>
+                        <!-- Left Guidelines Column (order-2 on mobile, order-md-1 on desktop) -->
+                        <div class="col-lg-3 col-md-4 col-12 border-end order-2 order-md-1 p-3 p-md-4 bg-white">
+                            <h6 class="fw-bold text-dark mb-3 mb-md-4" style="font-size: 14px;">What makes a good review</h6>
 
                             <div class="mb-3">
                                 <div class="fw-bold text-dark mb-1" style="font-size: 13px;">Have you used this product?</div>
@@ -82,8 +82,8 @@
                             </div>
                         </div>
 
-                        <!-- Right Form Column -->
-                        <div class="col-lg-9 col-md-8 col-12 p-4 bg-white">
+                        <!-- Right Form Column (order-1 on mobile, order-md-2 on desktop) -->
+                        <div class="col-lg-9 col-md-8 col-12 order-1 order-md-2 p-3 p-md-4 bg-white border-bottom border-bottom-md-0">
                             <form action="<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $item['product_id']); ?>" method="POST" enctype="multipart/form-data" id="rate-review-form">
                                 <input type="hidden" name="<?= $csrf_name; ?>" value="<?= $csrf_hash; ?>">
 
@@ -146,9 +146,9 @@
                                     </div>
                                 </div>
 
-                                <!-- Orange Submit Button at Bottom Right -->
+                                <!-- Orange Submit Button at Bottom Right (Full-width on mobile) -->
                                 <div class="d-flex justify-content-end mt-4 pt-2">
-                                    <button type="submit" class="btn text-white fw-bold px-5 py-2 rounded-1 text-uppercase" style="background-color: #fb641b; border-color: #fb641b; font-size: 15px; letter-spacing: 0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                                    <button type="submit" class="btn text-white fw-bold px-5 py-2 w-100 w-sm-auto rounded-1 text-uppercase" style="background-color: #fb641b; border-color: #fb641b; font-size: 15px; letter-spacing: 0.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); min-height: 46px;">
                                         SUBMIT
                                     </button>
                                 </div>
@@ -163,8 +163,12 @@
         <style>
         .fk-orders-container {
             max-width: 1680px;
-            min-width: 978px;
             margin: 0 auto;
+        }
+        @media (min-width: 992px) {
+            .fk-orders-container {
+                min-width: 978px;
+            }
         }
         @media (max-width: 991px) {
             .fk-orders-container {

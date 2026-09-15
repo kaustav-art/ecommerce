@@ -10,9 +10,9 @@
             </div>
         </div>
 
-        <section class="py-5">
+        <section class="py-4 py-md-5">
             <div class="container" style="max-width: 860px;">
-                <h2 class="fw-bold mb-4">Terms & Conditions</h2>
+                <h2 class="fw-bold mb-3 fs-3 fs-md-2">Terms & Conditions</h2>
                 <div class="text-muted mb-4 small">Last Updated: <?= date('F d, Y'); ?></div>
 
                 <div class="content lh-lg text-secondary">

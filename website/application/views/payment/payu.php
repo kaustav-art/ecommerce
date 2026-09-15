@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redirecting to PayU...</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
-        .box { max-width: 500px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; }
+        body { font-family: sans-serif; text-align: center; padding: 30px 15px; background: #f8f9fa; margin: 0; }
+        .box { max-width: 500px; width: 100%; margin: 0 auto; background: #fff; padding: 25px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .spinner { margin: 20px auto; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>

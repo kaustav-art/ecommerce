@@ -400,7 +400,7 @@
                         </div>
 
                         <!-- 3. Items in this Shipment Card (Shipped Together) -->
-                        <div class="card border rounded-1 bg-white shadow-none mb-3 p-4" style="border-color: #e0e0e0 !important;">
+                        <div class="card border rounded-1 bg-white shadow-none mb-3 p-3 p-md-4" style="border-color: #e0e0e0 !important;">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h6 class="fw-bold text-dark mb-0" style="font-size: 15px;">
                                     <i class="fa-solid fa-boxes-packing text-primary me-2"></i> Items in this Shipment (<?= count($items); ?>)
@@ -664,8 +664,12 @@
         <style>
         .fk-orders-container {
             max-width: 1680px;
-            min-width: 978px;
             margin: 0 auto;
+        }
+        @media (min-width: 992px) {
+            .fk-orders-container {
+                min-width: 978px;
+            }
         }
         @media (max-width: 991px) {
             .fk-orders-container {

@@ -76,16 +76,16 @@
                             $disp_phone = !empty($active_address['phone']) ? $active_address['phone'] : ($current_user['phone'] ?? '');
                         ?>
                         <div class="card border rounded-3 p-3 mb-4 bg-white shadow-sm tf-delivery-address-card">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-circle bg-light p-2 text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <div class="d-flex align-items-sm-center justify-content-between flex-column flex-sm-row gap-3">
+                                <div class="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                                    <div class="rounded-circle bg-light p-2 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                                         <i class="fa-solid fa-location-dot fs-5"></i>
                                     </div>
-                                    <div>
+                                    <div class="flex-grow-1 min-w-0">
                                         <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                             <span class="text-muted small">Deliver to:</span>
                                             <?php if (!empty($is_logged_in)): ?>
-                                                <strong class="text-dark" id="display-address-name"><?= html_escape($disp_name ?: 'Select Address'); ?><?= $disp_pin ? ', ' . html_escape($disp_pin) : ''; ?></strong>
+                                                <strong class="text-dark text-truncate" id="display-address-name"><?= html_escape($disp_name ?: 'Select Address'); ?><?= $disp_pin ? ', ' . html_escape($disp_pin) : ''; ?></strong>
                                                 <?php if ($disp_name): ?>
                                                     <span class="badge bg-light text-secondary border text-uppercase" id="display-address-tag" style="font-size: 11px;"><?= html_escape($disp_tag); ?></span>
                                                 <?php else: ?>
@@ -95,7 +95,7 @@
                                                 <strong class="text-dark" id="display-address-name">Sign In to Select Address</strong>
                                             <?php endif; ?>
                                         </div>
-                                        <div class="text-secondary small text-line-clamp-1" id="display-address-full">
+                                        <div class="text-secondary small text-truncate" id="display-address-full">
                                             <?= !empty($is_logged_in) ? html_escape($disp_addr ?: 'Choose or add your shipping address') : 'Please sign in or register to set your delivery address'; ?>
                                         </div>
                                         <div class="text-secondary small mt-1" id="display-address-phone-wrap" style="<?= empty($disp_phone) ? 'display: none;' : ''; ?>">
@@ -103,8 +103,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold" onclick="openAddressModal()">
+                                <div class="text-end text-sm-start flex-shrink-0">
+                                    <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold w-100 w-sm-auto" onclick="openAddressModal()">
                                         <?= !empty($is_logged_in) ? 'Change' : 'Sign In'; ?>
                                     </button>
                                 </div>

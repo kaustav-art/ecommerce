@@ -33,13 +33,13 @@
                                 <div class="list-group">
                                     <?php foreach ($notifications as $notif): ?>
                                         <div class="list-group-item list-group-item-action p-3 mb-2 border rounded-1 shadow-none <?= empty($notif['is_read']) ? 'bg-light' : ''; ?>" style="border-color: #e0e0e0 !important;">
-                                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fa-solid fa-bell text-primary me-2"></i>
+                                            <div class="d-flex w-100 justify-content-between align-items-start flex-column flex-sm-row gap-1 mb-2">
+                                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                                    <i class="fa-solid fa-bell text-primary"></i>
                                                     <strong class="text-dark" style="font-size: 14px;"><?= html_escape($notif['title']); ?></strong>
-                                                    <span class="badge bg-light text-muted ms-2 text-uppercase" style="font-size: 10px;"><?= html_escape($notif['type']); ?></span>
+                                                    <span class="badge bg-light text-muted border text-uppercase" style="font-size: 10px;"><?= html_escape($notif['type']); ?></span>
                                                 </div>
-                                                <small class="text-muted"><?= date('M d, Y h:i A', strtotime($notif['created_at'])); ?></small>
+                                                <small class="text-muted" style="font-size: 11px;"><?= date('M d, Y h:i A', strtotime($notif['created_at'])); ?></small>
                                             </div>
                                             <p class="mb-2 text-secondary small"><?= nl2br(html_escape($notif['message'])); ?></p>
                                             <?php if (!empty($notif['link'])): ?>

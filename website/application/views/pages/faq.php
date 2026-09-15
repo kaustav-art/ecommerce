@@ -10,10 +10,10 @@
             </div>
         </div>
 
-        <section class="py-5">
+        <section class="py-4 py-md-5">
             <div class="container">
-                <div class="text-center max-w-700 mx-auto mb-5">
-                    <h2 class="fw-bold mb-2">Frequently Asked Questions</h2>
+                <div class="text-center max-w-700 mx-auto mb-4 mb-md-5">
+                    <h2 class="fw-bold mb-2 fs-3 fs-md-2">Frequently Asked Questions</h2>
                     <p class="text-muted">Find quick answers to common questions regarding ordering, payment processing, shipping times, and returns.</p>
                 </div>
 

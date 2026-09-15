@@ -53,7 +53,7 @@
                                 </div>
 
                                 <!-- Use my current location Button -->
-                                <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 mb-3 px-4 py-2 fw-semibold rounded-1" id="btn-current-location" onclick="useCurrentLocation()" style="background-color: #2874f0; border-color: #2874f0; font-size: 14px; width: fit-content;">
+                                <button type="button" class="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2 mb-3 px-4 py-2 fw-semibold rounded-1 w-100 w-sm-auto" id="btn-current-location" onclick="useCurrentLocation()" style="background-color: #2874f0; border-color: #2874f0; font-size: 14px;">
                                     <i class="fa-solid fa-location-crosshairs"></i>
                                     <span id="loc-btn-text">Use my current location</span>
                                 </button>
@@ -148,11 +148,11 @@
                                         </div>
 
                                         <!-- Form Action Buttons -->
-                                        <div class="col-12 mt-4 d-flex align-items-center gap-3">
-                                            <button type="submit" class="btn btn-primary text-uppercase fw-bold px-5 py-2 rounded-1 shadow-sm" style="background-color: #2874f0; border-color: #2874f0; height: 46px; letter-spacing: 0.5px;">
+                                        <div class="col-12 mt-4 d-flex align-items-center gap-2 gap-sm-3 flex-wrap">
+                                            <button type="submit" class="btn btn-primary text-uppercase fw-bold px-4 px-sm-5 py-2 rounded-1 shadow-sm flex-grow-1 flex-sm-grow-0" style="background-color: #2874f0; border-color: #2874f0; height: 46px; letter-spacing: 0.5px;">
                                                 SAVE
                                             </button>
-                                            <button type="button" class="btn btn-link text-primary text-uppercase fw-bold text-decoration-none px-3" onclick="closeAddressForm()" style="letter-spacing: 0.5px; height: 46px;">
+                                            <button type="button" class="btn btn-outline-secondary text-uppercase fw-bold px-4 py-2 rounded-1" onclick="closeAddressForm()" style="letter-spacing: 0.5px; height: 46px;">
                                                 CANCEL
                                             </button>
                                         </div>

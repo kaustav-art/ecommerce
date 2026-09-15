@@ -1,9 +1,9 @@
         <!-- Customer Register -->
-        <section class="py-5 bg-light">
+        <section class="py-4 py-md-5 bg-light min-vh-100">
             <div class="container">
                 <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="card border-0 shadow-sm p-4 p-md-5 bg-white">
+                    <div class="col-md-7 col-lg-6">
+                        <div class="card border-0 shadow-sm p-3 p-md-5 bg-white rounded-3">
                             <h3 class="fw-bold mb-2 text-center">Create an Account</h3>
                             <p class="text-muted text-center small mb-4">Join <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'us')); ?> for personalized shopping & fast checkout</p>
 
@@ -19,12 +19,12 @@
                             </div>
 
                             <form action="<?= site_url('auth/register'); ?>" method="POST">
-                                <div class="row g-3 mb-3">
-                                    <div class="col-6">
+                                <div class="row g-2 g-sm-3 mb-3">
+                                    <div class="col-12 col-sm-6">
                                         <label class="form-label small fw-bold">First Name <span class="text-danger">*</span></label>
                                         <input type="text" name="first_name" class="form-control" required placeholder="John">
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-12 col-sm-6">
                                         <label class="form-label small fw-bold">Last Name <span class="text-danger">*</span></label>
                                         <input type="text" name="last_name" class="form-control" required placeholder="Doe">
                                     </div>

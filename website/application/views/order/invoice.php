@@ -40,6 +40,15 @@
             letter-spacing: 0.5px;
             font-weight: 700;
         }
+        @media (max-width: 767px) {
+            .invoice-card {
+                padding: 18px;
+                margin: 15px auto;
+            }
+            .invoice-title {
+                font-size: 22px;
+            }
+        }
         @media print {
             body {
                 background: #fff;
@@ -72,14 +81,14 @@
 
     <div class="invoice-card">
         <!-- Invoice Header -->
-        <div class="invoice-header d-flex justify-content-between align-items-start">
+        <div class="invoice-header d-flex justify-content-between align-items-start flex-column flex-sm-row gap-3">
             <div>
-                <h3 class="fw-bold text-dark mb-1"><?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?></h3>
+                <h3 class="fw-bold text-dark mb-1 fs-4 fs-md-3"><?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?></h3>
                 <p class="text-muted small mb-0"><?= html_escape($store_settings['site_address'] ?? '123 Commerce St'); ?></p>
                 <p class="text-muted small mb-0">Phone: <?= html_escape($store_settings['site_phone'] ?? '+1 800 555-0199'); ?></p>
                 <p class="text-muted small mb-0">Email: <?= html_escape($store_settings['site_email'] ?? 'support@example.com'); ?></p>
             </div>
-            <div class="text-end">
+            <div class="text-start text-sm-end">
                 <div class="invoice-title">INVOICE</div>
                 <div class="fw-bold text-primary fs-6">#<?= html_escape($order['order_number']); ?></div>
                 <div class="text-muted small mt-1">Date: <?= date('F d, Y', strtotime($order['created_at'])); ?></div>
@@ -95,15 +104,15 @@
         </div>
 
         <!-- Bill To / Ship To -->
-        <div class="row mb-4">
-            <div class="col-6">
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-sm-6">
                 <h6 class="text-uppercase text-muted fw-bold small mb-2">Billed To:</h6>
                 <h6 class="fw-bold mb-1"><?= html_escape($order['customer_name']); ?></h6>
                 <div class="text-muted small"><?= nl2br(html_escape($order['billing_address'])); ?></div>
                 <div class="text-muted small mt-1"><i class="fa-solid fa-envelope me-1"></i> <?= html_escape($order['customer_email']); ?></div>
                 <div class="text-muted small"><i class="fa-solid fa-phone me-1"></i> <?= html_escape($order['customer_phone']); ?></div>
             </div>
-            <div class="col-6 text-end">
+            <div class="col-12 col-sm-6 text-start text-sm-end">
                 <h6 class="text-uppercase text-muted fw-bold small mb-2">Payment Details:</h6>
                 <p class="mb-1 small"><strong>Method:</strong> <?= strtoupper($order['payment_method']); ?></p>
                 <?php if (!empty($order['payment_transaction_id'])): ?>
@@ -149,8 +158,8 @@
         </div>
 
         <!-- Totals Calculation -->
-        <div class="row">
-            <div class="col-6">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6">
                 <?php if (!empty($order['notes'])): ?>
                     <div class="p-3 bg-light rounded border">
                         <h6 class="small fw-bold mb-1">Customer Order Notes:</h6>
@@ -158,7 +167,7 @@
                     </div>
                 <?php endif; ?>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-sm-6">
                 <table class="table table-sm table-borderless">
                     <tr>
                         <td class="text-muted text-end">Subtotal:</td>

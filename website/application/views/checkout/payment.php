@@ -31,32 +31,32 @@
                 ?>
 
                 <!-- Top Horizontal Stepper (Black Color) -->
-                <div class="card border rounded-2 shadow-sm bg-white mb-3 py-3 px-4">
-                    <div class="d-flex align-items-center justify-content-center gap-3 gap-md-5">
+                <div class="card border rounded-2 shadow-sm bg-white mb-3 py-2 py-md-3 px-2 px-md-4">
+                    <div class="d-flex align-items-center justify-content-center gap-1 gap-sm-3 gap-md-5">
                         <!-- Step 1: Address (Completed) -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold" id="top-stepper-1" style="width: 26px; height: 26px; font-size: 13px; background-color: #000 !important;">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-1" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
                                 <i class="fa-solid fa-check"></i>
                             </span>
-                            <span class="small fw-semibold text-dark" id="top-stepper-text-1">Address</span>
+                            <span class="small fw-semibold text-dark" id="top-stepper-text-1" style="font-size: 12px;">Address</span>
                         </div>
-                        <div style="height: 2px; width: 50px; background-color: #000;"></div>
+                        <div style="height: 2px; min-width: 12px; max-width: 45px; flex: 1; background-color: #000;"></div>
 
                         <!-- Step 2: Order Summary (Completed) -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold" id="top-stepper-2" style="width: 26px; height: 26px; font-size: 13px; background-color: #000 !important;">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-2" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
                                 <i class="fa-solid fa-check"></i>
                             </span>
-                            <span class="small fw-bold text-dark" id="top-stepper-text-2">Order Summary</span>
+                            <span class="small fw-bold text-dark" id="top-stepper-text-2" style="font-size: 12px;">Order Summary</span>
                         </div>
-                        <div style="height: 2px; width: 50px; background-color: #000;"></div>
+                        <div style="height: 2px; min-width: 12px; max-width: 45px; flex: 1; background-color: #000;"></div>
 
                         <!-- Step 3: Payment (Active) -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold" id="top-stepper-3" style="width: 26px; height: 26px; font-size: 13px; background-color: #000 !important;">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-3" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
                                 3
                             </span>
-                            <span class="small fw-bold text-dark" id="top-stepper-text-3">Payment</span>
+                            <span class="small fw-bold text-dark" id="top-stepper-text-3" style="font-size: 12px;">Payment</span>
                         </div>
                     </div>
                 </div>
@@ -68,8 +68,8 @@
 
                             <!-- Order Summary -->
                             <div class="card border rounded-2 shadow-sm bg-white">
-                                <div class="card-header bg-white py-3 px-4 border-0 d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center gap-3">
+                                <div class="card-header bg-white py-3 px-3 px-md-4 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2 gap-sm-3">
                                         <span class="badge rounded-1 bg-light text-dark border px-2 py-1 fw-bold">
                                             <i class="fa-solid fa-check"></i>
                                         </span>

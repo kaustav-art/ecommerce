@@ -17,77 +17,86 @@
             <div class="fk-orders-container px-3">
                 <div class="row g-3">
                     <!-- Left Filters Sidebar (Matching new_order_page.PNG) -->
-                    <div class="col-lg-3 col-md-3 col-12" style="max-width: 270px;">
-                        <div class="card border rounded-1 shadow-sm bg-white p-3" style="border-color: #e0e0e0 !important;">
-                            <h5 class="fw-bold mb-3 text-dark" style="font-size: 16px;">Filters</h5>
+                    <div class="col-lg-3 col-md-4 col-12 fk-filter-sidebar-col">
+                        <!-- Mobile Filter Toggle Button (Screens < 768px) -->
+                        <button class="btn btn-white border w-100 d-md-none mb-2 d-flex align-items-center justify-content-between py-2 px-3 bg-white shadow-sm rounded-1" type="button" data-bs-toggle="collapse" data-bs-target="#orderFilterCollapse" aria-expanded="false" style="border-color: #e0e0e0 !important;">
+                            <span class="fw-semibold text-dark"><i class="fa-solid fa-sliders text-primary me-2"></i>Filter Orders</span>
+                            <i class="fa-solid fa-chevron-down text-muted small"></i>
+                        </button>
 
-                            <!-- ORDER STATUS -->
-                            <div class="filter-section mb-3">
-                                <div class="fw-bold text-uppercase text-dark mb-2" style="font-size: 12px; letter-spacing: 0.3px;">
-                                    ORDER STATUS
-                                </div>
-                                <div class="d-flex flex-column gap-2">
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="on_the_way" onchange="filterOrders()">
-                                        <span>On the way</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="delivered" onchange="filterOrders()">
-                                        <span>Delivered</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="cancelled" onchange="filterOrders()">
-                                        <span>Cancelled</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="returned" onchange="filterOrders()">
-                                        <span>Returned</span>
-                                    </label>
-                                </div>
-                            </div>
+                        <div class="collapse d-md-block" id="orderFilterCollapse">
+                            <div class="card border rounded-1 shadow-sm bg-white p-3 mb-3 mb-md-0" style="border-color: #e0e0e0 !important;">
+                                <h5 class="fw-bold mb-3 text-dark" style="font-size: 16px;">Filters</h5>
 
-                            <hr class="my-3" style="border-color: #f0f0f0;">
-
-                            <!-- ORDER TIME -->
-                            <div class="filter-section">
-                                <div class="fw-bold text-uppercase text-dark mb-2" style="font-size: 12px; letter-spacing: 0.3px;">
-                                    ORDER TIME
+                                <!-- ORDER STATUS -->
+                                <div class="filter-section mb-3">
+                                    <div class="fw-bold text-uppercase text-dark mb-2" style="font-size: 12px; letter-spacing: 0.3px;">
+                                        ORDER STATUS
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="on_the_way" onchange="filterOrders()">
+                                            <span>On the way</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="delivered" onchange="filterOrders()">
+                                            <span>Delivered</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="cancelled" onchange="filterOrders()">
+                                            <span>Cancelled</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-status form-check-input mt-0 rounded-0" value="returned" onchange="filterOrders()">
+                                            <span>Returned</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div class="d-flex flex-column gap-2">
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="last_30" onchange="filterOrders()">
-                                        <span>Last 30 days</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2026" onchange="filterOrders()">
-                                        <span>2026</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2025" onchange="filterOrders()">
-                                        <span>2025</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2024" onchange="filterOrders()">
-                                        <span>2024</span>
-                                    </label>
-                                    <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
-                                        <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="older" onchange="filterOrders()">
-                                        <span>Older</span>
-                                    </label>
+
+                                <hr class="my-3" style="border-color: #f0f0f0;">
+
+                                <!-- ORDER TIME -->
+                                <div class="filter-section">
+                                    <div class="fw-bold text-uppercase text-dark mb-2" style="font-size: 12px; letter-spacing: 0.3px;">
+                                        ORDER TIME
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="last_30" onchange="filterOrders()">
+                                            <span>Last 30 days</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2026" onchange="filterOrders()">
+                                            <span>2026</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2025" onchange="filterOrders()">
+                                            <span>2025</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="2024" onchange="filterOrders()">
+                                            <span>2024</span>
+                                        </label>
+                                        <label class="d-flex align-items-center gap-2 mb-0" style="cursor: pointer; font-size: 13px;">
+                                            <input type="checkbox" class="fk-filter-time form-check-input mt-0 rounded-0" value="older" onchange="filterOrders()">
+                                            <span>Older</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Right Orders Content (Matching new_order_page.PNG) -->
-                    <div class="col-lg-9 col-md-9 col-12" style="flex: 1;">
+                    <div class="col-lg-9 col-md-8 col-12" style="flex: 1;">
                         <!-- Search Bar matching new_order_page.PNG -->
                         <div class="card border rounded-1 shadow-none p-0 mb-3 bg-white" style="border-color: #e0e0e0 !important;">
                             <div class="d-flex align-items-center">
                                 <input type="text" id="order-search-input" class="form-control border-0 shadow-none px-3" placeholder="Search your orders here" style="font-size: 14px; height: 44px;">
-                                <button type="button" class="btn btn-primary px-4 fw-semibold rounded-0 rounded-end d-flex align-items-center gap-2 flex-shrink-0" onclick="filterOrders()" style="background-color: #2874f0; border-color: #2874f0; height: 44px; font-size: 14px;">
+                                <button type="button" class="btn btn-primary px-3 px-sm-4 fw-semibold rounded-0 rounded-end d-flex align-items-center gap-2 flex-shrink-0" onclick="filterOrders()" style="background-color: #2874f0; border-color: #2874f0; height: 44px; font-size: 14px;">
                                     <i class="fa-solid fa-magnifying-glass"></i>
-                                    <span>Search Orders</span>
+                                    <span class="d-none d-sm-inline">Search Orders</span>
+                                    <span class="d-sm-none">Search</span>
                                 </button>
                             </div>
                         </div>
@@ -204,35 +213,37 @@
                                                 <?php endif; ?>
 
                                                 <div class="row align-items-center g-3">
-                                                    <!-- Product Thumbnail (Col 1) -->
-                                                    <div class="col-auto">
-                                                        <a href="<?= $order_url; ?>">
-                                                            <img src="<?= $img_src; ?>" alt="<?= html_escape($item['product_title']); ?>" class="border rounded-1" style="width: 75px; height: 75px; object-fit: contain; background-color: #fafafa;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
+                                                    <!-- Product Thumbnail + Info (Side-by-side on mobile, 2 cols on desktop) -->
+                                                    <div class="col-12 col-md-6 d-flex align-items-start gap-3">
+                                                        <a href="<?= $order_url; ?>" class="flex-shrink-0">
+                                                            <img src="<?= $img_src; ?>" alt="<?= html_escape($item['product_title']); ?>" class="border rounded-1" style="width: 70px; height: 70px; object-fit: contain; background-color: #fafafa;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                                                         </a>
+                                                        <div class="flex-grow-1" style="min-width: 0;">
+                                                            <a href="<?= $order_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title text-line-clamp-2" style="font-size: 14px; line-height: 1.4;">
+                                                                <?= html_escape($item['product_title']); ?>
+                                                            </a>
+                                                            <?php if (!empty($variant_str)): ?>
+                                                                <div class="text-muted small" style="font-size: 12px; color: #878787 !important;"><?= html_escape($variant_str); ?></div>
+                                                            <?php endif; ?>
+                                                            <?php if ((int)($item['quantity'] ?? 1) > 1): ?>
+                                                                <div class="text-muted small">Qty: <?= (int)$item['quantity']; ?></div>
+                                                            <?php endif; ?>
+                                                            <!-- Price shown under title on mobile only -->
+                                                            <div class="fw-bold text-dark d-md-none mt-1" style="font-size: 14px;">
+                                                                <?= $currency_symbol . number_format($item['price'], 0); ?>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
-                                                    <!-- Product Name & Color/Size (Col 2) -->
-                                                    <div class="col-md-5 col-12">
-                                                        <a href="<?= $order_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title" style="font-size: 14px; line-height: 1.4;">
-                                                            <?= html_escape($item['product_title']); ?>
-                                                        </a>
-                                                        <?php if (!empty($variant_str)): ?>
-                                                            <div class="text-muted" style="font-size: 12px; color: #878787 !important;"><?= html_escape($variant_str); ?></div>
-                                                        <?php endif; ?>
-                                                        <?php if ((int)($item['quantity'] ?? 1) > 1): ?>
-                                                            <div class="text-muted small">Qty: <?= (int)$item['quantity']; ?></div>
-                                                        <?php endif; ?>
-                                                    </div>
-
-                                                    <!-- Price (Col 3) -->
-                                                    <div class="col-md-2 col-4 text-start text-md-center">
+                                                    <!-- Desktop Price (Col 2) -->
+                                                    <div class="col-md-2 d-none d-md-block text-center">
                                                         <div class="fw-bold text-dark" style="font-size: 14px;">
                                                             <?= $currency_symbol . number_format($item['price'], 0); ?>
                                                         </div>
                                                     </div>
 
-                                                    <!-- Shared Shipment Delivery Status & Per-Product Review (Col 4) -->
-                                                    <div class="col-md-4 col-8 text-md-start text-start">
+                                                    <!-- Shared Shipment Delivery Status & Per-Product Review (Col 3) -->
+                                                    <div class="col-12 col-md-4 text-start pt-2 pt-md-0 border-top border-top-md-0 border-light">
                                                         <?php if ($status === 'cancelled'): ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
                                                                 <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #e53935;"></span>
@@ -254,8 +265,8 @@
                                                                 Your item has been delivered
                                                             </div>
                                                             <div class="mt-2">
-                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" class="fw-semibold small text-decoration-none" style="color: #2874f0 !important; font-size: 13px;">
-                                                                    <i class="fa-solid fa-star me-1" style="color: #2874f0;"></i> Rate & Review Product
+                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" class="fw-semibold small text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0 !important; font-size: 13px;">
+                                                                    <i class="fa-solid fa-star" style="color: #2874f0;"></i> Rate & Review Product
                                                                 </a>
                                                             </div>
                                                         <?php elseif ($status === 'returned'): ?>
@@ -323,8 +334,15 @@
         <style>
         .fk-orders-container {
             max-width: 1680px;
-            min-width: 978px;
             margin: 0 auto;
+        }
+        @media (min-width: 992px) {
+            .fk-orders-container {
+                min-width: 978px;
+            }
+            .fk-filter-sidebar-col {
+                max-width: 270px;
+            }
         }
         @media (max-width: 991px) {
             .fk-orders-container {

@@ -67,7 +67,7 @@
                                 </div>
 
                                 <div class="mt-4">
-                                    <button type="submit" class="btn btn-primary fw-bold text-uppercase px-4 py-2 rounded-1 shadow-sm" style="background-color: #2874f0; border-color: #2874f0; height: 44px; letter-spacing: 0.5px;">
+                                    <button type="submit" class="btn btn-primary fw-bold text-uppercase px-4 py-2 w-100 w-sm-auto rounded-1 shadow-sm" style="background-color: #2874f0; border-color: #2874f0; height: 44px; letter-spacing: 0.5px;">
                                         Save Changes
                                     </button>
                                 </div>
@@ -95,7 +95,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4">
-                                    <button type="submit" class="btn btn-primary fw-bold text-uppercase px-4 py-2 rounded-1 shadow-sm" style="background-color: #2874f0; border-color: #2874f0; height: 44px; letter-spacing: 0.5px;">
+                                    <button type="submit" class="btn btn-primary fw-bold text-uppercase px-4 py-2 w-100 w-sm-auto rounded-1 shadow-sm" style="background-color: #2874f0; border-color: #2874f0; height: 44px; letter-spacing: 0.5px;">
                                         Update Password
                                     </button>
                                 </div>

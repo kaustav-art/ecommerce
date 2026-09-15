@@ -44,32 +44,32 @@
                 <?php endif; ?>
 
                 <!-- Top Horizontal Stepper -->
-                <div class="card border rounded-2 shadow-sm bg-white mb-3 py-3 px-4">
-                    <div class="d-flex align-items-center justify-content-center gap-3 gap-md-5">
+                <div class="card border rounded-2 shadow-sm bg-white mb-3 py-2 py-md-3 px-2 px-md-4">
+                    <div class="d-flex align-items-center justify-content-center gap-1 gap-sm-3 gap-md-5">
                         <!-- Step 1: Address -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center <?= !empty($target_addr) ? 'text-white' : 'bg-light text-muted border'; ?> fw-bold" id="top-stepper-1" style="width: 26px; height: 26px; font-size: 13px; <?= !empty($target_addr) ? 'background-color: #000 !important;' : ''; ?>">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 <?= !empty($target_addr) ? 'text-white' : 'bg-light text-muted border'; ?> fw-bold" id="top-stepper-1" style="width: 24px; height: 24px; font-size: 12px; <?= !empty($target_addr) ? 'background-color: #000 !important;' : ''; ?>">
                                 <?= !empty($target_addr) ? '<i class="fa-solid fa-check"></i>' : '1'; ?>
                             </span>
-                            <span class="small fw-semibold <?= !empty($target_addr) ? 'text-dark' : 'text-secondary'; ?>" id="top-stepper-text-1">Address</span>
+                            <span class="small fw-semibold <?= !empty($target_addr) ? 'text-dark' : 'text-secondary'; ?>" id="top-stepper-text-1" style="font-size: 12px;">Address</span>
                         </div>
-                        <div style="height: 2px; width: 50px; <?= !empty($target_addr) ? 'background-color: #000;' : 'background-color: #e5e7eb;'; ?>" id="top-stepper-line-1"></div>
+                        <div style="height: 2px; min-width: 12px; max-width: 45px; flex: 1; <?= !empty($target_addr) ? 'background-color: #000;' : 'background-color: #e5e7eb;'; ?>" id="top-stepper-line-1"></div>
 
                         <!-- Step 2: Order Summary -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold" id="top-stepper-2" style="width: 26px; height: 26px; font-size: 13px; background-color: #000 !important;">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-2" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
                                 2
                             </span>
-                            <span class="small fw-bold text-dark" id="top-stepper-text-2">Order Summary</span>
+                            <span class="small fw-bold text-dark" id="top-stepper-text-2" style="font-size: 12px;">Order Summary</span>
                         </div>
-                        <div class="bg-secondary-subtle" style="height: 2px; width: 50px;"></div>
+                        <div class="bg-secondary-subtle" style="height: 2px; min-width: 12px; max-width: 45px; flex: 1;"></div>
 
                         <!-- Step 3: Payment -->
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-muted bg-light border fw-semibold" id="top-stepper-3" style="width: 26px; height: 26px; font-size: 13px;">
+                        <div class="d-flex align-items-center gap-1 gap-sm-2">
+                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-muted bg-light border fw-semibold" id="top-stepper-3" style="width: 24px; height: 24px; font-size: 12px;">
                                 3
                             </span>
-                            <span class="small text-muted" id="top-stepper-text-3">Payment</span>
+                            <span class="small text-muted" id="top-stepper-text-3" style="font-size: 12px;">Payment</span>
                         </div>
                     </div>
                 </div>
@@ -82,18 +82,18 @@
                             <!-- Delivery Address Card (Matches cart page) -->
                             <div class="card border rounded-3 p-3 mb-1 bg-white shadow-sm tf-delivery-address-card checkout-step-card" id="step-card-address">
                                 <!-- When Address is Selected / Saved -->
-                                <div class="<?= !empty($target_addr) ? 'd-flex' : 'd-none'; ?> align-items-center justify-content-between flex-wrap gap-2" id="address-box-selected">
-                                    <div class="d-flex align-items-center gap-3">
+                                <div class="<?= !empty($target_addr) ? 'd-flex' : 'd-none'; ?> align-items-sm-center justify-content-between flex-column flex-sm-row gap-3" id="address-box-selected">
+                                    <div class="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
                                         <div class="rounded-circle bg-light p-2 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                                             <i class="fa-solid fa-location-dot fs-5"></i>
                                         </div>
-                                        <div>
+                                        <div class="flex-grow-1 min-w-0">
                                             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                                 <span class="text-muted small">Deliver to:</span>
-                                                <strong class="text-dark" id="display-address-name"><?= html_escape($disp_name); ?><?= $disp_pin ? ', ' . html_escape($disp_pin) : ''; ?></strong>
+                                                <strong class="text-dark text-truncate" id="display-address-name"><?= html_escape($disp_name); ?><?= $disp_pin ? ', ' . html_escape($disp_pin) : ''; ?></strong>
                                                 <span class="badge bg-light text-secondary border text-uppercase" id="display-address-tag" style="font-size: 11px;"><?= html_escape($disp_tag); ?></span>
                                             </div>
-                                            <div class="text-secondary small text-line-clamp-1" id="display-address-full">
+                                            <div class="text-secondary small text-truncate" id="display-address-full">
                                                 <?= html_escape($disp_addr); ?>
                                             </div>
                                             <div class="text-secondary small mt-1" id="display-address-phone-wrap" style="<?= empty($disp_phone) ? 'display: none;' : ''; ?>">
@@ -101,16 +101,16 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold" onclick="openAddressModal()">
+                                    <div class="text-end text-sm-start flex-shrink-0">
+                                        <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold w-100 w-sm-auto" onclick="openAddressModal()">
                                             Change
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- When No Address is Selected / Saved -->
-                                <div class="<?= empty($target_addr) ? 'd-flex' : 'd-none'; ?> align-items-center justify-content-between flex-wrap gap-2" id="address-box-empty">
-                                    <div class="d-flex align-items-center gap-3">
+                                <div class="<?= empty($target_addr) ? 'd-flex' : 'd-none'; ?> align-items-sm-center justify-content-between flex-column flex-sm-row gap-3" id="address-box-empty">
+                                    <div class="d-flex align-items-start gap-3 flex-grow-1">
                                         <div class="rounded-circle bg-light p-2 text-muted d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                                             <i class="fa-solid fa-location-dot fs-5"></i>
                                         </div>
@@ -119,8 +119,8 @@
                                             <div class="text-secondary small">Please add or select a delivery address to proceed with your order.</div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold" onclick="openAddressModal()">
+                                    <div class="text-end text-sm-start flex-shrink-0">
+                                        <button type="button" class="btn btn-outline-primary btn-sm px-3 py-1 fw-bold w-100 w-sm-auto" onclick="openAddressModal()">
                                             <i class="fa-solid fa-plus me-1"></i> Add Address
                                         </button>
                                     </div>

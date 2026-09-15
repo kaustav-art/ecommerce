@@ -32,7 +32,8 @@
                             </div>
 
                             <?php if (!empty($returns)): ?>
-                                <div class="table-responsive">
+                                <!-- Desktop Table View -->
+                                <div class="table-responsive d-none d-md-block">
                                     <table class="table table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
@@ -85,6 +86,53 @@
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
+                                </div>
+
+                                <!-- Mobile Card List View -->
+                                <div class="d-md-none">
+                                    <div class="d-flex flex-column gap-3">
+                                        <?php foreach ($returns as $ret): ?>
+                                            <?php
+                                                $badge_class = 'secondary';
+                                                if ($ret['status'] === 'approved') $badge_class = 'info';
+                                                elseif ($ret['status'] === 'refunded' || $ret['status'] === 'completed') $badge_class = 'success';
+                                                elseif ($ret['status'] === 'rejected') $badge_class = 'danger';
+                                                elseif ($ret['status'] === 'pending') $badge_class = 'warning';
+                                            ?>
+                                            <div class="border rounded-2 p-3 bg-light bg-opacity-25 shadow-sm">
+                                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                                    <span class="fw-bold text-dark font-monospace" style="font-size: 13px;">#RET-<?= str_pad($ret['id'], 4, '0', STR_PAD_LEFT); ?></span>
+                                                    <span class="badge bg-<?= $badge_class; ?> text-uppercase" style="font-size: 10px;">
+                                                        <?= html_escape($ret['status']); ?>
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <div>
+                                                        <span class="text-muted small">Order: </span>
+                                                        <a href="<?= site_url('account/order/' . $ret['order_number']); ?>" class="fw-bold text-primary text-decoration-none small">
+                                                            #<?= html_escape($ret['order_number']); ?>
+                                                        </a>
+                                                    </div>
+                                                    <span class="badge bg-light text-dark border text-uppercase" style="font-size: 10px;">
+                                                        <?= html_escape($ret['type']); ?>
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                                    <span class="text-muted small">Refund Amount:</span>
+                                                    <span class="fw-bold text-dark fs-6"><?= $currency_symbol . number_format($ret['amount'], 2); ?></span>
+                                                </div>
+                                                <div class="small text-muted bg-white p-2 rounded border mb-2">
+                                                    <strong>Reason:</strong> <?= html_escape($ret['reason']); ?>
+                                                    <?php if (!empty($ret['admin_notes'])): ?>
+                                                        <div class="text-info mt-1 pt-1 border-top"><i class="fa-solid fa-comment-dots me-1"></i> <strong>Admin:</strong> <?= html_escape($ret['admin_notes']); ?></div>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="text-end text-muted" style="font-size: 11px;">
+                                                    Requested on <?= date('M d, Y', strtotime($ret['created_at'])); ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             <?php else: ?>
                                 <div class="text-center py-5">

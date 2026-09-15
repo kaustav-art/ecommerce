@@ -1,9 +1,9 @@
         <!-- Customer Login -->
-        <section class="py-5 bg-light">
+        <section class="py-4 py-md-5 bg-light min-vh-100">
             <div class="container">
                 <div class="row justify-content-center">
-                    <div class="col-md-5">
-                        <div class="card border-0 shadow-sm p-4 p-md-5 bg-white">
+                    <div class="col-md-6 col-lg-5">
+                        <div class="card border-0 shadow-sm p-3 p-md-5 bg-white rounded-3">
                             <h3 class="fw-bold mb-2 text-center">Customer Sign In</h3>
                             <p class="text-muted text-center small mb-4">Access your orders, addresses, and wishlist</p>
 
