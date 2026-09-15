@@ -122,29 +122,54 @@ if (!empty($initial_color) && !empty($color_map[$initial_color]['gallery'])) {
     $total_images = count($all_images);
 }
 
-// Populate size availability for each color
+// Populate size availability for each color and fallback size map
+$size_variant_map = [];
+$initial_variant  = null;
+
 if ($has_variants) {
     foreach ($product['variants'] as $pv) {
         $v_color = '';
         $v_size  = '';
-        foreach ($pv['values'] as $val) {
-            if ($val['attribute_slug'] === 'color') $v_color = $val['attribute_value'];
-            if ($val['attribute_slug'] === 'size')  $v_size  = $val['attribute_value'];
+        if (!empty($pv['values'])) {
+            foreach ($pv['values'] as $val) {
+                if (strcasecmp($val['attribute_slug'], 'color') === 0 || strcasecmp($val['attribute_name'], 'color') === 0) $v_color = $val['attribute_value'];
+                if (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0)   $v_size  = $val['attribute_value'];
+            }
         }
+
+        $v_highlights = !empty($pv['highlights']) ? (is_array($pv['highlights']) ? $pv['highlights'] : (json_decode($pv['highlights'], true) ?: [])) : [];
+        $v_specs = !empty($pv['specifications']) ? (is_array($pv['specifications']) ? $pv['specifications'] : (json_decode($pv['specifications'], true) ?: [])) : [];
+
+        $var_entry = [
+            'variant_id'     => (int) $pv['id'],
+            'sku'            => $pv['sku'],
+            'price'          => (float) $pv['price'],
+            'sale_price'     => (isset($pv['sale_price']) && $pv['sale_price'] !== null && $pv['sale_price'] !== '') ? (float) $pv['sale_price'] : null,
+            'stock'          => (int) $pv['stock_quantity'],
+            'image'          => !empty($pv['image']) ? $pv['image'] : null,
+            'color'          => $v_color,
+            'size'           => $v_size,
+            'highlights'     => $v_highlights,
+            'specifications' => $v_specs
+        ];
+
         if ($v_color && $v_size && isset($color_map[$v_color])) {
-            $color_map[$v_color]['sizes'][$v_size] = [
-                'variant_id' => (int) $pv['id'],
-                'sku'        => $pv['sku'],
-                'price'      => (float) $pv['price'],
-                'sale_price' => !empty($pv['sale_price']) ? (float) $pv['sale_price'] : null,
-                'stock'      => (int) $pv['stock_quantity'],
-                'image'      => !empty($pv['image']) ? $pv['image'] : null
-            ];
+            $color_map[$v_color]['sizes'][$v_size] = $var_entry;
             // Pick initial in-stock size for initial color
             if ($v_color === $initial_color && empty($initial_size) && (int) $pv['stock_quantity'] > 0) {
                 $initial_size       = $v_size;
                 $initial_variant_id = (int) $pv['id'];
                 $initial_sku        = $pv['sku'];
+                $initial_variant    = $var_entry;
+            }
+        }
+        if ($v_size) {
+            $size_variant_map[$v_size] = $var_entry;
+            if (empty($initial_size) && (int) $pv['stock_quantity'] > 0 && empty($initial_color)) {
+                $initial_size       = $v_size;
+                $initial_variant_id = (int) $pv['id'];
+                $initial_sku        = $pv['sku'];
+                $initial_variant    = $var_entry;
             }
         }
     }
@@ -157,6 +182,38 @@ if (empty($initial_size) && $has_size && !empty($product['attributes']['size']['
 if ($has_variants && empty($initial_variant_id) && !empty($product['variants'])) {
     $initial_variant_id = (int) $product['variants'][0]['id'];
     $initial_sku        = $product['variants'][0]['sku'];
+}
+
+// Resolve initial variant if not resolved yet
+if (empty($initial_variant) && $has_variants) {
+    if (!empty($initial_color) && !empty($color_map[$initial_color]['sizes'][$initial_size])) {
+        $initial_variant = $color_map[$initial_color]['sizes'][$initial_size];
+    } elseif (!empty($size_variant_map[$initial_size])) {
+        $initial_variant = $size_variant_map[$initial_size];
+    } elseif (!empty($product['variants'])) {
+        $first_v = $product['variants'][0];
+        $initial_variant = [
+            'variant_id'     => (int) $first_v['id'],
+            'sku'            => $first_v['sku'],
+            'price'          => (float) $first_v['price'],
+            'sale_price'     => (isset($first_v['sale_price']) && $first_v['sale_price'] !== null && $first_v['sale_price'] !== '') ? (float) $first_v['sale_price'] : null,
+            'stock'          => (int) $first_v['stock_quantity'],
+            'image'          => !empty($first_v['image']) ? $first_v['image'] : null,
+            'color'          => $initial_color,
+            'size'           => $initial_size,
+            'highlights'     => !empty($first_v['highlights']) ? (json_decode($first_v['highlights'], true) ?: []) : [],
+            'specifications' => !empty($first_v['specifications']) ? (json_decode($first_v['specifications'], true) ?: []) : []
+        ];
+    }
+}
+
+if (!empty($initial_variant)) {
+    $regular_price = (float) $initial_variant['price'];
+    $sale_price    = ($initial_variant['sale_price'] !== null) ? (float) $initial_variant['sale_price'] : null;
+    $current_price = ($sale_price !== null && $sale_price > 0) ? $sale_price : $regular_price;
+    $discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular_price)
+        ? round((($regular_price - $sale_price) / $regular_price) * 100)
+        : 0;
 }
 ?>
 
@@ -252,6 +309,48 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     color: #ffffff;
     letter-spacing: -0.5px;
     user-select: none;
+}
+
+/* Variant Switch Loading Overlay */
+.product-variant-loader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.product-variant-loader-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+    display: flex !important;
+}
+.variant-loader-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.variant-loader-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #212121;
+    letter-spacing: 0.1px;
 }
 
 /* Pricing Header Section (as in varient_products.PNG) */
@@ -1072,6 +1171,16 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                         <!-- RIGHT COLUMN: Product Info & Variants (varient_products.PNG) -->
                         <div class="col-md-5">
                             <div class="tf-product-info-wrap position-relative">
+                                <!-- Variant Loader Overlay -->
+                                <div id="product-variant-loader" class="product-variant-loader-overlay" style="display: none;">
+                                    <div class="variant-loader-card">
+                                        <div class="spinner-border text-primary mb-2" role="status" style="width: 2.2rem; height: 2.2rem; border-width: 3px;">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <div class="variant-loader-label">Updating product details...</div>
+                                    </div>
+                                </div>
+
                                 <div class="tf-product-info-list">
                                     
                                     <!-- ALL PRODUCT VARIANTS (Color, Size) - Top of Product Name (varient_products.PNG) -->
@@ -1198,21 +1307,17 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <!-- Pricing Block (as in varient_products.PNG) -->
                                         <div class="tf-product-info-desc mt-2">
                                             <div class="product-price-block">
-                                                <?php if ($discount_percent > 0): ?>
-                                                    <div class="product-discount-rate" id="display-discount-rate">
-                                                        <i class="fa-solid fa-arrow-down-long me-1"></i><?= $discount_percent; ?>%
-                                                    </div>
-                                                <?php endif; ?>
+                                                <div class="product-discount-rate" id="display-discount-rate" style="<?= ($discount_percent > 0) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                                    <i class="fa-solid fa-arrow-down-long me-1"></i><?= $discount_percent; ?>%
+                                                </div>
 
                                                 <span class="product-current-price" id="display-sale-price">
                                                     <?= $currency_symbol . number_format($current_price, 2); ?>
                                                 </span>
 
-                                                <?php if ($sale_price && $sale_price < $regular_price): ?>
-                                                    <span class="product-mrp-price" id="display-mrp-price">
-                                                        M.R.P.: <?= $currency_symbol . number_format($regular_price, 2); ?>
-                                                    </span>
-                                                <?php endif; ?>
+                                                <span class="product-mrp-price" id="display-mrp-price" style="<?= ($sale_price && $sale_price < $regular_price) ? 'display: inline;' : 'display: none;'; ?>">
+                                                    M.R.P.: <?= $currency_symbol . number_format($regular_price, 2); ?>
+                                                </span>
                                             </div>
                                             
                                             <div class="product-tax-note">Inclusive of all taxes</div>
@@ -1305,85 +1410,79 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                         <div class="product-highlights-specifications my-2">
                                             
                                             <!-- Product Highlights (Always Open by Default) -->
-                                            <?php if (!empty($product_highlights)): ?>
-                                                <div class="product-highlights-block mb-2">
-                                                    <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
-                                                         onclick="toggleProductHighlights()" 
-                                                         style="cursor: pointer;">
-                                                        <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
-                                                        <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
-                                                                style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
-                                                                aria-label="Toggle Product Highlights">
-                                                            <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px;"></i>
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    <div id="product-highlights-collapse" class="pt-2" style="display: block;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
-                                                            <?php foreach ($product_highlights as $hl): 
-                                                                $hl_k = trim($hl['key'] ?? '');
-                                                                $hl_v = trim($hl['value'] ?? '');
-                                                                if ($hl_k === '' && $hl_v === '') continue;
-                                                            ?>
-                                                                <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
-                                                                    <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
-                                                                    <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
-                                                                </div>
-                                                            <?php endforeach; ?>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
+                                            <div class="product-highlights-block mb-2" id="product-highlights-block" style="<?= empty($product_highlights) ? 'display: none;' : ''; ?>">
+                                                <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
+                                                     onclick="toggleProductHighlights()" 
+                                                     style="cursor: pointer;">
+                                                    <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
+                                                    <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
+                                                            aria-label="Toggle Product Highlights">
+                                                        <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px;"></i>
+                                                    </button>
                                                 </div>
-                                            <?php endif; ?>
+                                                
+                                                <div id="product-highlights-collapse" class="pt-2" style="display: block;">
+                                                    <div class="specs-grid-layout" id="highlights-grid-container" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
+                                                        <?php foreach ($product_highlights as $hl): 
+                                                            $hl_k = trim($hl['key'] ?? '');
+                                                            $hl_v = trim($hl['value'] ?? '');
+                                                            if ($hl_k === '' && $hl_v === '') continue;
+                                                        ?>
+                                                            <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+                                                                <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
+                                                                <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
+                                            </div>
 
                                             <!-- Product Specifications (Collapsed by Default, 14 items limit) -->
-                                            <?php if (!empty($merged_specs)): ?>
-                                                <div class="product-specifications-block mb-2">
-                                                    <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
-                                                         onclick="toggleProductSpecifications()" 
-                                                         style="cursor: pointer;">
-                                                        <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
-                                                        <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
-                                                                style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
-                                                                aria-label="Toggle Specifications">
-                                                            <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px;"></i>
+                                            <div class="product-specifications-block mb-2" id="product-specifications-block" style="<?= empty($merged_specs) ? 'display: none;' : ''; ?>">
+                                                <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
+                                                     onclick="toggleProductSpecifications()" 
+                                                     style="cursor: pointer;">
+                                                    <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
+                                                    <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
+                                                            aria-label="Toggle Specifications">
+                                                        <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px;"></i>
+                                                    </button>
+                                                </div>
+                                                
+                                                <div id="product-specs-collapse" class="pt-2" style="display: none;">
+                                                    <div class="specs-grid-layout" id="specs-grid-container" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
+                                                        <?php 
+                                                        $s_idx = 0;
+                                                        foreach ($merged_specs as $sp): 
+                                                            $s_idx++;
+                                                            $is_extra = ($s_idx > 14);
+                                                        ?>
+                                                            <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
+                                                                 style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
+                                                                <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
+                                                                <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+
+                                                    <div class="text-center mt-2 pt-2" id="specs-see-more-wrap" style="<?= (count($merged_specs) > 14) ? 'display: block;' : 'display: none;'; ?>">
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-secondary px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
+                                                                id="btn-see-more-specs" 
+                                                                onclick="toggleSeeMoreSpecs(event)" 
+                                                                style="font-size: 13px; border-radius: 20px; border-color: #d1d5db; color: #374151;">
+                                                            <span id="btn-see-more-text">See More</span>
+                                                            <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
                                                         </button>
                                                     </div>
-                                                    
-                                                    <div id="product-specs-collapse" class="pt-2" style="display: none;">
-                                                        <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
-                                                            <?php 
-                                                            $s_idx = 0;
-                                                            foreach ($merged_specs as $sp): 
-                                                                $s_idx++;
-                                                                $is_extra = ($s_idx > 14);
-                                                            ?>
-                                                                <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
-                                                                     style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
-                                                                    <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
-                                                                    <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
-                                                                </div>
-                                                            <?php endforeach; ?>
-                                                        </div>
-
-                                                        <?php if (count($merged_specs) > 14): ?>
-                                                            <div class="text-center mt-2 pt-2">
-                                                                <button type="button" 
-                                                                        class="btn btn-sm btn-outline-secondary px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
-                                                                        id="btn-see-more-specs" 
-                                                                        onclick="toggleSeeMoreSpecs(event)" 
-                                                                        style="font-size: 13px; border-radius: 20px; border-color: #d1d5db; color: #374151;">
-                                                                    <span id="btn-see-more-text">See More</span>
-                                                                    <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
-                                                                </button>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    </div>
-
-                                                    <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
                                                 </div>
-                                            <?php endif; ?>
+
+                                                <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
+                                            </div>
 
                                         </div>
 
@@ -1509,21 +1608,21 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                             <div class="letter-1 text-btn-uppercase mb_12"><?= html_escape($product['title']); ?></div>
                                             <p class="mb_12 text-secondary"><?= !empty($product['description']) ? $product['description'] : 'Designed with utmost care and attention to detail, this premium item combines timeless style with modern performance.'; ?></p>
                                             
-                                            <?php if (!empty($product['specifications'])): ?>
-                                                <div class="letter-1 text-btn-uppercase mb_12 mt-4">Specifications & Details</div>
-                                                <div class="table-responsive">
-                                                    <table class="table table-bordered table-striped table-sm mb-0">
-                                                        <tbody>
-                                                            <?php foreach ($product['specifications'] as $spec): ?>
-                                                                <tr>
-                                                                    <td class="fw-semibold text-secondary" style="width: 35%;"><?= html_escape($spec['spec_name'] ?? ($spec['spec_key'] ?? '')); ?></td>
-                                                                    <td class="text-dark"><?= html_escape($spec['spec_value'] ?? ''); ?></td>
-                                                                </tr>
-                                                            <?php endforeach; ?>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            <?php endif; ?>
+                                             <div id="tab-specs-wrapper" style="<?= empty($merged_specs) ? 'display: none;' : ''; ?>">
+                                                 <div class="letter-1 text-btn-uppercase mb_12 mt-4">Specifications & Details</div>
+                                                 <div class="table-responsive">
+                                                     <table class="table table-bordered table-striped table-sm mb-0">
+                                                         <tbody id="tab-specs-tbody">
+                                                             <?php foreach ($merged_specs as $spec): ?>
+                                                                 <tr>
+                                                                     <td class="fw-semibold text-secondary" style="width: 35%;"><?= html_escape($spec['name']); ?></td>
+                                                                     <td class="text-dark"><?= html_escape($spec['value']); ?></td>
+                                                                 </tr>
+                                                             <?php endforeach; ?>
+                                                         </tbody>
+                                                     </table>
+                                                 </div>
+                                             </div>
                                         </div>
                                         <div class="left">
                                             <div class="letter-1 text-btn-uppercase mb_12">COMPOSITION, ORIGIN AND CARE GUIDELINES</div>
@@ -2185,6 +2284,11 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     var galleryImages    = defaultGalleryImages.slice();
     var totalGallery     = galleryImages.length;
     var colorMap         = <?= json_encode($color_map); ?>;
+    var sizeVariantMap   = <?= json_encode($size_variant_map); ?>;
+    var baseHighlights   = <?= json_encode($product_highlights); ?>;
+    var baseSpecifications = <?= json_encode(!empty($product['specifications']) ? $product['specifications'] : []); ?>;
+    var baseBrand        = <?= json_encode(!empty($product['brand_name']) ? $product['brand_name'] : ''); ?>;
+    var baseCategory     = <?= json_encode(!empty($product['category_name']) ? $product['category_name'] : ''); ?>;
     var hasVariants      = <?= $has_variants ? 'true' : 'false'; ?>;
     var hasColor         = <?= $has_color ? 'true' : 'false'; ?>;
     var hasSize          = <?= $has_size ? 'true' : 'false'; ?>;
@@ -2197,6 +2301,42 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
     var currentPrice     = <?= (float) $current_price; ?>;
     var regularPrice     = <?= (float) $regular_price; ?>;
     var activeLightboxIdx = 0;
+    var loaderTimeout    = null;
+
+    // Variant Loader Helpers
+    function showVariantLoader() {
+        var loader = document.getElementById('product-variant-loader');
+        if (loader) {
+            loader.style.display = 'flex';
+            void loader.offsetHeight;
+            loader.classList.add('active');
+        }
+    }
+
+    function hideVariantLoader(delay) {
+        if (loaderTimeout) clearTimeout(loaderTimeout);
+        loaderTimeout = setTimeout(function() {
+            var loader = document.getElementById('product-variant-loader');
+            if (loader) {
+                loader.classList.remove('active');
+                setTimeout(function() {
+                    if (!loader.classList.contains('active')) {
+                        loader.style.display = 'none';
+                    }
+                }, 200);
+            }
+        }, (typeof delay === 'number' ? delay : 220));
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     // 1. LIGHTBOX CONTROLLER
     window.openLightbox = function(index) {
@@ -2400,8 +2540,161 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
     };
 
-    // 3. COLOR SELECTION
+    // 3. UPDATE VARIANT HIGHLIGHTS & SPECIFICATIONS
+    function updateVariantHighlights(variantData) {
+        var container = document.getElementById('highlights-grid-container');
+        var block = document.getElementById('product-highlights-block');
+        if (!container || !block) return;
+
+        var hlList = [];
+        var vHl = variantData ? parseJsonSafe(variantData.highlights) : [];
+        if (vHl && vHl.length > 0) {
+            hlList = vHl;
+        } else if (baseHighlights && baseHighlights.length > 0) {
+            hlList = baseHighlights;
+        }
+
+        var validHl = [];
+        hlList.forEach(function(item) {
+            var k = (item.key || item.name || '').trim();
+            var v = (item.value || '').trim();
+            if (k !== '' || v !== '') {
+                validHl.push({ key: k, value: v });
+            }
+        });
+
+        if (validHl.length === 0) {
+            block.style.display = 'none';
+            return;
+        }
+
+        block.style.display = 'block';
+        var html = '';
+        validHl.forEach(function(item) {
+            html += '<div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">' +
+                    '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.key) + '</div>' +
+                    '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
+                    '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function updateVariantSpecifications(variantData) {
+        var specsGrid = document.getElementById('specs-grid-container');
+        var specsBlock = document.getElementById('product-specifications-block');
+        var seeMoreWrap = document.getElementById('specs-see-more-wrap');
+        var tabSpecsTbody = document.getElementById('tab-specs-tbody');
+        var tabSpecsWrap = document.getElementById('tab-specs-wrapper');
+
+        var mergedSpecs = [];
+        var seenKeys = {};
+
+        // 1. Brand
+        if (baseBrand) {
+            mergedSpecs.push({ name: 'Brand', value: baseBrand });
+            seenKeys['brand'] = true;
+        }
+
+        // 2. Category
+        if (baseCategory) {
+            mergedSpecs.push({ name: 'Category', value: baseCategory });
+            seenKeys['category'] = true;
+        }
+
+        // 3. Size
+        var curSize = (variantData && variantData.size) ? variantData.size : selectedSize;
+        if (curSize) {
+            mergedSpecs.push({ name: 'Size', value: curSize });
+            seenKeys['size'] = true;
+        }
+
+        // 4. Color
+        var curColor = (variantData && variantData.color) ? variantData.color : selectedColor;
+        if (curColor) {
+            var formattedColor = curColor.charAt(0).toUpperCase() + curColor.slice(1);
+            mergedSpecs.push({ name: 'Color', value: formattedColor });
+            seenKeys['color'] = true;
+        }
+
+        // 5. Custom specifications
+        var customSpecs = [];
+        var vSpecs = variantData ? parseJsonSafe(variantData.specifications) : [];
+        if (vSpecs && vSpecs.length > 0) {
+            customSpecs = vSpecs;
+        } else if (baseSpecifications && baseSpecifications.length > 0) {
+            customSpecs = baseSpecifications;
+        }
+
+        customSpecs.forEach(function(sp) {
+            var n = (sp.name || sp.spec_name || sp.spec_key || '').trim();
+            var v = (sp.value || sp.spec_value || '').trim();
+            var k = n.toLowerCase();
+            if (n !== '' && v !== '' && !seenKeys[k]) {
+                seenKeys[k] = true;
+                mergedSpecs.push({ name: n, value: v });
+            }
+        });
+
+        if (mergedSpecs.length === 0) {
+            if (specsBlock) specsBlock.style.display = 'none';
+            if (tabSpecsWrap) tabSpecsWrap.style.display = 'none';
+            return;
+        }
+
+        if (specsBlock) specsBlock.style.display = 'block';
+        if (tabSpecsWrap) tabSpecsWrap.style.display = 'block';
+
+        // Rebuild right column specifications accordion grid
+        if (specsGrid) {
+            var gridHtml = '';
+            var count = mergedSpecs.length;
+            var isExpanded = window.areSpecsExpanded || false;
+
+            mergedSpecs.forEach(function(item, idx) {
+                var isExtra = (idx >= 14);
+                var displayStyle = (isExtra && !isExpanded) ? 'display: none;' : '';
+                gridHtml += '<div class="spec-grid-item ' + (isExtra ? 'spec-overflow-item' : '') + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + displayStyle + '">' +
+                            '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.name) + '</div>' +
+                            '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
+                            '</div>';
+            });
+            specsGrid.innerHTML = gridHtml;
+
+            if (seeMoreWrap) {
+                seeMoreWrap.style.display = (count > 14) ? 'block' : 'none';
+            }
+        }
+
+        // Rebuild bottom tab specifications table
+        if (tabSpecsTbody) {
+            var tabHtml = '';
+            mergedSpecs.forEach(function(item) {
+                tabHtml += '<tr>' +
+                           '  <td class="fw-semibold text-secondary" style="width: 35%;">' + escapeHtml(item.name) + '</td>' +
+                           '  <td class="text-dark">' + escapeHtml(item.value) + '</td>' +
+                           '</tr>';
+            });
+            tabSpecsTbody.innerHTML = tabHtml;
+        }
+    }
+
+    function parseJsonSafe(val) {
+        if (!val) return [];
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'object') return val;
+        try {
+            var parsed = JSON.parse(val);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    // 4. COLOR SELECTION
     window.selectColor = function(colorName, cardEl) {
+        if (selectedColor === colorName) return;
+        showVariantLoader();
+
         selectedColor = colorName;
 
         // Update label (Capitalized as in product_deatils_mobile.jpeg)
@@ -2447,15 +2740,19 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
 
         // Update variant details
         syncCurrentVariant();
+
+        hideVariantLoader(250);
     };
 
-    // 4. SIZE SELECTION
+    // 5. SIZE SELECTION
     window.selectSize = function(sizeName, chipEl) {
         // If out of stock, warn user or prompt
         if (chipEl && chipEl.classList.contains('is-out-of-stock')) {
             alert('Size ' + sizeName + ' is currently out of stock for color ' + selectedColor + '. You can select another size or color.');
             return;
         }
+
+        showVariantLoader();
 
         selectedSize = sizeName;
 
@@ -2473,6 +2770,8 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
 
         syncCurrentVariant();
+
+        hideVariantLoader(250);
     };
 
     window.onStickySizeChange = function(val) {
@@ -2484,7 +2783,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         });
     };
 
-    // 5. UPDATE SIZE AVAILABILITY BASED ON SELECTED COLOR
+    // 6. UPDATE SIZE AVAILABILITY BASED ON SELECTED COLOR
     function updateSizeAvailability() {
         if (!hasSize) return;
 
@@ -2519,29 +2818,64 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
         }
     }
 
-    // 6. SYNC VARIANT DETAILS (Price, SKU, Stock Status, Sticky Bar)
+    // 7. SYNC VARIANT DETAILS (Price, SKU, Stock Status, Highlights, Specs)
     function syncCurrentVariant() {
         var variantData = null;
         if (hasVariants && colorMap[selectedColor] && colorMap[selectedColor].sizes && colorMap[selectedColor].sizes[selectedSize]) {
             variantData = colorMap[selectedColor].sizes[selectedSize];
+        } else if (hasVariants && sizeVariantMap && sizeVariantMap[selectedSize]) {
+            variantData = sizeVariantMap[selectedSize];
+        } else if (hasVariants && colorMap[selectedColor] && colorMap[selectedColor].sizes) {
+            var firstS = Object.keys(colorMap[selectedColor].sizes)[0];
+            if (firstS) variantData = colorMap[selectedColor].sizes[firstS];
         }
 
         if (variantData) {
             selectedVariantId = variantData.variant_id;
-            var price = variantData.sale_price ? variantData.sale_price : variantData.price;
-            currentPrice = price;
+
+            var regularP = (typeof variantData.price !== 'undefined' && variantData.price !== null) ? parseFloat(variantData.price) : regularPrice;
+            var saleP = (typeof variantData.sale_price !== 'undefined' && variantData.sale_price !== null && variantData.sale_price !== '') ? parseFloat(variantData.sale_price) : null;
+            var effectivePrice = (saleP !== null && saleP > 0) ? saleP : regularP;
+
+            currentPrice = effectivePrice;
+            regularPrice = regularP;
 
             // Price display
             var salePriceEl = document.getElementById('display-sale-price');
-            if (salePriceEl) salePriceEl.textContent = currencySymbol + price.toFixed(2);
+            if (salePriceEl) {
+                salePriceEl.textContent = currencySymbol + effectivePrice.toFixed(2);
+            }
+
+            // MRP and Discount badge
+            var discountBadgeEl = document.getElementById('display-discount-rate');
+            var mrpEl = document.getElementById('display-mrp-price');
+
+            if (saleP !== null && saleP > 0 && regularP > saleP) {
+                var discountPct = Math.round(((regularP - saleP) / regularP) * 100);
+                if (discountBadgeEl) {
+                    discountBadgeEl.innerHTML = '<i class="fa-solid fa-arrow-down-long me-1"></i>' + discountPct + '%';
+                    discountBadgeEl.style.display = 'inline-flex';
+                }
+                if (mrpEl) {
+                    mrpEl.textContent = 'M.R.P.: ' + currencySymbol + regularP.toFixed(2);
+                    mrpEl.style.display = 'inline';
+                }
+            } else {
+                if (discountBadgeEl) discountBadgeEl.style.display = 'none';
+                if (mrpEl) mrpEl.style.display = 'none';
+            }
 
             var curQty = parseInt(document.getElementById('product-qty-input')?.value, 10) || 1;
             var atcPriceEl = document.getElementById('atc-btn-price');
-            if (atcPriceEl) atcPriceEl.textContent = currencySymbol + (price * curQty).toFixed(2);
+            if (atcPriceEl) {
+                atcPriceEl.textContent = currencySymbol + (effectivePrice * curQty).toFixed(2);
+            }
 
             // SKU
             var skuEl = document.getElementById('display-sku');
-            if (skuEl) skuEl.textContent = variantData.sku;
+            if (skuEl && variantData.sku) {
+                skuEl.textContent = variantData.sku;
+            }
 
             // Stock status
             var stockEl = document.getElementById('display-stock-status');
@@ -2557,6 +2891,10 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                     if (atcBtn) atcBtn.disabled = true;
                 }
             }
+
+            // Update Highlights & Specifications
+            updateVariantHighlights(variantData);
+            updateVariantSpecifications(variantData);
         }
     }
 

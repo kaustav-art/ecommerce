@@ -71,10 +71,11 @@ class products extends MY_Controller {
                 $gallery_images = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
 
                 // Check if variants or attributes are assigned
-                $size_vals    = $this->input->post('size_vals');
-                $size_stocks  = $this->input->post('size_stock') ?: [];
-                $attr_vals    = array_filter((array) $this->input->post('attr_vals'));
-                $selected_sizes = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
+                $size_vals        = $this->input->post('size_vals');
+                $size_stocks      = $this->input->post('size_stock') ?: [];
+                $size_sale_prices = $this->input->post('size_sale_price') ?: [];
+                $attr_vals        = array_filter((array) $this->input->post('attr_vals'));
+                $selected_sizes   = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
 
                 $has_variants = (!empty($selected_sizes) || !empty($attr_vals));
 
@@ -205,13 +206,14 @@ class products extends MY_Controller {
 
                             $v_stock  = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : 10;
                             $v_status = $v_stock > 0 ? 'in_stock' : 'out_of_stock';
+                            $v_sale_price = (isset($size_sale_prices[$s_id]) && $size_sale_prices[$s_id] !== '') ? (float) $size_sale_prices[$s_id] : $insert_data['sale_price'];
 
                             $v_data = [
                                 'product_id'     => $new_id,
                                 'title'          => $v_title,
                                 'sku'            => $v_sku,
                                 'price'          => $insert_data['price'],
-                                'sale_price'     => $insert_data['sale_price'],
+                                'sale_price'     => $v_sale_price,
                                 'stock_quantity' => $v_stock,
                                 'stock_status'   => $v_status,
                                 'image'          => $main_image,

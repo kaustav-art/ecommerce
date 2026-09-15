@@ -312,9 +312,13 @@ function openQuickStockModal(grp) {
         '</div>' +
       '</div>' +
       '<div class="d-flex align-items-center gap-2">' +
-        '<div class="input-group input-group-sm" style="width: 120px;">' +
+        '<div class="input-group input-group-sm" style="width: 110px;" title="Stock Quantity">' +
           '<span class="input-group-text">Qty</span>' +
-          '<input type="number" min="0" class="form-control text-end qs-stock-input" data-var-id="' + sz.variant_id + '" value="' + sz.stock + '" oninput="recalcQsTotal()">' +
+          '<input type="number" min="0" class="form-control text-end qs-stock-input" data-var-id="' + sz.variant_id + '" value="' + (sz.stock !== null && sz.stock !== undefined && sz.stock !== '' ? sz.stock : 0) + '" placeholder="0" oninput="recalcQsTotal()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcQsTotal(); }">' +
+        '</div>' +
+        '<div class="input-group input-group-sm" style="width: 120px;" title="Sale Price">' +
+          '<span class="input-group-text">$</span>' +
+          '<input type="number" step="0.01" min="0" class="form-control text-end qs-sale-price-input" data-var-id="' + sz.variant_id + '" value="' + (sz.sale_price !== null && sz.sale_price !== undefined ? sz.sale_price : '') + '" placeholder="Price">' +
         '</div>' +
       '</div>';
     list.appendChild(row);
@@ -374,6 +378,12 @@ function submitQuickStock() {
     var vId = inp.getAttribute('data-var-id');
     var qty = inp.value;
     payload.append('stocks[' + vId + ']', qty);
+  });
+
+  document.querySelectorAll('.qs-sale-price-input').forEach(function(inp) {
+    var vId = inp.getAttribute('data-var-id');
+    var sp = inp.value;
+    payload.append('sale_prices[' + vId + ']', sp);
   });
 
   fetch('<?= site_url("variants/update_size_stocks"); ?>', {

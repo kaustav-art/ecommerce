@@ -292,6 +292,7 @@ class variants extends MY_Controller {
             $group_variant_ids_str = $this->input->post('group_variant_ids');
             $group_variant_ids     = !empty($group_variant_ids_str) ? array_filter(array_map('intval', explode(',', $group_variant_ids_str))) : [];
             $size_stocks           = $this->input->post('size_stock') ?: [];
+            $size_sale_prices      = $this->input->post('size_sale_price') ?: [];
             $selected_sizes        = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
 
             if (!empty($group_variant_ids)) {
@@ -318,13 +319,14 @@ class variants extends MY_Controller {
                             $v_title .= ' / ' . $s_name;
                         }
                         $s_stock = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : $stock;
+                        $s_sale_price = (isset($size_sale_prices[$s_id]) && $size_sale_prices[$s_id] !== '') ? (float) $size_sale_prices[$s_id] : $sale_price;
 
                         $v_data = [
                             'product_id'            => (int) $product_id,
                             'title'                 => $v_title,
                             'sku'                   => $v_sku,
                             'price'                 => $price,
-                            'sale_price'            => $sale_price,
+                            'sale_price'            => $s_sale_price,
                             'stock_quantity'        => $s_stock,
                             'max_purchase_quantity' => $max_purchase_quantity,
                             'stock_status'          => $s_stock > 0 ? 'in_stock' : 'out_of_stock',
@@ -386,6 +388,9 @@ class variants extends MY_Controller {
                     if (isset($size_stocks[$single_size_id])) {
                         $stock = max(0, (int) $size_stocks[$single_size_id]);
                     }
+                    if (isset($size_sale_prices[$single_size_id]) && $size_sale_prices[$single_size_id] !== '') {
+                        $sale_price = (float) $size_sale_prices[$single_size_id];
+                    }
                 }
 
                 $data = [
@@ -428,13 +433,14 @@ class variants extends MY_Controller {
                         }
 
                         $s_stock = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : $stock;
+                        $s_sale_price = (isset($size_sale_prices[$s_id]) && $size_sale_prices[$s_id] !== '') ? (float) $size_sale_prices[$s_id] : $sale_price;
 
                         $v_data = [
                             'product_id'            => (int) $product_id,
                             'title'                 => $v_title,
                             'sku'                   => $v_sku,
                             'price'                 => $price,
-                            'sale_price'            => $sale_price,
+                            'sale_price'            => $s_sale_price,
                             'stock_quantity'        => $s_stock,
                             'max_purchase_quantity' => $max_purchase_quantity,
                             'stock_status'          => $s_stock > 0 ? 'in_stock' : 'out_of_stock',
@@ -532,8 +538,9 @@ class variants extends MY_Controller {
     public function update_size_stocks()
     {
         $this->require_permission('products.manage');
-        $product_id = (int) $this->input->post('product_id');
-        $stocks     = $this->input->post('stocks'); // array: variant_id => qty
+        $product_id  = (int) $this->input->post('product_id');
+        $stocks      = $this->input->post('stocks'); // array: variant_id => qty
+        $sale_prices = $this->input->post('sale_prices'); // optional array: variant_id => sale_price
 
         if (!$product_id || empty($stocks) || !is_array($stocks)) {
             header('Content-Type: application/json');
@@ -545,13 +552,17 @@ class variants extends MY_Controller {
             $int_v_id = (int) $v_id;
             $int_qty  = max(0, (int) $qty);
             $status   = $int_qty > 0 ? 'in_stock' : 'out_of_stock';
+            $update_fields = [
+                'stock_quantity' => $int_qty,
+                'stock_status'   => $status,
+                'updated_at'     => date('Y-m-d H:i:s')
+            ];
+            if ($sale_prices && is_array($sale_prices) && isset($sale_prices[$int_v_id]) && $sale_prices[$int_v_id] !== '') {
+                $update_fields['sale_price'] = (float) $sale_prices[$int_v_id];
+            }
             $this->db->where('id', $int_v_id)
                      ->where('product_id', $product_id)
-                     ->update('product_variants', [
-                         'stock_quantity' => $int_qty,
-                         'stock_status'   => $status,
-                         'updated_at'     => date('Y-m-d H:i:s')
-                     ]);
+                     ->update('product_variants', $update_fields);
         }
 
         $total_stock = $this->variant_model->sync_product_stock($product_id);
@@ -559,7 +570,7 @@ class variants extends MY_Controller {
         header('Content-Type: application/json');
         echo json_encode([
             'status'      => 'success',
-            'message'     => 'Stock quantities updated successfully!',
+            'message'     => 'Stock quantities and prices updated successfully!',
             'total_stock' => $total_stock
         ]);
         exit;

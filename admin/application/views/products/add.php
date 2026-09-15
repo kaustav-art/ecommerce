@@ -89,12 +89,13 @@
                   <input type="number" step="0.01" class="form-control" id="price" name="price" placeholder="99.00" required />
                 </div>
               </div>
-              <div class="col-md-6 mb-3">
+              <div class="col-md-6 mb-3" id="add_sale_price_wrapper">
                 <label class="form-label" for="sale_price">Sale Price (Optional)</label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
                   <input type="number" step="0.01" class="form-control" id="sale_price" name="sale_price" placeholder="79.00" />
                 </div>
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Active when no size attributes are selected.</small>
               </div>
             </div>
 
@@ -220,14 +221,7 @@
                             </span>
                             <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity for each selected size.</small>
                           </div>
-                          <!-- Quick Set All Tool -->
-                          <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted" style="font-size: 11px;">Set All:</span>
-                            <div class="input-group input-group-sm" style="width: 140px;">
-                              <input type="number" min="0" class="form-control" id="add_quick_stock_val" placeholder="10" value="10">
-                              <button type="button" class="btn btn-outline-primary" onclick="applyAddStockToAll()">Apply All</button>
-                            </div>
-                          </div>
+
                         </div>
 
                         <!-- Table of Selected Sizes for Stock -->
@@ -238,7 +232,8 @@
                                 <th style="width: 80px;" class="text-center">Size</th>
                                 <th>Variant SKU</th>
                                 <th style="width: 160px;">Stock Quantity</th>
-                                <th style="width: 120px;" class="text-center">Status</th>
+                                <th style="width: 160px;">Sale Price ($)</th>
+                                <th style="width: 110px;" class="text-center">Status</th>
                               </tr>
                             </thead>
                             <tbody id="add-size-stock-tbody">
@@ -579,30 +574,42 @@ function renderAddSizeStockTable() {
   var container = document.getElementById('add-size-stock-manager');
   var tbody = document.getElementById('add-size-stock-tbody');
   var countEl = document.getElementById('add-selected-sizes-count');
+  var salePriceWrapper = document.getElementById('add_sale_price_wrapper');
   if (!container || !tbody) return;
 
   var baseSku = (document.getElementById('sku') ? document.getElementById('sku').value.trim() : '') || 'SKU';
+  var defaultSalePrice = (document.getElementById('sale_price') ? document.getElementById('sale_price').value.trim() : '') || '';
 
   if (checkedCbs.length === 0) {
     container.style.display = 'none';
+    if (salePriceWrapper) salePriceWrapper.style.display = 'block';
     if (countEl) countEl.textContent = '0 sizes selected';
     return;
   }
 
   container.style.display = 'block';
+  if (salePriceWrapper) salePriceWrapper.style.display = 'none';
   if (countEl) countEl.textContent = checkedCbs.length + ' size(s) selected';
 
   // Save current values if already entered
   var currentVals = {};
   document.querySelectorAll('.add-size-qty-input').forEach(function(inp) {
-    currentVals[inp.getAttribute('data-size-id')] = inp.value;
+    var sid = inp.getAttribute('data-size-id');
+    currentVals[sid] = currentVals[sid] || {};
+    currentVals[sid].stock = inp.value;
+  });
+  document.querySelectorAll('.add-size-sale-price-input').forEach(function(inp) {
+    var sid = inp.getAttribute('data-size-id');
+    currentVals[sid] = currentVals[sid] || {};
+    currentVals[sid].sale_price = inp.value;
   });
 
   tbody.innerHTML = '';
   checkedCbs.forEach(function(cb) {
     var sizeId = cb.value;
     var sizeName = cb.getAttribute('data-val') || '';
-    var existingQty = (currentVals[sizeId] !== undefined && currentVals[sizeId] !== '') ? currentVals[sizeId] : '10';
+    var existingQty = (currentVals[sizeId] && currentVals[sizeId].stock !== undefined && currentVals[sizeId].stock !== '') ? currentVals[sizeId].stock : '0';
+    var existingSalePrice = (currentVals[sizeId] && currentVals[sizeId].sale_price !== undefined && currentVals[sizeId].sale_price !== '') ? currentVals[sizeId].sale_price : defaultSalePrice;
     var vSku = baseSku + '-' + sizeName.toUpperCase();
     var isOutOfStock = parseInt(existingQty, 10) === 0;
 
@@ -613,8 +620,14 @@ function renderAddSizeStockTable() {
       '<td><code class="add-size-sku-preview">' + vSku + '</code></td>' +
       '<td>' +
         '<div class="input-group input-group-sm">' +
-          '<span class="input-group-text">Qty</span>' +
-          '<input type="number" min="0" class="form-control text-end add-size-qty-input" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + existingQty + '" oninput="recalcAddTotalStock()">' +
+          '<span class="input-group-text"><i class="fa-solid fa-boxes-stacked" style="font-size: 10px;"></i></span>' +
+          '<input type="number" min="0" class="form-control text-end add-size-qty-input" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingQty) + '" placeholder="0" oninput="recalcAddTotalStock()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcAddTotalStock(); }">' +
+        '</div>' +
+      '</td>' +
+      '<td>' +
+        '<div class="input-group input-group-sm">' +
+          '<span class="input-group-text">$</span>' +
+          '<input type="number" step="0.01" min="0" class="form-control text-end add-size-sale-price-input" name="size_sale_price[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
         '</div>' +
       '</td>' +
       '<td class="text-center">' +
@@ -634,6 +647,13 @@ function applyAddStockToAll() {
     inp.value = val;
   });
   recalcAddTotalStock();
+}
+
+function applyAddSalePriceToAll() {
+  var val = document.getElementById('add_quick_sale_price_val') ? document.getElementById('add_quick_sale_price_val').value : '';
+  document.querySelectorAll('.add-size-sale-price-input').forEach(function(inp) {
+    inp.value = val;
+  });
 }
 
 function recalcAddTotalStock() {

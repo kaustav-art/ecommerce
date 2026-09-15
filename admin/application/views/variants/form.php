@@ -143,21 +143,24 @@
                     required
                   />
                 </div>
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                  Standard listing price / MRP for this variant.
+                </small>
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold" for="var_sale_price">Sale Price (Optional)</label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    class="form-control"
-                    id="var_sale_price"
-                    name="sale_price"
-                    value="<?= isset($variant['sale_price']) ? $variant['sale_price'] : ($product['sale_price'] ?: ''); ?>"
-                    placeholder="39.99"
-                  />
-                </div>
+                <label class="form-label fw-semibold" for="max_purchase_quantity">Max Purchase Quantity (Per Order)</label>
+                <input
+                  type="number"
+                  min="1"
+                  class="form-control"
+                  id="max_purchase_quantity"
+                  name="max_purchase_quantity"
+                  value="<?= !empty($variant['max_purchase_quantity']) ? $variant['max_purchase_quantity'] : (!empty($product['max_purchase_quantity']) ? $product['max_purchase_quantity'] : 5); ?>"
+                  placeholder="e.g. 5"
+                />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                  Maximum units a customer can purchase in one order for this variant (e.g. 5).
+                </small>
               </div>
             </div>
 
@@ -188,29 +191,31 @@
                   class="form-control"
                   id="var_stock"
                   name="stock_quantity"
-                  value="<?= isset($variant['total_stock']) ? $variant['total_stock'] : (isset($variant['stock_quantity']) ? $variant['stock_quantity'] : '10'); ?>"
+                  value="<?= isset($variant['total_stock']) ? $variant['total_stock'] : (isset($variant['stock_quantity']) ? $variant['stock_quantity'] : '0'); ?>"
+                  placeholder="0"
+                  onblur="if(this.value.trim()==='') this.value='0';"
                   required
                 />
                 <small class="text-muted d-block mt-1" id="var_stock_helper" style="font-size: 11px;">
                   Default variant inventory. When sizes are selected below, this auto-sums all size stocks.
                 </small>
               </div>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold" for="max_purchase_quantity">Max Purchase Quantity (Per Order)</label>
-                <input
-                  type="number"
-                  min="1"
-                  class="form-control"
-                  id="max_purchase_quantity"
-                  name="max_purchase_quantity"
-                  value="<?= !empty($variant['max_purchase_quantity']) ? $variant['max_purchase_quantity'] : (!empty($product['max_purchase_quantity']) ? $product['max_purchase_quantity'] : 5); ?>"
-                  placeholder="e.g. 5"
-                />
+              <div class="col-md-6 mb-3" id="var_sale_price_wrapper" style="<?= (!empty($selected_sizes_map) || (!empty($size_attribute) && !empty($size_attribute['values']))) ? 'display: none;' : ''; ?>">
+                <label class="form-label fw-semibold" for="var_sale_price">Sale Price (Optional)</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control"
+                    id="var_sale_price"
+                    name="sale_price"
+                    value="<?= isset($variant['sale_price']) ? $variant['sale_price'] : ($product['sale_price'] ?: ''); ?>"
+                    placeholder="39.99"
+                  />
+                </div>
                 <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                  Maximum units a customer can purchase in one order for this variant (e.g. 5).
+                  Active when no size attributes are defined for this product/variant.
                 </small>
               </div>
             </div>
@@ -253,16 +258,24 @@
                     }
                   }
 
-                  // Pre-selected sizes map: size_id => stock
+                  // Pre-selected sizes map: size_id => [stock, sale_price, price]
                   $selected_sizes_map = [];
                   if (!empty($variant['sizes'])) {
                     foreach ($variant['sizes'] as $sz) {
-                      $selected_sizes_map[$sz['size_id']] = $sz['stock'];
+                      $selected_sizes_map[$sz['size_id']] = [
+                        'stock'      => (isset($sz['stock']) && $sz['stock'] !== '' && $sz['stock'] !== null) ? $sz['stock'] : 0,
+                        'sale_price' => (isset($sz['sale_price']) && $sz['sale_price'] !== null) ? $sz['sale_price'] : '',
+                        'price'      => isset($sz['price']) ? $sz['price'] : ''
+                      ];
                     }
                   } elseif (!empty($variant['values'])) {
                     foreach ($variant['values'] as $val) {
                       if (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0) {
-                        $selected_sizes_map[$val['attribute_value_id']] = isset($variant['stock_quantity']) ? $variant['stock_quantity'] : 10;
+                        $selected_sizes_map[$val['attribute_value_id']] = [
+                          'stock'      => (isset($variant['stock_quantity']) && $variant['stock_quantity'] !== '' && $variant['stock_quantity'] !== null) ? $variant['stock_quantity'] : 0,
+                          'sale_price' => (isset($variant['sale_price']) && $variant['sale_price'] !== null) ? $variant['sale_price'] : '',
+                          'price'      => isset($variant['price']) ? $variant['price'] : ''
+                        ];
                       }
                     }
                   }
@@ -356,16 +369,9 @@
                             <span class="fw-bold text-dark fs-6">
                               <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> Manage Stock by Size
                             </span>
-                            <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity for each selected size.</small>
+                            <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity and sale price for each selected size.</small>
                           </div>
-                          <!-- Quick Set All Tool -->
-                          <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted" style="font-size: 11px;">Set All:</span>
-                            <div class="input-group input-group-sm" style="width: 200px;">
-                              <input type="number" min="0" class="form-control" id="quick_var_stock_val" placeholder="10" value="10">
-                              <button type="button" class="btn btn-outline-primary waves-effect" onclick="applyVarStockToAll()">Apply All</button>
-                            </div>
-                          </div>
+
                         </div>
 
                         <!-- Table of Selected Sizes for Stock -->
@@ -375,8 +381,9 @@
                               <tr>
                                 <th style="width: 80px;" class="text-center">Size</th>
                                 <th>Variant SKU</th>
-                                <th style="width: 200px;">Stock Quantity</th>
-                                <th style="width: 120px;" class="text-center">Status</th>
+                                <th style="width: 170px;">Stock Quantity</th>
+                                <th style="width: 170px;">Sale Price ($)</th>
+                                <th style="width: 110px;" class="text-center">Status</th>
                               </tr>
                             </thead>
                             <tbody id="var-size-stock-tbody">
@@ -858,24 +865,45 @@ function renderVarSizeStockInputs(presetStocks) {
   var container = document.getElementById('var_size_stock_manager');
   var tbody = document.getElementById('var-size-stock-tbody');
   var stockWrapper = document.getElementById('var_stock_wrapper');
+  var salePriceWrapper = document.getElementById('var_sale_price_wrapper');
   if (!container || !tbody) return;
 
   var baseSku = (document.getElementById('var_sku') ? document.getElementById('var_sku').value.trim() : '') || 'SKU';
+  var defaultSalePrice = (document.getElementById('var_sale_price') ? document.getElementById('var_sale_price').value.trim() : '') || '';
 
   if (checkedCbs.length === 0) {
     container.style.display = 'none';
     if (stockWrapper) stockWrapper.style.display = 'block';
+    if (salePriceWrapper) {
+      salePriceWrapper.style.display = <?= (!empty($size_attribute) && !empty($size_attribute['values'])) ? "'none'" : "'block'" ?>;
+    }
     return;
   }
 
   container.style.display = 'block';
   if (stockWrapper) stockWrapper.style.display = 'none';
+  if (salePriceWrapper) salePriceWrapper.style.display = 'none';
 
   // Read existing input values unless presetStocks provided
-  var existingVals = presetStocks || presetSizesMap || {};
+  var existingData = presetStocks || presetSizesMap || {};
   if (!presetStocks) {
     document.querySelectorAll('.var-size-qty-input').forEach(function(inp) {
-      existingVals[inp.getAttribute('data-size-id')] = inp.value;
+      var sid = inp.getAttribute('data-size-id');
+      var val = inp.value.trim();
+      if (val === '') val = '0';
+      if (!existingData[sid] || typeof existingData[sid] !== 'object') {
+        existingData[sid] = { stock: val };
+      } else {
+        existingData[sid].stock = val;
+      }
+    });
+    document.querySelectorAll('.var-size-sale-price-input').forEach(function(inp) {
+      var sid = inp.getAttribute('data-size-id');
+      if (!existingData[sid] || typeof existingData[sid] !== 'object') {
+        existingData[sid] = { sale_price: inp.value };
+      } else {
+        existingData[sid].sale_price = inp.value;
+      }
     });
   }
 
@@ -883,7 +911,25 @@ function renderVarSizeStockInputs(presetStocks) {
   checkedCbs.forEach(function(cb) {
     var sizeId = cb.value;
     var sizeName = cb.getAttribute('data-val') || '';
-    var existingQty = (existingVals[sizeId] !== undefined && existingVals[sizeId] !== '') ? existingVals[sizeId] : '10';
+    var sizeObj = existingData[sizeId];
+    var existingQty = '0';
+    var existingSalePrice = defaultSalePrice;
+
+    if (sizeObj !== undefined && sizeObj !== null) {
+      if (typeof sizeObj === 'object') {
+        if (sizeObj.stock !== undefined && sizeObj.stock !== null && sizeObj.stock !== '') {
+          existingQty = String(sizeObj.stock);
+        } else {
+          existingQty = '0';
+        }
+        if (sizeObj.sale_price !== undefined && sizeObj.sale_price !== null && sizeObj.sale_price !== '') {
+          existingSalePrice = sizeObj.sale_price;
+        }
+      } else {
+        existingQty = (sizeObj !== '' && sizeObj !== null && sizeObj !== undefined) ? String(sizeObj) : '0';
+      }
+    }
+
     var isOut = parseInt(existingQty, 10) === 0;
     var vSku = baseSku;
     if (!new RegExp('-' + sizeName + '$', 'i').test(vSku)) {
@@ -901,8 +947,14 @@ function renderVarSizeStockInputs(presetStocks) {
       '</td>' +
       '<td class="align-middle">' +
         '<div class="input-group input-group-sm">' +
-          '<span class="input-group-text">Qty</span>' +
-          '<input type="number" min="0" class="form-control text-end var-size-qty-input" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + existingQty + '" oninput="recalcVarTotalStock()">' +
+          '<span class="input-group-text"><i class="fa-solid fa-boxes-stacked" style="font-size: 10px;"></i></span>' +
+          '<input type="number" min="0" class="form-control text-end var-size-qty-input" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingQty) + '" placeholder="0" oninput="recalcVarTotalStock()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcVarTotalStock(); }">' +
+        '</div>' +
+      '</td>' +
+      '<td class="align-middle">' +
+        '<div class="input-group input-group-sm">' +
+          '<span class="input-group-text">$</span>' +
+          '<input type="number" step="0.01" min="0" class="form-control text-end var-size-sale-price-input" name="size_sale_price[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
         '</div>' +
       '</td>' +
       '<td class="text-center align-middle">' +
@@ -920,6 +972,13 @@ function applyVarStockToAll() {
     inp.value = val;
   });
   recalcVarTotalStock();
+}
+
+function applyVarSalePriceToAll() {
+  var val = document.getElementById('quick_var_sale_price_val') ? document.getElementById('quick_var_sale_price_val').value : '';
+  document.querySelectorAll('.var-size-sale-price-input').forEach(function(inp) {
+    inp.value = val;
+  });
 }
 
 function recalcVarTotalStock() {

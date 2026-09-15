@@ -82,7 +82,9 @@ class product extends MY_Controller {
                 'sale_price'     => !empty($variant['sale_price']) ? (float) $variant['sale_price'] : null,
                 'stock_quantity' => (int) $variant['stock_quantity'],
                 'stock_status'   => $variant['stock_status'],
-                'image'          => $variant['image'] ? base_url('assets/images/' . $variant['image']) : null
+                'image'          => $variant['image'] ? base_url('assets/images/' . $variant['image']) : null,
+                'highlights'     => !empty($variant['highlights']) ? (json_decode($variant['highlights'], true) ?: []) : [],
+                'specifications' => !empty($variant['specifications']) ? (json_decode($variant['specifications'], true) ?: []) : []
             ]
         ]);
     }
