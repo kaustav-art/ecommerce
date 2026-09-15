@@ -31,7 +31,7 @@ class variant_model extends CI_Model {
     {
         $variant = $this->db->where('id', (int) $id)->get('product_variants')->row_array();
         if ($variant) {
-            $variant['values'] = $this->db->select('pvv.*, a.name as attribute_name, av.value as attribute_value')
+            $variant['values'] = $this->db->select('pvv.*, a.name as attribute_name, a.slug as attribute_slug, av.value as attribute_value, av.color_code')
                                           ->from('product_variant_values pvv')
                                           ->join('attributes a', 'a.id = pvv.attribute_id')
                                           ->join('attribute_values av', 'av.id = pvv.attribute_value_id')
@@ -195,23 +195,36 @@ class variant_model extends CI_Model {
 
             if (!isset($groups[$non_size_key])) {
                 $groups[$non_size_key] = [
-                    'group_key'          => $non_size_key,
-                    'product_id'         => (int) $v['product_id'],
-                    'primary_id'         => (int) $v['id'],
-                    'title'              => $base_title,
-                    'base_sku'           => $base_sku,
-                    'price'              => (float) $v['price'],
-                    'sale_price'         => !empty($v['sale_price']) ? (float) $v['sale_price'] : null,
-                    'image'              => $v['image'],
-                    'gallery_images'     => $v['gallery_images'],
-                    'non_size_attrs'     => $non_size_attrs,
-                    'has_sizes'          => false,
-                    'sizes'              => [],
-                    'total_stock'        => 0,
-                    'in_stock_count'     => 0,
-                    'out_of_stock_count' => 0,
-                    'variant_ids'        => []
+                    'group_key'             => $non_size_key,
+                    'product_id'            => (int) $v['product_id'],
+                    'primary_id'            => (int) $v['id'],
+                    'title'                 => $base_title,
+                    'base_sku'              => $base_sku,
+                    'price'                 => (float) $v['price'],
+                    'sale_price'            => !empty($v['sale_price']) ? (float) $v['sale_price'] : null,
+                    'image'                 => $v['image'],
+                    'gallery_images'        => $v['gallery_images'],
+                    'max_purchase_quantity' => isset($v['max_purchase_quantity']) ? (int) $v['max_purchase_quantity'] : 5,
+                    'highlights'            => !empty($v['highlights']) ? $v['highlights'] : null,
+                    'specifications'        => !empty($v['specifications']) ? $v['specifications'] : null,
+                    'non_size_attrs'        => $non_size_attrs,
+                    'has_sizes'             => false,
+                    'sizes'                 => [],
+                    'total_stock'           => 0,
+                    'in_stock_count'        => 0,
+                    'out_of_stock_count'    => 0,
+                    'variant_ids'           => []
                 ];
+            } else {
+                if (empty($groups[$non_size_key]['highlights']) && !empty($v['highlights'])) {
+                    $groups[$non_size_key]['highlights'] = $v['highlights'];
+                }
+                if (empty($groups[$non_size_key]['specifications']) && !empty($v['specifications'])) {
+                    $groups[$non_size_key]['specifications'] = $v['specifications'];
+                }
+                if (empty($groups[$non_size_key]['max_purchase_quantity']) && !empty($v['max_purchase_quantity'])) {
+                    $groups[$non_size_key]['max_purchase_quantity'] = (int) $v['max_purchase_quantity'];
+                }
             }
 
             $groups[$non_size_key]['variant_ids'][] = (int) $v['id'];
@@ -235,5 +248,16 @@ class variant_model extends CI_Model {
         }
 
         return array_values($groups);
+    }
+
+    public function get_group_by_variant_id($product_id, $variant_id)
+    {
+        $groups = $this->get_grouped_by_product($product_id);
+        foreach ($groups as $grp) {
+            if (in_array((int) $variant_id, $grp['variant_ids'], true)) {
+                return $grp;
+            }
+        }
+        return null;
     }
 }
