@@ -1310,7 +1310,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                     <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductHighlights()" 
                                                          style="cursor: pointer;">
-                                                        <h4 class="m-0" style="font-size: 18px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
+                                                        <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
                                                         <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
                                                                 style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
                                                                 aria-label="Toggle Product Highlights">
@@ -1343,7 +1343,7 @@ if ($has_variants && empty($initial_variant_id) && !empty($product['variants']))
                                                     <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" 
                                                          onclick="toggleProductSpecifications()" 
                                                          style="cursor: pointer;">
-                                                        <h4 class="m-0" style="font-size: 18px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
+                                                        <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
                                                         <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" 
                                                                 style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" 
                                                                 aria-label="Toggle Specifications">

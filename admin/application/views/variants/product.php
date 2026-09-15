@@ -11,9 +11,6 @@
       </small>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <a href="<?= site_url('variants/add/' . $product['id']); ?>" class="btn btn-primary">
-        <i class="fa-solid fa-plus me-1"></i> Add Variant
-      </a>
       <a href="<?= site_url('products/edit/' . $product['id']); ?>" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-pen-to-square me-1"></i> Edit Product
       </a>

@@ -361,9 +361,9 @@
                           <!-- Quick Set All Tool -->
                           <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" style="font-size: 11px;">Set All:</span>
-                            <div class="input-group input-group-sm" style="width: 140px;">
+                            <div class="input-group input-group-sm" style="width: 200px;">
                               <input type="number" min="0" class="form-control" id="quick_var_stock_val" placeholder="10" value="10">
-                              <button type="button" class="btn btn-outline-primary" onclick="applyVarStockToAll()">Apply All</button>
+                              <button type="button" class="btn btn-outline-primary waves-effect" onclick="applyVarStockToAll()">Apply All</button>
                             </div>
                           </div>
                         </div>
@@ -375,7 +375,7 @@
                               <tr>
                                 <th style="width: 80px;" class="text-center">Size</th>
                                 <th>Variant SKU</th>
-                                <th style="width: 160px;">Stock Quantity</th>
+                                <th style="width: 200px;">Stock Quantity</th>
                                 <th style="width: 120px;" class="text-center">Status</th>
                               </tr>
                             </thead>
