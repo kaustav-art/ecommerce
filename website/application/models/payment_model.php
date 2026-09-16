@@ -14,6 +14,22 @@ class payment_model extends CI_Model {
         return $this->setting_model->get_gateway($gateway_code);
     }
 
+    public function get_order_currency($order = null)
+    {
+        if (!empty($order) && !empty($order['currency'])) {
+            return strtoupper(trim($order['currency']));
+        }
+        $store_curr = $this->setting_model->get('currency_code');
+        if (!empty($store_curr)) {
+            return strtoupper(trim($store_curr));
+        }
+        $store_curr2 = $this->setting_model->get('currency');
+        if (!empty($store_curr2)) {
+            return strtoupper(trim($store_curr2));
+        }
+        return 'USD';
+    }
+
     // ==========================================
     // 1. STRIPE GATEWAY
     // ==========================================
@@ -28,9 +44,10 @@ class payment_model extends CI_Model {
         $secret_key  = $credentials['secret_key'] ?? '';
         $pub_key     = $credentials['publishable_key'] ?? '';
 
-        // Currency and amount
-        $currency     = !empty($order['currency']) ? strtolower($order['currency']) : 'inr';
-        $amount_cents = (int) round($order['total_amount'] * 100);
+        // Dynamic Currency and amount
+        $currency_code = $this->get_order_currency($order);
+        $currency      = strtolower($currency_code);
+        $amount_cents  = (int) round($order['total_amount'] * 100);
 
         // Build itemized line items if available
         $line_items = [];
@@ -131,7 +148,7 @@ class payment_model extends CI_Model {
             'session_id'      => $session_id,
             'checkout_url'    => $checkout_url,
             'amount_cents'    => $amount_cents,
-            'currency'        => $currency
+            'currency'        => $currency_code
         ];
     }
 
@@ -149,7 +166,8 @@ class payment_model extends CI_Model {
         $key_id      = $credentials['key_id'] ?? '';
         $key_secret  = $credentials['key_secret'] ?? '';
 
-        // Amount in sub-units (paise / cents)
+        // Dynamic Currency and amount in sub-units (cents / paise)
+        $currency_code  = $this->get_order_currency($order);
         $amount_subunit = (int) round($order['total_amount'] * 100);
         $razorpay_order_id = NULL;
 
@@ -159,7 +177,7 @@ class payment_model extends CI_Model {
             curl_setopt($ch, CURLOPT_POST, TRUE);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
                 'amount'   => $amount_subunit,
-                'currency' => 'INR', // Razorpay standard
+                'currency' => $currency_code,
                 'receipt'  => $order['order_number']
             ]));
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -183,7 +201,7 @@ class payment_model extends CI_Model {
             'key_id'            => $key_id,
             'razorpay_order_id' => $razorpay_order_id,
             'amount_subunit'    => $amount_subunit,
-            'currency'          => 'INR',
+            'currency'          => $currency_code,
             'order_number'      => $order['order_number']
         ];
     }
@@ -225,16 +243,28 @@ class payment_model extends CI_Model {
             ? ($credentials['live_url'] ?? 'https://secure.payu.in/_payment')
             : ($credentials['test_url'] ?? 'https://test.payu.in/_payment');
 
-        $txnid       = 'PAYU_' . $order['order_number'] . '_' . time();
-        $amount      = sprintf('%.2f', $order['total_amount']);
-        $productinfo = 'Order ' . $order['order_number'];
-        $firstname   = explode(' ', trim($order['customer_name']))[0];
-        $email       = $order['customer_email'];
-        $phone       = $order['customer_phone'];
+        $currency_code = $this->get_order_currency($order);
+        $txnid         = 'PAYU_' . $order['order_number'] . '_' . time();
+        $amount        = sprintf('%.2f', $order['total_amount']);
+        $productinfo   = 'Order ' . $order['order_number'];
+        $firstname     = explode(' ', trim($order['customer_name']))[0];
+        $email         = $order['customer_email'];
+        $phone         = $order['customer_phone'];
 
         // Hash sequence: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT
         $hash_string = "{$merchant_key}|{$txnid}|{$amount}|{$productinfo}|{$firstname}|{$email}|||||||||||{$salt}";
+        // echo $hash_string; exit;
         $hash        = strtolower(hash('sha512', $hash_string));
+
+        // Save initiating session ID into order payment details to guarantee session continuity
+        if (!empty($order['order_number']) && !empty($this->session->session_id)) {
+            $sess_id = $this->session->session_id;
+            $details = !empty($order['payment_details']) ? json_decode($order['payment_details'], true) : [];
+            if (!is_array($details)) $details = [];
+            $details['init_session_id'] = $sess_id;
+            $this->db->where('order_number', $order['order_number'])
+                     ->update('orders', ['payment_details' => json_encode($details)]);
+        }
 
         return [
             'success'     => true,
@@ -242,12 +272,13 @@ class payment_model extends CI_Model {
             'key'         => $merchant_key,
             'txnid'       => $txnid,
             'amount'      => $amount,
+            'currency'    => $currency_code,
             'productinfo' => $productinfo,
             'firstname'   => $firstname,
             'email'       => $email,
             'phone'       => $phone,
             'surl'        => site_url('payment/payu_return/' . $order['order_number']),
-            'furl'        => site_url('payment/failure/' . $order['order_number']),
+            'furl'        => site_url('payment/payu_return/' . $order['order_number']),
             'hash'        => $hash
         ];
     }

@@ -115,41 +115,101 @@
                                 <div class="card-body p-3 p-md-4" id="payment-options-body">
                                     <!-- Payment Methods List -->
                                     <div class="d-flex flex-column gap-2 mb-1">
-                                        <!-- 1. Razorpay -->
-                                        <label class="p-3 rounded-2 border d-flex align-items-center gap-3 cursor-pointer active-payment-option" id="payment-label-razorpay" style="transition: all 0.15s ease;">
-                                            <input class="form-check-input flex-shrink-0 m-0" type="radio" name="payment_method_choice" value="razorpay" checked onchange="handlePaymentSelection('razorpay')">
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold text-dark">Razorpay (UPI, Google Pay, PhonePe, Cards, NetBanking)</div>
-                                                <div class="text-secondary small">Pay securely via UPI QR, Google Pay, PhonePe, Cards, or NetBanking</div>
-                                            </div>
-                                        </label>
+                                        <?php
+                                            $cod_allowed = isset($cod_eligible) ? $cod_eligible : true;
+                                            $non_cod = !empty($non_cod_items) ? $non_cod_items : [];
 
-                                        <!-- 2. Stripe -->
-                                        <label class="p-3 rounded-2 border d-flex align-items-center gap-3 cursor-pointer" id="payment-label-stripe" style="transition: all 0.15s ease;">
-                                            <input class="form-check-input flex-shrink-0 m-0" type="radio" name="payment_method_choice" value="stripe" onchange="handlePaymentSelection('stripe')">
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold text-dark">Credit / Debit Card (Stripe Gateway)</div>
-                                                <div class="text-secondary small">Visa, MasterCard, American Express, Rupay</div>
-                                            </div>
-                                        </label>
+                                            // Determine valid selectable gateways
+                                            $valid_selectable_codes = [];
+                                            foreach ($gateways as $gw) {
+                                                if ($gw['gateway_code'] === 'cod' && !$cod_allowed) {
+                                                    continue;
+                                                }
+                                                $valid_selectable_codes[] = $gw['gateway_code'];
+                                            }
 
-                                        <!-- 3. PayU -->
-                                        <label class="p-3 rounded-2 border d-flex align-items-center gap-3 cursor-pointer" id="payment-label-payu" style="transition: all 0.15s ease;">
-                                            <input class="form-check-input flex-shrink-0 m-0" type="radio" name="payment_method_choice" value="payu" onchange="handlePaymentSelection('payu')">
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold text-dark">PayU (NetBanking & Wallets)</div>
-                                                <div class="text-secondary small">Pay via PayU Money/Biz NetBanking and Wallets</div>
-                                            </div>
-                                        </label>
+                                            $selected_gateway = (!empty($default_gateway) && in_array($default_gateway, $valid_selectable_codes))
+                                                ? $default_gateway
+                                                : (!empty($valid_selectable_codes) ? $valid_selectable_codes[0] : '');
 
-                                        <!-- 4. Cash on Delivery -->
-                                        <label class="p-3 rounded-2 border d-flex align-items-center gap-3 cursor-pointer" id="payment-label-cod" style="transition: all 0.15s ease;">
-                                            <input class="form-check-input flex-shrink-0 m-0" type="radio" name="payment_method_choice" value="cod" onchange="handlePaymentSelection('cod')">
-                                            <div class="flex-grow-1">
-                                                <div class="fw-semibold text-dark">Cash on Delivery (COD)</div>
-                                                <div class="text-secondary small">Pay with cash or UPI QR scanner when package arrives</div>
+                                            $gateway_meta = [
+                                                'razorpay' => [
+                                                    'name' => 'Razorpay (UPI, Google Pay, PhonePe, Cards, NetBanking)',
+                                                    'desc' => 'Pay securely via UPI QR, Google Pay, PhonePe, Cards, or NetBanking',
+                                                    'icon' => 'fa-credit-card text-info'
+                                                ],
+                                                'stripe' => [
+                                                    'name' => 'Credit / Debit Card (Stripe Gateway)',
+                                                    'desc' => 'Visa, MasterCard, American Express, Rupay',
+                                                    'icon' => 'fa-shield-halved text-primary'
+                                                ],
+                                                'payu' => [
+                                                    'name' => 'PayU (NetBanking & Wallets)',
+                                                    'desc' => 'Pay via PayU Money/Biz NetBanking and Wallets',
+                                                    'icon' => 'fa-money-bill-transfer text-warning'
+                                                ],
+                                                'cod' => [
+                                                    'name' => 'Cash on Delivery (COD)',
+                                                    'desc' => 'Pay with cash or UPI QR scanner when package arrives',
+                                                    'icon' => 'fa-truck-ramp-box text-success'
+                                                ]
+                                            ];
+                                        ?>
+
+                                        <?php if (empty($gateways) || empty($valid_selectable_codes)): ?>
+                                            <div class="alert alert-warning border rounded-2 p-3 mb-0">
+                                                <i class="fa-solid fa-triangle-exclamation me-2"></i> 
+                                                <?php if (!empty($gateways) && empty($valid_selectable_codes) && !$cod_allowed): ?>
+                                                    Cash on Delivery is the only configured payment method, but your cart contains product(s) that do not support Cash on Delivery (<strong><?= html_escape(implode(', ', $non_cod)); ?></strong>). Please contact support.
+                                                <?php else: ?>
+                                                    No payment methods are currently active. Please contact customer support.
+                                                <?php endif; ?>
                                             </div>
-                                        </label>
+                                        <?php else: ?>
+                                            <?php foreach ($gateways as $gw):
+                                                $code = $gw['gateway_code'];
+                                                $meta = $gateway_meta[$code] ?? [
+                                                    'name' => $gw['gateway_name'],
+                                                    'desc' => 'Pay securely via ' . $gw['gateway_name'],
+                                                    'icon' => 'fa-wallet text-secondary'
+                                                ];
+                                                $is_cod_disabled = ($code === 'cod' && !$cod_allowed);
+                                                $is_checked = ($code === $selected_gateway && !$is_cod_disabled);
+                                                $desc = (!empty($gw['credentials']['instructions'])) ? $gw['credentials']['instructions'] : $meta['desc'];
+                                            ?>
+                                                <label class="p-3 rounded-2 border d-flex align-items-start gap-3 <?= $is_checked ? 'active-payment-option' : ''; ?> <?= $is_cod_disabled ? 'bg-light text-muted border-secondary-subtle' : 'cursor-pointer'; ?>" 
+                                                       id="payment-label-<?= $code; ?>" 
+                                                       style="transition: all 0.15s ease; <?= $is_cod_disabled ? 'opacity: 0.75; cursor: not-allowed !important;' : ''; ?>">
+                                                    <input class="form-check-input flex-shrink-0 mt-1" 
+                                                           type="radio" 
+                                                           name="payment_method_choice" 
+                                                           value="<?= $code; ?>" 
+                                                           <?= $is_checked ? 'checked' : ''; ?> 
+                                                           <?= $is_cod_disabled ? 'disabled' : ''; ?> 
+                                                           <?= !$is_cod_disabled ? 'onchange="handlePaymentSelection(\'' . $code . '\')"' : ''; ?>>
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                            <div class="fw-semibold <?= $is_cod_disabled ? 'text-secondary' : 'text-dark'; ?>">
+                                                                <i class="fa-solid <?= $meta['icon']; ?> me-1"></i>
+                                                                <?= html_escape($meta['name']); ?>
+                                                            </div>
+                                                            <?php if ($is_cod_disabled): ?>
+                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small px-2 py-1">
+                                                                    <i class="fa-solid fa-ban me-1"></i>COD Unavailable
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <div class="text-secondary small mt-1"><?= html_escape($desc); ?></div>
+                                                        <?php if ($is_cod_disabled): ?>
+                                                            <div class="alert alert-danger border-0 bg-danger-subtle text-danger py-2 px-3 small rounded-2 mt-2 mb-0">
+                                                                <i class="fa-solid fa-circle-exclamation me-1"></i>
+                                                                Cash on Delivery is disabled because item <strong><?= html_escape(implode(', ', $non_cod)); ?></strong> in your cart does not support COD. Please complete your payment using the online payment gateway.
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -215,8 +275,8 @@
                                 </div>
 
                                 <!-- Big Action Button -->
-                                <button type="button" class="btn btn-warning btn-lg w-100 fw-bold py-3 text-white text-uppercase shadow-sm rounded-2" id="btn-sidebar-pay" onclick="triggerSelectedPayment()" style="background-color: #fb641b; border-color: #fb641b; letter-spacing: 0.5px;">
-                                    PAY NOW
+                                <button type="button" class="btn btn-warning btn-lg w-100 fw-bold py-3 text-white text-uppercase shadow-sm rounded-2" id="btn-sidebar-pay" onclick="triggerSelectedPayment()" style="background-color: #fb641b; border-color: #fb641b; letter-spacing: 0.5px;" <?= (empty($gateways) || empty($valid_selectable_codes)) ? 'disabled' : ''; ?>>
+                                    <?= (empty($gateways) || empty($valid_selectable_codes)) ? 'NO PAYMENT METHOD AVAILABLE' : 'PAY NOW'; ?>
                                 </button>
 
                                 <!-- Trust & Safety Guarantee -->
@@ -268,23 +328,26 @@
         var CURRENCY = <?= json_encode($currency_symbol); ?>;
 
         function handlePaymentSelection(method) {
-            ['razorpay', 'stripe', 'payu', 'cod'].forEach(function(m) {
-                var label = document.getElementById('payment-label-' + m);
-                if (label) {
-                    if (m === method) {
-                        label.classList.add('active-payment-option');
-                        var radio = label.querySelector('input[type="radio"]');
-                        if (radio) radio.checked = true;
-                    } else {
-                        label.classList.remove('active-payment-option');
-                    }
+            document.querySelectorAll('label[id^="payment-label-"]').forEach(function(label) {
+                var m = label.id.replace('payment-label-', '');
+                var radio = label.querySelector('input[type="radio"]');
+                if (radio && radio.disabled) return;
+                if (m === method) {
+                    label.classList.add('active-payment-option');
+                    if (radio) radio.checked = true;
+                } else {
+                    label.classList.remove('active-payment-option');
                 }
             });
         }
 
         function triggerSelectedPayment() {
-            var checkedRadio = document.querySelector('input[name="payment_method_choice"]:checked');
-            var method = checkedRadio ? checkedRadio.value : 'razorpay';
+            var checkedRadio = document.querySelector('input[name="payment_method_choice"]:checked:not(:disabled)');
+            if (!checkedRadio) {
+                showCheckoutToast('Please select an available payment method before proceeding.', 'warning');
+                return;
+            }
+            var method = checkedRadio.value;
             initiateGatewayPayment(method);
         }
 
@@ -382,7 +445,7 @@
             var options = {
                 "key": rzpData.key_id,
                 "amount": rzpData.amount_subunit,
-                "currency": rzpData.currency || "INR",
+                "currency": rzpData.currency || (order.currency || "<?= html_escape($currency_code ?? 'USD'); ?>"),
                 "name": SITE_NAME,
                 "description": "Payment for Order #" + data.order_number,
                 "prefill": {
@@ -538,6 +601,7 @@
                 '<input type="hidden" name="hash" value="' + p.hash + '">' +
                 '<input type="hidden" name="txnid" value="' + p.txnid + '">' +
                 '<input type="hidden" name="amount" value="' + p.amount + '">' +
+                '<input type="hidden" name="currency" value="' + (p.currency || (order.currency || '<?= html_escape($currency_code ?? 'USD'); ?>')) + '">' +
                 '<input type="hidden" name="firstname" value="' + p.firstname + '">' +
                 '<input type="hidden" name="email" value="' + p.email + '">' +
                 '<input type="hidden" name="phone" value="' + p.phone + '">' +

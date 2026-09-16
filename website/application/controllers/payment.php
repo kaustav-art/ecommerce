@@ -80,6 +80,8 @@ class payment extends MY_Controller {
             ['gateway' => 'stripe', 'session_id' => $session_id, 'intent_id' => $payment_intent, 'paid_at' => date('Y-m-d H:i:s')]
         );
 
+        $this->_restore_original_session($order);
+
         $this->load->model('cart_model');
         $this->cart_model->clear_cart();
 
@@ -103,6 +105,8 @@ class payment extends MY_Controller {
             $payment_intent_id,
             ['gateway' => 'stripe', 'intent_id' => $payment_intent_id, 'paid_at' => date('Y-m-d H:i:s')]
         );
+
+        $this->_restore_original_session($order);
 
         $this->load->model('cart_model');
         $this->cart_model->clear_cart();
@@ -157,6 +161,8 @@ class payment extends MY_Controller {
             $razorpay_payment_id,
             $razorpay_signature
         );
+
+        $this->_restore_original_session($order);
 
         if ($verified) {
             $this->order_model->update_payment(
@@ -219,6 +225,9 @@ class payment extends MY_Controller {
             show_404();
         }
 
+        // Restore user session if lost due to SameSite Lax cookie restrictions on cross-site POST
+        $this->_restore_original_session($order);
+
         $post_data = $this->input->post();
         $is_valid  = $this->payment_model->verify_payu_hash($post_data);
 
@@ -238,7 +247,17 @@ class payment extends MY_Controller {
             redirect('payment/success/' . $order_number);
         } else {
             $this->order_model->update_payment($order_number, 'failed', $txnid, $post_data);
-            $this->session->set_flashdata('error', 'PayU payment was declined or could not be verified.');
+
+            // Re-populate customer cart so items are not lost when payment fails or is cancelled
+            $this->_restore_cart_on_failure($order);
+
+            $err_msg = !empty($post_data['error_Message']) 
+                ? $post_data['error_Message'] 
+                : (!empty($post_data['unmappedstatus']) && $post_data['unmappedstatus'] === 'userCancelled' 
+                    ? 'Payment was cancelled by user.' 
+                    : 'PayU payment was declined or could not be verified.');
+
+            $this->session->set_flashdata('error', $err_msg);
             redirect('payment/failure/' . $order_number);
         }
     }
@@ -251,6 +270,11 @@ class payment extends MY_Controller {
         $order = $this->order_model->get_by_order_number($order_number);
         if (!$order) {
             show_404();
+        }
+
+        // Ensure user session is active
+        if (!$this->is_logged_in() && !empty($order['user_id'])) {
+            $this->_restore_original_session($order);
         }
 
         $data = [
@@ -268,6 +292,21 @@ class payment extends MY_Controller {
         if (!$order) {
             show_404();
         }
+
+        // If PayU or another gateway posted directly to failure
+        if ($this->input->method() === 'post') {
+            $post_data = $this->input->post();
+            $txnid = $this->input->post('txnid', TRUE);
+            $this->order_model->update_payment($order_number, 'failed', $txnid, $post_data);
+        }
+
+        // Ensure user session is active
+        if (!$this->is_logged_in() && !empty($order['user_id'])) {
+            $this->_restore_original_session($order);
+        }
+
+        // Ensure cart is preserved on failure
+        $this->_restore_cart_on_failure($order);
 
         $data = [
             'title'       => 'Payment Failed - #' . $order_number,
@@ -494,6 +533,189 @@ class payment extends MY_Controller {
             ->set_status_header(200)
             ->set_content_type('application/json')
             ->set_output(json_encode(['status' => 'success', 'received' => true]));
+    }
+
+    /**
+     * Restore customer session after cross-site redirects (e.g. PayU POST return)
+     */
+    protected function _restore_original_session($order)
+    {
+        if (empty($order)) {
+            return;
+        }
+
+        $init_session_id = NULL;
+        if (!empty($order['payment_details'])) {
+            $details = is_string($order['payment_details']) ? json_decode($order['payment_details'], true) : $order['payment_details'];
+            if (is_array($details) && !empty($details['init_session_id'])) {
+                $init_session_id = $details['init_session_id'];
+            }
+        }
+
+        // Try restoring from old session in ci_sessions table if available
+        if ($init_session_id && $init_session_id !== $this->session->session_id) {
+            $sess_row = $this->db->select('data')->where('id', $init_session_id)->get('ci_sessions')->row_array();
+            if ($sess_row && !empty($sess_row['data'])) {
+                $raw = $sess_row['data'];
+                $offset = 0;
+                $old_data = [];
+                while ($offset < strlen($raw)) {
+                    if (!strstr(substr($raw, $offset), "|")) {
+                        break;
+                    }
+                    $pos = strpos($raw, "|", $offset);
+                    $num = $pos - $offset;
+                    $varname = substr($raw, $offset, $num);
+                    $offset += $num + 1;
+                    $val = unserialize(substr($raw, $offset));
+                    $offset += strlen(serialize($val));
+                    $old_data[$varname] = $val;
+                }
+
+                if (!empty($old_data)) {
+                    foreach (['user_id', 'user_first_name', 'user_last_name', 'user_email', 'user_phone', 'user_avatar', 'user_logged_in', 'recently_viewed'] as $k) {
+                        if (isset($old_data[$k])) {
+                            $this->session->set_userdata($k, $old_data[$k]);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Direct database restoration if user is still not marked logged in
+        if (!$this->is_logged_in() && !empty($order['user_id'])) {
+            $this->load->model('user_model');
+            $user = $this->user_model->get_by_id($order['user_id']);
+            if ($user && $user['status'] === 'active') {
+                $avatar = !empty($user['avatar']) ? $user['avatar'] : '';
+                $this->session->set_userdata([
+                    'user_id'         => $user['id'],
+                    'user_first_name' => $user['first_name'],
+                    'user_last_name'  => $user['last_name'],
+                    'user_email'      => $user['email'],
+                    'user_phone'      => $user['phone'],
+                    'user_avatar'     => $avatar,
+                    'user_logged_in'  => TRUE
+                ]);
+
+                $this->current_user = [
+                    'id'         => $user['id'],
+                    'first_name' => $user['first_name'],
+                    'last_name'  => $user['last_name'],
+                    'email'      => $user['email'],
+                    'phone'      => $user['phone'],
+                    'avatar'     => $avatar
+                ];
+            }
+        } elseif ($this->is_logged_in() && empty($this->current_user)) {
+            $this->current_user = [
+                'id'         => $this->session->userdata('user_id'),
+                'first_name' => $this->session->userdata('user_first_name'),
+                'last_name'  => $this->session->userdata('user_last_name'),
+                'email'      => $this->session->userdata('user_email'),
+                'phone'      => $this->session->userdata('user_phone'),
+                'avatar'     => $this->session->userdata('user_avatar') ?? ''
+            ];
+        }
+    }
+
+    /**
+     * Restore customer cart items if payment failed or was cancelled
+     */
+    protected function _restore_cart_on_failure($order)
+    {
+        if (empty($order)) {
+            return;
+        }
+
+        $current_cart = $this->session->userdata('cart');
+        if (!empty($current_cart)) {
+            return;
+        }
+
+        // Check if old session had the cart
+        $init_session_id = NULL;
+        if (!empty($order['payment_details'])) {
+            $details = is_string($order['payment_details']) ? json_decode($order['payment_details'], true) : $order['payment_details'];
+            if (is_array($details) && !empty($details['init_session_id'])) {
+                $init_session_id = $details['init_session_id'];
+            }
+        }
+
+        if ($init_session_id) {
+            $sess_row = $this->db->select('data')->where('id', $init_session_id)->get('ci_sessions')->row_array();
+            if ($sess_row && !empty($sess_row['data'])) {
+                $raw = $sess_row['data'];
+                $offset = 0;
+                while ($offset < strlen($raw)) {
+                    if (!strstr(substr($raw, $offset), "|")) {
+                        break;
+                    }
+                    $pos = strpos($raw, "|", $offset);
+                    $num = $pos - $offset;
+                    $varname = substr($raw, $offset, $num);
+                    $offset += $num + 1;
+                    $val = unserialize(substr($raw, $offset));
+                    $offset += strlen(serialize($val));
+                    if ($varname === 'cart' && is_array($val) && !empty($val)) {
+                        $this->session->set_userdata('cart', $val);
+                        $summary = $this->cart_model->get_cart_summary();
+                        $this->cart_count = $summary['item_count'];
+                        $this->cart_total = $summary['subtotal'];
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Fallback: Reconstruct cart from order items
+        if (empty($order['items'])) {
+            $order = $this->order_model->get_by_order_number($order['order_number']);
+        }
+
+        if (!empty($order['items'])) {
+            $this->load->model('product_model');
+            $cart = [];
+            foreach ($order['items'] as $item) {
+                $product_id = (int) $item['product_id'];
+                $variant_id = !empty($item['variant_id']) ? (int) $item['variant_id'] : NULL;
+                $cart_key   = $product_id . ($variant_id ? '_' . $variant_id : '');
+
+                $product = $this->product_model->get_by_id($product_id);
+                if (!$product) continue;
+
+                $qty       = (int) $item['quantity'];
+                $price     = (float) $item['price'];
+                $reg_price = round($price * 1.30, 2);
+
+                $cart[$cart_key] = [
+                    'cart_key'         => $cart_key,
+                    'id'               => $product_id,
+                    'variant_id'       => $variant_id,
+                    'variant_title'    => $item['variant_title'] ?? NULL,
+                    'size'             => '',
+                    'color'            => '',
+                    'brand_name'       => $product['brand_name'] ?? 'VTEXX',
+                    'title'            => $item['product_title'] ?? $product['title'],
+                    'slug'             => $product['slug'] ?? '',
+                    'sku'              => $item['product_sku'] ?? ($product['sku'] ?? ''),
+                    'image'            => $item['product_image'] ?? ($product['main_image'] ?? ''),
+                    'price'            => $price,
+                    'regular_price'    => $reg_price,
+                    'discount_percent' => round((($reg_price - $price) / $reg_price) * 100),
+                    'quantity'         => $qty,
+                    'total'            => (float) ($price * $qty),
+                    'stock_max'        => 999
+                ];
+            }
+
+            if (!empty($cart)) {
+                $this->session->set_userdata('cart', $cart);
+                $summary = $this->cart_model->get_cart_summary();
+                $this->cart_count = $summary['item_count'];
+                $this->cart_total = $summary['subtotal'];
+            }
+        }
     }
 }
 

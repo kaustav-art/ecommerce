@@ -9,7 +9,7 @@
                                     <i class="fa-solid fa-shield-halved me-1"></i> Razorpay Payment Gateway
                                 </span>
                                 <h4 class="fw-bold mb-1">Order #<?= html_escape($order['order_number']); ?></h4>
-                                <p class="text-muted">Total Amount: <strong class="text-dark fs-4"><?= $currency_symbol . number_format($order['total_amount'], 2); ?></strong></p>
+                                <p class="text-muted">Total Amount: <strong class="text-dark fs-4"><?= $currency_symbol . number_format($order['total_amount'], 2); ?> <?= html_escape($razorpay['currency'] ?? ($order['currency'] ?? ($currency_code ?? 'USD'))); ?></strong></p>
                             </div>
 
                             <p class="text-muted small mb-4">Click below to initiate the Razorpay Checkout popup (Supports UPI, Cards, NetBanking & Wallets).</p>
@@ -20,7 +20,7 @@
                                 <input type="hidden" name="razorpay_signature" id="razorpay_signature" value="sig_test_<?= md5(uniqid()); ?>">
 
                                 <button type="button" id="rzp-button1" class="btn btn-info btn-lg w-100 py-3 text-white fw-bold mb-3" style="background-color: #0c2340; border-color: #0c2340;">
-                                    <i class="fa-solid fa-shield-halved me-2"></i> Pay with Razorpay
+                                    <i class="fa-solid fa-shield-halved me-2"></i> Pay with Razorpay (<?= html_escape($razorpay['currency'] ?? ($order['currency'] ?? ($currency_code ?? 'USD'))); ?> <?= number_format($order['total_amount'], 2); ?>)
                                 </button>
                             </form>
 
@@ -29,7 +29,7 @@
                             var options = {
                                 "key": "<?= html_escape($razorpay['key_id']); ?>",
                                 "amount": "<?= html_escape($razorpay['amount_subunit']); ?>",
-                                "currency": "INR",
+                                "currency": "<?= html_escape($razorpay['currency'] ?? ($order['currency'] ?? ($currency_code ?? 'USD'))); ?>",
                                 "name": "<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>",
                                 "description": "Order Payment for #<?= html_escape($order['order_number']); ?>",
                                 "order_id": "<?= html_escape($razorpay['razorpay_order_id']); ?>",

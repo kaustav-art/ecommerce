@@ -24,6 +24,7 @@
             <input type="hidden" name="hash" value="<?= html_escape($payu['hash']); ?>" />
             <input type="hidden" name="txnid" value="<?= html_escape($payu['txnid']); ?>" />
             <input type="hidden" name="amount" value="<?= html_escape($payu['amount']); ?>" />
+            <input type="hidden" name="currency" value="<?= html_escape($payu['currency'] ?? ($order['currency'] ?? ($currency_code ?? 'USD'))); ?>" />
             <input type="hidden" name="firstname" value="<?= html_escape($payu['firstname']); ?>" />
             <input type="hidden" name="email" value="<?= html_escape($payu['email']); ?>" />
             <input type="hidden" name="phone" value="<?= html_escape($payu['phone']); ?>" />

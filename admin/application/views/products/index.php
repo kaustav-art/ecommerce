@@ -99,6 +99,11 @@
                     <span class="badge bg-label-<?= ($p['status'] === 'published') ? 'success' : 'secondary'; ?>">
                       <?= ucfirst($p['status']); ?>
                     </span>
+                    <?php if (isset($p['is_cod_allowed']) && (int)$p['is_cod_allowed'] === 0): ?>
+                      <span class="badge bg-label-secondary ms-1" title="Cash on Delivery Disabled"><i class="fa-solid fa-ban me-1 text-danger"></i>No COD</span>
+                    <?php else: ?>
+                      <span class="badge bg-label-success ms-1" title="Cash on Delivery Available"><i class="fa-solid fa-truck-ramp-box me-1"></i>COD</span>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <div class="dropdown">

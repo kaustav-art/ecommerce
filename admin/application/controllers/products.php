@@ -127,6 +127,7 @@ class products extends MY_Controller {
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
                     'is_trending'         => $this->input->post('is_trending') ? 1 : 0,
                     'is_new'              => $this->input->post('is_new') ? 1 : 0,
+                    'is_cod_allowed'      => $this->input->post('is_cod_allowed') ? 1 : 0,
                     'status'              => $this->input->post('status', TRUE) ?: 'published'
                 ];
 
@@ -346,6 +347,7 @@ class products extends MY_Controller {
                     'is_featured'         => $this->input->post('is_featured') ? 1 : 0,
                     'is_trending'         => $this->input->post('is_trending') ? 1 : 0,
                     'is_new'              => $this->input->post('is_new') ? 1 : 0,
+                    'is_cod_allowed'      => $this->input->post('is_cod_allowed') ? 1 : 0,
                     'status'              => $this->input->post('status', TRUE) ?: 'published'
                 ];
 

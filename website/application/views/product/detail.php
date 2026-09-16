@@ -1528,6 +1528,14 @@ if (!empty($initial_variant)) {
                                                 <p class="text-caption-1 mb-0 fw-bold text-success" id="display-stock-status">In Stock</p>
                                             </li>
                                             <li class="d-flex gap-2 py-1">
+                                                <p class="text-caption-1 mb-0 text-secondary">Cash on Delivery:</p>
+                                                <?php if (isset($product['is_cod_allowed']) && (int)$product['is_cod_allowed'] === 0): ?>
+                                                    <p class="text-caption-1 mb-0 fw-semibold text-danger"><i class="fa-solid fa-ban me-1"></i>Not Available</p>
+                                                <?php else: ?>
+                                                    <p class="text-caption-1 mb-0 fw-semibold text-success"><i class="fa-solid fa-circle-check me-1"></i>Available</p>
+                                                <?php endif; ?>
+                                            </li>
+                                            <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Category:</p>
                                                 <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name']); ?></a></p>
                                             </li>

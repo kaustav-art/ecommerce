@@ -94,12 +94,26 @@ class checkout extends MY_Controller {
         $summary = $this->cart_model->get_cart_summary($shipping_method);
         $gateways = $this->setting_model->get_active_gateways();
 
+        // Check COD eligibility across all items in cart
+        $cod_check     = $this->cart_model->check_cod_eligibility();
+        $cod_eligible  = $cod_check['eligible'];
+        $non_cod_items = $cod_check['non_cod_items'];
+
+        $default_gateway = $this->setting_model->get('default_payment_gateway', 'razorpay');
+        if (!$cod_eligible && $default_gateway === 'cod') {
+            $online_only = array_filter($gateways, function($g) { return $g['gateway_code'] !== 'cod'; });
+            $default_gateway = !empty($online_only) ? reset($online_only)['gateway_code'] : '';
+        }
+
         $data = [
             'title'           => 'Payment - ' . $this->site_name,
             'active_page'     => 'checkout',
             'cart_items'      => $items,
             'cart_summary'    => $summary,
             'gateways'        => $gateways,
+            'default_gateway' => $default_gateway,
+            'cod_eligible'    => $cod_eligible,
+            'non_cod_items'   => $non_cod_items,
             'default_address' => $default_address,
             'shipping_method' => $shipping_method,
             'mrp_total'       => $summary['mrp_total'],
@@ -223,9 +237,39 @@ class checkout extends MY_Controller {
             return $this->json_response(['success' => false, 'message' => 'Cart is empty.'], 400);
         }
 
-        $payment_method = $this->input->post('payment_method', TRUE) ?: 'razorpay';
-        if (!in_array($payment_method, ['cod', 'stripe', 'razorpay', 'payu'])) {
-            $payment_method = 'razorpay';
+        $active_gateways = $this->setting_model->get_active_gateways();
+        $active_codes = !empty($active_gateways) ? array_column($active_gateways, 'gateway_code') : [];
+
+        $default_gw = $this->setting_model->get('default_payment_gateway', 'razorpay');
+        if (!in_array($default_gw, $active_codes) && !empty($active_codes)) {
+            $default_gw = $active_codes[0];
+        }
+
+        $payment_method = $this->input->post('payment_method', TRUE) ?: $default_gw;
+
+        // Verify COD availability if customer selected Cash on Delivery
+        if ($payment_method === 'cod') {
+            if (!in_array('cod', $active_codes)) {
+                return $this->json_response([
+                    'success' => false,
+                    'message' => 'Cash on Delivery is currently disabled by the store.'
+                ], 400);
+            }
+            $cod_check = $this->cart_model->check_cod_eligibility();
+            if (!$cod_check['eligible']) {
+                $non_cod_names = implode(', ', $cod_check['non_cod_items']);
+                return $this->json_response([
+                    'success' => false,
+                    'message' => "Cash on Delivery is not available because the following product(s) in your cart do not support COD: {$non_cod_names}. Please choose an online payment method."
+                ], 400);
+            }
+        } else {
+            if (!in_array($payment_method, $active_codes)) {
+                return $this->json_response([
+                    'success' => false,
+                    'message' => 'The selected payment method is currently disabled or unavailable. Please choose another payment method.'
+                ], 400);
+            }
         }
 
         $shipping_method = $this->input->post('shipping_method', TRUE) ?: ($this->session->userdata('shipping_method') ?: 'standard');

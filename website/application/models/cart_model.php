@@ -69,9 +69,9 @@ class cart_model extends CI_Model {
                 }
             }
 
-            // Ensure brand_name and max_purchase_quantity
+            // Ensure brand_name, max_purchase_quantity and is_cod_allowed
             if (!empty($item['id'])) {
-                $p_info = $this->db->select('b.name as brand_name, p.max_purchase_quantity, p.stock_quantity')
+                $p_info = $this->db->select('b.name as brand_name, p.max_purchase_quantity, p.stock_quantity, p.is_cod_allowed')
                                    ->from('products p')
                                    ->join('brands b', 'b.id = p.brand_id', 'left')
                                    ->where('p.id', (int) $item['id'])
@@ -82,6 +82,7 @@ class cart_model extends CI_Model {
                 }
                 $max_p = !empty($p_info['max_purchase_quantity']) ? (int) $p_info['max_purchase_quantity'] : 5;
                 $item['stock_max'] = isset($item['stock_max']) ? min((int)$item['stock_max'], $max_p) : $max_p;
+                $item['is_cod_allowed'] = isset($p_info['is_cod_allowed']) ? (int) $p_info['is_cod_allowed'] : 1;
             }
         }
         return $cart;
@@ -171,7 +172,8 @@ class cart_model extends CI_Model {
             'discount_percent' => $disc_pct,
             'quantity'         => $target_qty,
             'total'            => (float) ($price * $target_qty),
-            'stock_max'        => $available_stock
+            'stock_max'        => $available_stock,
+            'is_cod_allowed'   => isset($product['is_cod_allowed']) ? (int) $product['is_cod_allowed'] : 1
         ];
 
         $this->session->set_userdata('cart', $cart);
@@ -425,5 +427,32 @@ class cart_model extends CI_Model {
     public function remove_saved_item($saved_id)
     {
         return $this->db->where('id', (int) $saved_id)->delete('cart_saved_items');
+    }
+
+    /**
+     * Check if Cash on Delivery is allowed for all items in the cart.
+     * If even one item has is_cod_allowed == 0, COD is disabled for the whole order.
+     */
+    public function check_cod_eligibility()
+    {
+        $items = $this->get_items();
+        if (empty($items)) {
+            return [
+                'eligible'      => false,
+                'non_cod_items' => []
+            ];
+        }
+
+        $non_cod_items = [];
+        foreach ($items as $item) {
+            if (isset($item['is_cod_allowed']) && (int) $item['is_cod_allowed'] === 0) {
+                $non_cod_items[] = $item['title'];
+            }
+        }
+
+        return [
+            'eligible'      => empty($non_cod_items),
+            'non_cod_items' => array_values(array_unique($non_cod_items))
+        ];
     }
 }

@@ -420,9 +420,16 @@
                   <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" <?= ($product['is_trending'] == 1) ? 'checked' : ''; ?> />
                   <label class="form-check-label" for="is_trending">Trending Badge</label>
                 </div>
-                <div class="form-check">
+                <div class="form-check mb-2">
                   <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" <?= ($product['is_new'] == 1) ? 'checked' : ''; ?> />
                   <label class="form-check-label" for="is_new">New Arrival Badge</label>
+                </div>
+                <div class="form-check mt-3 pt-2 border-top">
+                  <input class="form-check-input" type="checkbox" id="is_cod_allowed" name="is_cod_allowed" value="1" <?= (!isset($product['is_cod_allowed']) || $product['is_cod_allowed'] == 1) ? 'checked' : ''; ?> />
+                  <label class="form-check-label fw-semibold text-dark" for="is_cod_allowed">
+                    <i class="fa-solid fa-truck-ramp-box text-success me-1"></i> Cash on Delivery (COD)
+                  </label>
+                  <small class="text-muted d-block" style="font-size: 11px;">Allow customers to order this product using Cash on Delivery.</small>
                 </div>
               </div>
             </div>
