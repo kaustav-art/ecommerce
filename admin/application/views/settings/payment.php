@@ -31,31 +31,37 @@
       elseif ($g['gateway_code'] === 'payu') $payu = $g;
       elseif ($g['gateway_code'] === 'cod') $cod = $g;
     }
-    $curr_online = $active_online_gateway ?? 'razorpay';
+    $curr_online = $active_online_gateway ?? 'none';
   ?>
 
   <!-- Primary Online Payment Gateway Selector (Only ONE online gateway allowed) -->
-  <div class="card mb-4 shadow-sm border-0 border-start border-primary border-4">
+  <div class="card mb-4 shadow-sm border-0 border-start <?= ($curr_online === 'none') ? 'border-warning' : 'border-primary'; ?> border-4">
     <div class="card-body">
       <div class="row align-items-center">
         <div class="col-12 col-lg-7 mb-3 mb-lg-0">
-          <h5 class="card-title mb-1 text-primary fw-bold">
+          <h5 class="card-title mb-1 <?= ($curr_online === 'none') ? 'text-warning' : 'text-primary'; ?> fw-bold">
             <i class="fa-solid fa-building-columns me-2"></i>Active Online Payment Gateway
           </h5>
           <p class="text-muted small mb-2">
-            Only <strong>one</strong> online payment gateway is active at a time between <strong>Stripe</strong>, <strong>Razorpay</strong>, and <strong>PayU</strong>. Choose Stripe if you are operating internationally/foreign, or Razorpay for domestic UPI & cards.
+            Only <strong>one</strong> online payment gateway is active at a time between <strong>Stripe</strong>, <strong>Razorpay</strong>, and <strong>PayU</strong>. Choose Stripe if you are operating internationally/foreign, or Razorpay for domestic UPI & cards. Select <strong>Disable All Online Payments</strong> for COD only.
           </p>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge <?= ($curr_online === 'razorpay') ? 'bg-success' : 'bg-label-secondary'; ?>">
-              <i class="fa-solid <?= ($curr_online === 'razorpay') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> Razorpay: <?= ($curr_online === 'razorpay') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
-            </span>
-            <span class="badge <?= ($curr_online === 'stripe') ? 'bg-primary' : 'bg-label-secondary'; ?>">
-              <i class="fa-solid <?= ($curr_online === 'stripe') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> Stripe: <?= ($curr_online === 'stripe') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
-            </span>
-            <span class="badge <?= ($curr_online === 'payu') ? 'bg-warning text-dark' : 'bg-label-secondary'; ?>">
-              <i class="fa-solid <?= ($curr_online === 'payu') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> PayU: <?= ($curr_online === 'payu') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
-            </span>
-            <span class="badge <?= ($cod && $cod['is_active']) ? 'bg-label-info' : 'bg-label-secondary'; ?> ms-lg-auto">
+            <?php if ($curr_online === 'none'): ?>
+              <span class="badge bg-warning text-dark">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Online Payments: DISABLED (COD Only)
+              </span>
+            <?php else: ?>
+              <span class="badge <?= ($curr_online === 'razorpay') ? 'bg-success' : 'bg-label-secondary'; ?>">
+                <i class="fa-solid <?= ($curr_online === 'razorpay') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> Razorpay: <?= ($curr_online === 'razorpay') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
+              </span>
+              <span class="badge <?= ($curr_online === 'stripe') ? 'bg-primary' : 'bg-label-secondary'; ?>">
+                <i class="fa-solid <?= ($curr_online === 'stripe') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> Stripe: <?= ($curr_online === 'stripe') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
+              </span>
+              <span class="badge <?= ($curr_online === 'payu') ? 'bg-info' : 'bg-label-secondary'; ?>">
+                <i class="fa-solid <?= ($curr_online === 'payu') ? 'fa-check' : 'fa-minus'; ?> me-1"></i> PayU: <?= ($curr_online === 'payu') ? 'ACTIVE ONLINE' : 'Inactive'; ?>
+              </span>
+            <?php endif; ?>
+            <span class="badge <?= ($cod && $cod['is_active']) ? 'bg-label-success' : 'bg-label-secondary'; ?> ms-lg-auto">
               <i class="fa-solid fa-truck-ramp-box me-1"></i> COD: <?= ($cod && $cod['is_active']) ? 'Enabled' : 'Disabled'; ?>
             </span>
           </div>
@@ -95,14 +101,14 @@
   <div class="row">
     <!-- 1. Razorpay Card -->
     <div class="col-12 col-lg-6 mb-4">
-      <div class="card h-100 shadow-sm border <?= ($curr_online === 'razorpay') ? 'border-2 border-info' : ''; ?>">
+      <div class="card h-100 shadow-sm border <?= ($curr_online === 'razorpay') ? 'border-2 border-success' : ''; ?>">
         <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
           <h5 class="card-title mb-0">
             <i class="fa-solid fa-credit-card text-info me-2"></i> Razorpay Gateway
           </h5>
           <div class="d-flex align-items-center gap-2">
             <?php if ($curr_online === 'razorpay'): ?>
-              <span class="badge bg-info text-white"><i class="fa-solid fa-circle-check me-1"></i>Active Gateway</span>
+              <span class="badge bg-success text-white"><i class="fa-solid fa-circle-check me-1"></i>Active Online Gateway</span>
             <?php else: ?>
               <span class="badge bg-label-secondary">Disabled</span>
             <?php endif; ?>
@@ -113,9 +119,8 @@
             <input type="hidden" name="gateway" value="razorpay" />
 
             <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="razorpay_active" name="razorpay_active" value="1" <?= ($curr_online === 'razorpay') ? 'checked' : ''; ?> />
+              <input class="form-check-input" type="checkbox" id="razorpay_active" name="razorpay_active" value="1" <?= ($curr_online === 'razorpay') ? 'checked' : ''; ?> onchange="onGatewaySwitchChange(this, 'razorpay')" />
               <label class="form-check-label fw-semibold" for="razorpay_active">Set as Active Online Gateway</label>
-              <small class="text-muted d-block" style="font-size: 11px;">Enabling Razorpay will automatically switch other online gateways to inactive.</small>
             </div>
 
             <div class="mb-3">
@@ -148,7 +153,9 @@
                 placeholder="Key Secret..." />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 mt-2">Save Razorpay Keys</button>
+            <button type="submit" class="btn btn-primary w-100 mt-2">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save Razorpay Keys
+            </button>
           </form>
         </div>
       </div>
@@ -163,7 +170,7 @@
           </h5>
           <div class="d-flex align-items-center gap-2">
             <?php if ($curr_online === 'stripe'): ?>
-              <span class="badge bg-primary text-white"><i class="fa-solid fa-circle-check me-1"></i>Active Gateway</span>
+              <span class="badge bg-primary text-white"><i class="fa-solid fa-circle-check me-1"></i>Active Online Gateway</span>
             <?php else: ?>
               <span class="badge bg-label-secondary">Disabled</span>
             <?php endif; ?>
@@ -174,9 +181,8 @@
             <input type="hidden" name="gateway" value="stripe" />
 
             <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="stripe_active" name="stripe_active" value="1" <?= ($curr_online === 'stripe') ? 'checked' : ''; ?> />
+              <input class="form-check-input" type="checkbox" id="stripe_active" name="stripe_active" value="1" <?= ($curr_online === 'stripe') ? 'checked' : ''; ?> onchange="onGatewaySwitchChange(this, 'stripe')" />
               <label class="form-check-label fw-semibold" for="stripe_active">Set as Active Online Gateway</label>
-              <small class="text-muted d-block" style="font-size: 11px;">Enabling Stripe will automatically switch other online gateways to inactive.</small>
             </div>
 
             <div class="mb-3">
@@ -220,7 +226,9 @@
                 placeholder="whsec_..." />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Save Stripe Keys</button>
+            <button type="submit" class="btn btn-primary w-100 mt-2">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save Stripe Keys
+            </button>
           </form>
         </div>
       </div>
@@ -228,14 +236,14 @@
 
     <!-- 3. PayU Card -->
     <div class="col-12 col-lg-6 mb-4">
-      <div class="card h-100 shadow-sm border <?= ($curr_online === 'payu') ? 'border-2 border-warning' : ''; ?>">
+      <div class="card h-100 shadow-sm border <?= ($curr_online === 'payu') ? 'border-2 border-info' : ''; ?>">
         <div class="card-header d-flex justify-content-between align-items-center border-bottom pb-3">
           <h5 class="card-title mb-0">
-            <i class="fa-solid fa-money-bill-transfer text-warning me-2"></i> PayU Gateway
+            <i class="fa-solid fa-money-bill-transfer text-info me-2"></i> PayU Gateway
           </h5>
           <div class="d-flex align-items-center gap-2">
             <?php if ($curr_online === 'payu'): ?>
-              <span class="badge bg-warning text-dark"><i class="fa-solid fa-circle-check me-1"></i>Active Gateway</span>
+              <span class="badge bg-info text-white"><i class="fa-solid fa-circle-check me-1"></i>Active Online Gateway</span>
             <?php else: ?>
               <span class="badge bg-label-secondary">Disabled</span>
             <?php endif; ?>
@@ -246,9 +254,8 @@
             <input type="hidden" name="gateway" value="payu" />
 
             <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="payu_active" name="payu_active" value="1" <?= ($curr_online === 'payu') ? 'checked' : ''; ?> />
+              <input class="form-check-input" type="checkbox" id="payu_active" name="payu_active" value="1" <?= ($curr_online === 'payu') ? 'checked' : ''; ?> onchange="onGatewaySwitchChange(this, 'payu')" />
               <label class="form-check-label fw-semibold" for="payu_active">Set as Active Online Gateway</label>
-              <small class="text-muted d-block" style="font-size: 11px;">Enabling PayU will automatically switch other online gateways to inactive.</small>
             </div>
 
             <div class="mb-3">
@@ -281,7 +288,9 @@
                 placeholder="e.g. eCwWELxi" />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Save PayU Keys</button>
+            <button type="submit" class="btn btn-primary w-100 mt-2">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save PayU Keys
+            </button>
           </form>
         </div>
       </div>
@@ -295,7 +304,8 @@
             <i class="fa-solid fa-truck-ramp-box text-success me-2"></i> Cash on Delivery (COD)
           </h5>
           <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-label-<?= ($cod && $cod['is_active']) ? 'success' : 'secondary'; ?>">
+            <span class="badge bg-<?= ($cod && $cod['is_active']) ? 'success' : 'label-secondary'; ?>">
+              <i class="fa-solid <?= ($cod && $cod['is_active']) ? 'fa-circle-check' : 'fa-circle-xmark'; ?> me-1"></i>
               <?= ($cod && $cod['is_active']) ? 'Enabled' : 'Disabled'; ?>
             </span>
           </div>
@@ -307,7 +317,7 @@
             <div class="form-check form-switch mb-3">
               <input class="form-check-input" type="checkbox" id="cod_active" name="cod_active" value="1" <?= ($cod && $cod['is_active']) ? 'checked' : ''; ?> />
               <label class="form-check-label fw-semibold" for="cod_active">Enable Cash on Delivery Globally</label>
-              <small class="text-muted d-block" style="font-size: 11px;">Note: COD will only appear at checkout if all products in the cart have COD allowed.</small>
+              <small class="text-muted d-block" style="font-size: 11px;">Note: COD will only appear at checkout if all products in customer's cart have COD allowed.</small>
             </div>
 
             <div class="mb-3">
@@ -321,10 +331,42 @@
               <small class="text-muted">Information or instructions displayed to customers during checkout.</small>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 mt-4">Save COD Settings</button>
+            <button type="submit" class="btn btn-primary w-100 mt-4">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save COD Settings
+            </button>
           </form>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Hidden Quick Activation Form -->
+<form id="quick_gateway_form" action="<?= site_url('settings/payment'); ?>" method="POST" style="display:none;">
+  <input type="hidden" name="gateway" value="active_online_gateway">
+  <input type="hidden" name="active_online_gateway" id="quick_gateway_code" value="">
+</form>
+
+<script>
+  function activateOnlineGateway(code) {
+    document.getElementById('quick_gateway_code').value = code;
+    document.getElementById('quick_gateway_form').submit();
+  }
+
+  function deactivateOnlineGateway(code, checkbox) {
+    if (confirm('Deactivate ' + code.toUpperCase() + ' and disable all online payments (switch to COD only)?')) {
+      document.getElementById('quick_gateway_code').value = 'none';
+      document.getElementById('quick_gateway_form').submit();
+    } else if (checkbox) {
+      checkbox.checked = true;
+    }
+  }
+
+  function onGatewaySwitchChange(checkbox, code) {
+    if (checkbox.checked) {
+      activateOnlineGateway(code);
+    } else {
+      deactivateOnlineGateway(code, checkbox);
+    }
+  }
+</script>

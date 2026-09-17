@@ -190,7 +190,13 @@ class settings extends MY_Controller {
                         $this->db->where('gateway_code', $gw_code)->update('payment_gateways', ['is_active' => $is_on]);
                     }
                     $this->setting_model->set('active_online_gateway', $chosen_online, 'payment');
-                    $this->session->set_flashdata('success', 'Active online payment gateway set to ' . strtoupper($chosen_online) . '. Only this online gateway will be available to customers.');
+                    if ($chosen_online === 'none') {
+                        $this->setting_model->set('default_payment_gateway', 'cod', 'payment');
+                        $this->session->set_flashdata('success', 'All online payment gateways disabled. Store is now operating in Cash on Delivery (COD) only mode.');
+                    } else {
+                        $this->setting_model->set('default_payment_gateway', $chosen_online, 'payment');
+                        $this->session->set_flashdata('success', strtoupper($chosen_online) . ' is now the ACTIVE online payment gateway. Other online gateways have been deactivated.');
+                    }
                 }
                 redirect('settings/payment');
                 return;
@@ -199,80 +205,120 @@ class settings extends MY_Controller {
             if ($gateway === 'stripe') {
                 $is_active = $this->input->post('stripe_active') ? 1 : 0;
                 $credentials = [
-                    'publishable_key' => $this->input->post('stripe_publishable_key', TRUE),
-                    'secret_key'      => $this->input->post('stripe_secret_key', TRUE),
-                    'webhook_secret'  => $this->input->post('stripe_webhook_secret', TRUE)
+                    'publishable_key' => trim($this->input->post('stripe_publishable_key', TRUE) ?: ''),
+                    'secret_key'      => trim($this->input->post('stripe_secret_key', TRUE) ?: ''),
+                    'webhook_secret'  => trim($this->input->post('stripe_webhook_secret', TRUE) ?: '')
                 ];
                 $this->setting_model->update_payment_gateway(
                     'stripe',
                     $is_active,
-                    $this->input->post('stripe_env', TRUE),
+                    $this->input->post('stripe_env', TRUE) ?: 'test',
                     $credentials
                 );
                 if ($is_active) {
                     // Only one online gateway is allowed: deactivate razorpay and payu
                     $this->db->where_in('gateway_code', ['razorpay', 'payu'])->update('payment_gateways', ['is_active' => 0]);
                     $this->setting_model->set('active_online_gateway', 'stripe', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'stripe', 'payment');
+                    $this->session->set_flashdata('success', 'Stripe configuration saved and activated as the active online payment gateway.');
+                } else {
+                    $this->db->where('gateway_code', 'stripe')->update('payment_gateways', ['is_active' => 0]);
+                    $this->setting_model->set('active_online_gateway', 'none', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'cod', 'payment');
+                    $this->session->set_flashdata('success', 'Stripe configuration saved. Stripe is deactivated (COD only mode).');
                 }
+                redirect('settings/payment');
+                return;
             } elseif ($gateway === 'razorpay') {
                 $is_active = $this->input->post('razorpay_active') ? 1 : 0;
                 $credentials = [
-                    'key_id'     => $this->input->post('razorpay_key_id', TRUE),
-                    'key_secret' => $this->input->post('razorpay_key_secret', TRUE)
+                    'key_id'     => trim($this->input->post('razorpay_key_id', TRUE) ?: ''),
+                    'key_secret' => trim($this->input->post('razorpay_key_secret', TRUE) ?: '')
                 ];
                 $this->setting_model->update_payment_gateway(
                     'razorpay',
                     $is_active,
-                    $this->input->post('razorpay_env', TRUE),
+                    $this->input->post('razorpay_env', TRUE) ?: 'test',
                     $credentials
                 );
                 if ($is_active) {
                     // Only one online gateway is allowed: deactivate stripe and payu
                     $this->db->where_in('gateway_code', ['stripe', 'payu'])->update('payment_gateways', ['is_active' => 0]);
                     $this->setting_model->set('active_online_gateway', 'razorpay', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'razorpay', 'payment');
+                    $this->session->set_flashdata('success', 'Razorpay configuration saved and activated as the active online payment gateway.');
+                } else {
+                    $this->db->where('gateway_code', 'razorpay')->update('payment_gateways', ['is_active' => 0]);
+                    $this->setting_model->set('active_online_gateway', 'none', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'cod', 'payment');
+                    $this->session->set_flashdata('success', 'Razorpay configuration saved. Razorpay is deactivated (COD only mode).');
                 }
+                redirect('settings/payment');
+                return;
             } elseif ($gateway === 'payu') {
                 $is_active = $this->input->post('payu_active') ? 1 : 0;
                 $credentials = [
-                    'merchant_key'  => $this->input->post('payu_merchant_key', TRUE),
-                    'merchant_salt' => $this->input->post('payu_merchant_salt', TRUE),
+                    'merchant_key'  => trim($this->input->post('payu_merchant_key', TRUE) ?: ''),
+                    'merchant_salt' => trim($this->input->post('payu_merchant_salt', TRUE) ?: ''),
                     'test_url'      => 'https://test.payu.in/_payment',
                     'live_url'      => 'https://secure.payu.in/_payment'
                 ];
                 $this->setting_model->update_payment_gateway(
                     'payu',
                     $is_active,
-                    $this->input->post('payu_env', TRUE),
+                    $this->input->post('payu_env', TRUE) ?: 'test',
                     $credentials
                 );
                 if ($is_active) {
                     // Only one online gateway is allowed: deactivate stripe and razorpay
                     $this->db->where_in('gateway_code', ['stripe', 'razorpay'])->update('payment_gateways', ['is_active' => 0]);
                     $this->setting_model->set('active_online_gateway', 'payu', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'payu', 'payment');
+                    $this->session->set_flashdata('success', 'PayU configuration saved and activated as the active online payment gateway.');
+                } else {
+                    $this->db->where('gateway_code', 'payu')->update('payment_gateways', ['is_active' => 0]);
+                    $this->setting_model->set('active_online_gateway', 'none', 'payment');
+                    $this->setting_model->set('default_payment_gateway', 'cod', 'payment');
+                    $this->session->set_flashdata('success', 'PayU configuration saved. PayU is deactivated (COD only mode).');
                 }
+                redirect('settings/payment');
+                return;
             } elseif ($gateway === 'cod') {
                 $credentials = [
                     'instructions' => $this->input->post('cod_instructions', TRUE) ?: 'Pay with cash upon physical delivery of your package.'
                 ];
+                $cod_active = $this->input->post('cod_active') ? 1 : 0;
                 $this->setting_model->update_payment_gateway(
                     'cod',
-                    $this->input->post('cod_active') ? 1 : 0,
+                    $cod_active,
                     'live',
                     $credentials
                 );
+                $this->session->set_flashdata('success', 'Cash on Delivery (COD) settings updated (' . ($cod_active ? 'Enabled' : 'Disabled') . ').');
+                redirect('settings/payment');
+                return;
             }
 
             $this->session->set_flashdata('success', strtoupper($gateway) . ' gateway configuration updated.');
             redirect('settings/payment');
+            return;
         }
 
         $gateways = $this->setting_model->get_payment_gateways();
-        $active_online = 'razorpay';
+        $stored_online = $this->setting_model->get('active_online_gateway', 'none');
+
+        // Check which online gateway is actually active in payment_gateways table
+        $active_online = 'none';
         foreach ($gateways as $g) {
-            if (in_array($g['gateway_code'], ['razorpay', 'stripe', 'payu']) && $g['is_active']) {
+            if (in_array($g['gateway_code'], ['razorpay', 'stripe', 'payu']) && !empty($g['is_active'])) {
                 $active_online = $g['gateway_code'];
                 break;
             }
+        }
+
+        // Keep settings table synchronized with actual active status
+        if ($stored_online !== $active_online) {
+            $this->setting_model->set('active_online_gateway', $active_online, 'payment');
         }
 
         $data = [
