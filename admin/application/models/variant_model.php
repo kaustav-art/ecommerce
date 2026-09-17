@@ -49,7 +49,17 @@ class variant_model extends CI_Model {
 
         if ($variant_id && !empty($attr_val_ids)) {
             foreach ($attr_val_ids as $attr_id => $val_id) {
-                if (!empty($val_id)) {
+                if (is_array($val_id)) {
+                    foreach ($val_id as $single_vid) {
+                        if (!empty($single_vid)) {
+                            $this->db->insert('product_variant_values', [
+                                'variant_id'         => $variant_id,
+                                'attribute_id'       => (int) $attr_id,
+                                'attribute_value_id' => (int) $single_vid
+                            ]);
+                        }
+                    }
+                } elseif (!empty($val_id)) {
                     $this->db->insert('product_variant_values', [
                         'variant_id'         => $variant_id,
                         'attribute_id'       => (int) $attr_id,
@@ -135,18 +145,73 @@ class variant_model extends CI_Model {
         $variants = $this->get_by_product($product_id);
         $groups = [];
 
+        // 1. Identify which attribute is the multi-select dimension for this product
+        $multi_attr_id   = null;
+        $multi_attr_name = 'Size';
+        $multi_attr_slug = 'size';
+
+        // Check product_attributes first
+        $assigned_attrs = $this->db->select('a.id, a.name, a.slug, a.type')
+                                   ->from('product_attributes pa')
+                                   ->join('attributes a', 'a.id = pa.attribute_id')
+                                   ->where('pa.product_id', (int) $product_id)
+                                   ->get()
+                                   ->result_array();
+
+        foreach ($assigned_attrs as $aa) {
+            $is_multi = (in_array(strtolower($aa['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                         || strcasecmp($aa['slug'], 'size') === 0 || strcasecmp($aa['name'], 'size') === 0
+                         || strcasecmp($aa['slug'], 'storage') === 0 || strcasecmp($aa['name'], 'storage') === 0);
+            if ($is_multi) {
+                $multi_attr_id   = (int) $aa['id'];
+                $multi_attr_name = $aa['name'];
+                $multi_attr_slug = $aa['slug'];
+                break;
+            }
+        }
+
+        // 2. If not found in product_attributes, detect from variants' values
+        if (!$multi_attr_id && !empty($variants)) {
+            foreach ($variants as $v) {
+                if (!empty($v['values'])) {
+                    foreach ($v['values'] as $val) {
+                        $is_multi = (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0
+                                     || strcasecmp($val['attribute_slug'], 'storage') === 0 || strcasecmp($val['attribute_name'], 'storage') === 0);
+                        if ($is_multi) {
+                            $multi_attr_id   = (int) $val['attribute_id'];
+                            $multi_attr_name = $val['attribute_name'];
+                            $multi_attr_slug = $val['attribute_slug'];
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+
         foreach ($variants as $v) {
             $size_info = null;
             $non_size_attrs = [];
 
             if (!empty($v['values'])) {
                 foreach ($v['values'] as $val) {
-                    $is_size = (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0);
-                    if ($is_size) {
+                    $is_multi_val = false;
+                    if ($multi_attr_id) {
+                        if ((int)$val['attribute_id'] === $multi_attr_id) {
+                            $is_multi_val = true;
+                        }
+                    } elseif (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0) {
+                        $is_multi_val = true;
+                    } elseif (strcasecmp($val['attribute_slug'], 'storage') === 0 || strcasecmp($val['attribute_name'], 'storage') === 0) {
+                        $is_multi_val = true;
+                    }
+
+                    if ($is_multi_val) {
                         $size_info = [
                             'variant_id'   => (int) $v['id'],
                             'size_id'      => (int) $val['attribute_value_id'],
                             'size_name'    => $val['attribute_value'],
+                            'attr_id'      => (int) $val['attribute_id'],
+                            'attr_name'    => $val['attribute_name'],
                             'sku'          => $v['sku'],
                             'price'        => (float) $v['price'],
                             'sale_price'   => !empty($v['sale_price']) ? (float) $v['sale_price'] : null,
@@ -166,7 +231,7 @@ class variant_model extends CI_Model {
                 }
             }
 
-            // Derive base title and SKU without size suffix
+            // Derive base title and SKU without size/storage suffix
             $base_title = $v['title'];
             if ($size_info && !empty($size_info['size_name'])) {
                 $base_title = preg_replace('/\s*\/\s*' . preg_quote($size_info['size_name'], '/') . '$/i', '', $base_title);
@@ -177,7 +242,11 @@ class variant_model extends CI_Model {
 
             $base_sku = $v['sku'];
             if ($size_info && !empty($size_info['size_name'])) {
+                $clean_sname = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $size_info['size_name']));
                 $base_sku = preg_replace('/-' . preg_quote($size_info['size_name'], '/') . '$/i', '', $base_sku);
+                if (!empty($clean_sname)) {
+                    $base_sku = preg_replace('/-' . preg_quote($clean_sname, '/') . '$/i', '', $base_sku);
+                }
             }
 
             if (!empty($non_size_attrs)) {
@@ -188,7 +257,7 @@ class variant_model extends CI_Model {
                     return $a['attribute_id'] . '-' . $a['attribute_value_id'];
                 }, $non_size_attrs));
             } elseif ($size_info !== null) {
-                $non_size_key = 'size_group_' . md5($base_sku . '_' . $base_title);
+                $non_size_key = 'multi_group_' . md5($base_sku . '_' . $base_title);
             } else {
                 $non_size_key = 'single_' . $v['id'];
             }
@@ -208,6 +277,9 @@ class variant_model extends CI_Model {
                     'highlights'            => !empty($v['highlights']) ? $v['highlights'] : null,
                     'specifications'        => !empty($v['specifications']) ? $v['specifications'] : null,
                     'non_size_attrs'        => $non_size_attrs,
+                    'multi_attr_id'         => $multi_attr_id,
+                    'multi_attr_name'       => $multi_attr_name,
+                    'multi_attr_slug'       => $multi_attr_slug,
                     'has_sizes'             => false,
                     'sizes'                 => [],
                     'total_stock'           => 0,

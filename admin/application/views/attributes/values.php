@@ -2,7 +2,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h4 class="fw-bold m-0"><span class="text-muted fw-light">Catalog / Attributes /</span> <?= html_escape($attribute['name']); ?></h4>
-      <small class="text-muted">Type: <span class="badge bg-label-info"><?= ucfirst($attribute['type']); ?></span></small>
+      <small class="text-muted">Type: <span class="badge bg-label-info"><?= ($attribute['type'] === 'multiselect') ? 'Multiple Select' : ucwords(str_replace('_', ' ', $attribute['type'])); ?></span></small>
     </div>
     <a href="<?= site_url('attributes'); ?>" class="btn btn-outline-secondary btn-sm">
       <i class="fa-solid fa-arrow-left me-1"></i> Back to Attributes

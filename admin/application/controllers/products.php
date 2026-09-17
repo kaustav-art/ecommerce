@@ -70,23 +70,47 @@ class products extends MY_Controller {
                 // Handle Additional Gallery Images upload
                 $gallery_images = $this->upload_multiple_images('gallery_files', 'products', 'prod_gal');
 
-                // Check if variants or attributes are assigned
-                $size_vals        = $this->input->post('size_vals');
-                $size_stocks      = $this->input->post('size_stock') ?: [];
-                $size_sale_prices = $this->input->post('size_sale_price') ?: [];
-                $attr_vals        = array_filter((array) $this->input->post('attr_vals'));
-                $selected_sizes   = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
+                // Active multi-select attribute (e.g. Size or Storage)
+                $active_multi_attr_id = $this->input->post('active_multi_attr_id') ? (int) $this->input->post('active_multi_attr_id') : null;
+                $multi_vals           = (array) $this->input->post('multi_vals');
+                $multi_vals           = array_values(array_filter($multi_vals));
+                $multi_stocks         = (array) $this->input->post('multi_stock');
+                $multi_sale_prices    = (array) $this->input->post('multi_sale_price');
 
-                $has_variants = (!empty($selected_sizes) || !empty($attr_vals));
+                // Legacy fallback support for size_vals / size_stock / size_sale_price
+                $size_vals        = $this->input->post('size_vals');
+                $selected_sizes   = is_array($size_vals) ? array_filter($size_vals) : (!empty($size_vals) ? [$size_vals] : []);
+                $size_stocks      = (array) $this->input->post('size_stock');
+                $size_sale_prices = (array) $this->input->post('size_sale_price');
+
+                $attr_vals        = array_filter((array) $this->input->post('attr_vals'));
+                $raw_attr_multi   = $this->input->post('attr_multi') ?: [];
+                $attr_multi       = [];
+                if (is_array($raw_attr_multi)) {
+                    foreach ($raw_attr_multi as $a_id => $v_list) {
+                        $clean_v_list = is_array($v_list) ? array_filter($v_list) : [];
+                        if (!empty($clean_v_list)) {
+                            $attr_multi[(int) $a_id] = array_values($clean_v_list);
+                        }
+                    }
+                }
+
+                $has_variants = (!empty($multi_vals) || !empty($selected_sizes) || !empty($attr_vals) || !empty($attr_multi));
 
                 $product_type = $has_variants ? 'variable' : ($this->input->post('product_type', TRUE) ?: 'simple');
 
-                // Calculate initial stock: if sizes with individual stock are selected, sum them
+                // Calculate initial stock: if multi-select attribute (or sizes) with individual stock are selected, sum them
                 $initial_stock = (int) $this->input->post('stock_quantity');
-                if ($has_variants && !empty($selected_sizes)) {
+                if (!empty($multi_vals)) {
+                    $sum_multi_stock = 0;
+                    foreach ($multi_vals as $m_vid) {
+                        $sum_multi_stock += isset($multi_stocks[$m_vid]) && $multi_stocks[$m_vid] !== '' ? max(0, (int) $multi_stocks[$m_vid]) : 10;
+                    }
+                    $initial_stock = $sum_multi_stock;
+                } elseif (!empty($selected_sizes)) {
                     $sum_size_stock = 0;
                     foreach ($selected_sizes as $s_id) {
-                        $sum_size_stock += isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : 10;
+                        $sum_size_stock += isset($size_stocks[$s_id]) && $size_stocks[$s_id] !== '' ? max(0, (int) $size_stocks[$s_id]) : 10;
                     }
                     $initial_stock = $sum_size_stock;
                 }
@@ -149,20 +173,22 @@ class products extends MY_Controller {
                 $this->product_model->save_specifications($new_id, $specs);
 
                 // Process Assigned Attributes & Variants if enabled
-                if ($has_variants && (!empty($selected_sizes) || !empty($attr_vals))) {
+                if ($has_variants && (!empty($multi_vals) || !empty($selected_sizes) || !empty($attr_vals) || !empty($attr_multi))) {
                     $all_attributes = $this->attribute_model->get_all();
+                    $attr_by_id     = [];
+                    $val_by_id      = [];
                     $size_attr_id   = null;
-                    $size_map       = [];
                     $color_name     = '';
 
                     foreach ($all_attributes as $attr) {
+                        $attr_by_id[$attr['id']] = $attr;
                         $is_size = (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0);
                         if ($is_size) {
                             $size_attr_id = (int) $attr['id'];
-                            if (!empty($attr['values'])) {
-                                foreach ($attr['values'] as $val) {
-                                    $size_map[$val['id']] = $val['value'];
-                                }
+                        }
+                        if (!empty($attr['values'])) {
+                            foreach ($attr['values'] as $val) {
+                                $val_by_id[$val['id']] = $val['value'];
                             }
                         }
                         if (isset($attr_vals[$attr['id']])) {
@@ -177,11 +203,25 @@ class products extends MY_Controller {
                         }
                     }
 
+                    // Fallback to size if active_multi_attr_id is empty but selected_sizes is set
+                    if (empty($active_multi_attr_id) && !empty($selected_sizes) && $size_attr_id) {
+                        $active_multi_attr_id = $size_attr_id;
+                        $multi_vals           = array_values($selected_sizes);
+                        $multi_stocks         = $size_stocks;
+                        $multi_sale_prices    = $size_sale_prices;
+                    }
+
                     // Save assigned attributes to product_attributes
                     $assigned_attrs = array_keys($attr_vals);
-                    if (!empty($selected_sizes) && $size_attr_id) {
-                        $assigned_attrs[] = $size_attr_id;
+                    if (!empty($active_multi_attr_id)) {
+                        $assigned_attrs[] = (int) $active_multi_attr_id;
                     }
+                    if (!empty($attr_multi)) {
+                        foreach (array_keys($attr_multi) as $m_aid) {
+                            $assigned_attrs[] = (int) $m_aid;
+                        }
+                    }
+                    $assigned_attrs = array_unique(array_filter($assigned_attrs));
                     $this->attribute_model->save_product_attributes($new_id, $assigned_attrs);
 
                     // Build base variant title & SKU
@@ -192,22 +232,25 @@ class products extends MY_Controller {
                     $base_var_sku = $insert_data['sku'];
 
                     $created_var_count = 0;
-                    if (!empty($selected_sizes) && $size_attr_id) {
-                        // Create a variant for each size
-                        foreach ($selected_sizes as $s_id) {
-                            $s_name = $size_map[$s_id] ?? '';
+                    if (!empty($multi_vals) && !empty($active_multi_attr_id)) {
+                        // Create a variant for each selected option of the active multi-select attribute (Size, Storage, etc.)
+                        foreach ($multi_vals as $m_vid) {
+                            $val_name = $val_by_id[$m_vid] ?? '';
                             $v_sku = $base_var_sku;
-                            if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
-                                $v_sku .= '-' . strtoupper($s_name);
+                            if (!empty($val_name)) {
+                                $clean_opt = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $val_name));
+                                if (!empty($clean_opt) && !preg_match('/-' . preg_quote($clean_opt, '/') . '$/i', $v_sku)) {
+                                    $v_sku .= '-' . $clean_opt;
+                                }
                             }
                             $v_title = $base_var_title;
-                            if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
-                                $v_title .= ' / ' . $s_name;
+                            if (!empty($val_name) && !preg_match('/\/\s*' . preg_quote($val_name, '/') . '$/i', $v_title)) {
+                                $v_title .= ' / ' . $val_name;
                             }
 
-                            $v_stock  = isset($size_stocks[$s_id]) ? max(0, (int) $size_stocks[$s_id]) : 10;
+                            $v_stock  = isset($multi_stocks[$m_vid]) && $multi_stocks[$m_vid] !== '' ? max(0, (int) $multi_stocks[$m_vid]) : 10;
                             $v_status = $v_stock > 0 ? 'in_stock' : 'out_of_stock';
-                            $v_sale_price = (isset($size_sale_prices[$s_id]) && $size_sale_prices[$s_id] !== '') ? (float) $size_sale_prices[$s_id] : $insert_data['sale_price'];
+                            $v_sale_price = (isset($multi_sale_prices[$m_vid]) && $multi_sale_prices[$m_vid] !== '') ? (float) $multi_sale_prices[$m_vid] : $insert_data['sale_price'];
 
                             $v_data = [
                                 'product_id'     => $new_id,
@@ -222,13 +265,20 @@ class products extends MY_Controller {
                             ];
 
                             $v_attrs = $attr_vals;
-                            $v_attrs[$size_attr_id] = $s_id;
+                            $v_attrs[$active_multi_attr_id] = $m_vid;
+                            if (!empty($attr_multi)) {
+                                foreach ($attr_multi as $m_aid => $m_vids) {
+                                    if ($m_aid != $active_multi_attr_id) {
+                                        $v_attrs[$m_aid] = $m_vids;
+                                    }
+                                }
+                            }
 
                             $this->variant_model->create($v_data, $v_attrs);
                             $created_var_count++;
                         }
-                    } elseif (!empty($attr_vals)) {
-                        // Single variant for non-size attributes
+                    } elseif (!empty($attr_vals) || !empty($attr_multi)) {
+                        // Single variant for products with single attributes only
                         $v_data = [
                             'product_id'     => $new_id,
                             'title'          => $base_var_title,
@@ -240,7 +290,13 @@ class products extends MY_Controller {
                             'image'          => $main_image,
                             'gallery_images' => json_encode($gallery_images)
                         ];
-                        $this->variant_model->create($v_data, $attr_vals);
+                        $v_attrs = $attr_vals;
+                        if (!empty($attr_multi)) {
+                            foreach ($attr_multi as $m_aid => $m_vids) {
+                                $v_attrs[$m_aid] = $m_vids;
+                            }
+                        }
+                        $this->variant_model->create($v_data, $v_attrs);
                         $created_var_count++;
                     }
 

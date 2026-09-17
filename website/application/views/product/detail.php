@@ -29,9 +29,39 @@ $discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular
 // Variant configuration
 $has_variants = !empty($product['variants']);
 $has_color = !empty($product['attributes']['color']);
-$has_size = !empty($product['attributes']['size']);
 
-// Color map with variant photos & size inventory
+// Detect secondary option attribute (e.g., Size, Storage, or any active multiple_select attribute)
+$multi_attr      = null;
+$multi_attr_slug = '';
+$multi_attr_name = 'Option';
+
+if (!empty($product['attributes'])) {
+    // First priority: look for attribute with multiple_select type or size or storage
+    foreach ($product['attributes'] as $slug => $attr_info) {
+        if ($slug === 'color') continue;
+        if (!empty($attr_info['values']) && (!empty($attr_info['type']) && $attr_info['type'] === 'multiple_select')) {
+            $multi_attr      = $attr_info;
+            $multi_attr_slug = $slug;
+            $multi_attr_name = $attr_info['name'];
+            break;
+        }
+    }
+    // Second priority: any non-color attribute with values
+    if (empty($multi_attr)) {
+        foreach ($product['attributes'] as $slug => $attr_info) {
+            if ($slug === 'color') continue;
+            if (!empty($attr_info['values'])) {
+                $multi_attr      = $attr_info;
+                $multi_attr_slug = $slug;
+                $multi_attr_name = $attr_info['name'];
+                break;
+            }
+        }
+    }
+}
+$has_size = !empty($multi_attr);
+
+// Color map with variant photos & size/option inventory
 $color_map = [];
 $initial_color = '';
 $initial_size = '';
@@ -132,8 +162,14 @@ if ($has_variants) {
         $v_size  = '';
         if (!empty($pv['values'])) {
             foreach ($pv['values'] as $val) {
-                if (strcasecmp($val['attribute_slug'], 'color') === 0 || strcasecmp($val['attribute_name'], 'color') === 0) $v_color = $val['attribute_value'];
-                if (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0)   $v_size  = $val['attribute_value'];
+                if (strcasecmp($val['attribute_slug'], 'color') === 0 || strcasecmp($val['attribute_name'], 'color') === 0) {
+                    $v_color = $val['attribute_value'];
+                }
+                if ($multi_attr_slug && (strcasecmp($val['attribute_slug'], $multi_attr_slug) === 0 || strcasecmp($val['attribute_name'], $multi_attr_name) === 0)) {
+                    $v_size = $val['attribute_value'];
+                } elseif (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0 || strcasecmp($val['attribute_slug'], 'storage') === 0 || strcasecmp($val['attribute_name'], 'storage') === 0) {
+                    $v_size = $val['attribute_value'];
+                }
             }
         }
 
@@ -176,8 +212,8 @@ if ($has_variants) {
 }
 
 // Fallbacks for initial selection
-if (empty($initial_size) && $has_size && !empty($product['attributes']['size']['values'])) {
-    $initial_size = $product['attributes']['size']['values'][0]['value'];
+if (empty($initial_size) && $has_size && !empty($multi_attr['values'])) {
+    $initial_size = $multi_attr['values'][0]['value'];
 }
 if ($has_variants && empty($initial_variant_id) && !empty($product['variants'])) {
     $initial_variant_id = (int) $product['variants'][0]['id'];
@@ -1183,8 +1219,8 @@ if (!empty($initial_variant)) {
 
                                 <div class="tf-product-info-list">
                                     
-                                    <!-- ALL PRODUCT VARIANTS (Color, Size) - Top of Product Name (varient_products.PNG) -->
-                                    <?php if (($has_color && !empty($color_map)) || ($has_size && !empty($product['attributes']['size']['values']))): ?>
+                                    <!-- ALL PRODUCT VARIANTS (Color, Size / Storage / Option) - Top of Product Name (varient_products.PNG) -->
+                                    <?php if (($has_color && !empty($color_map)) || ($has_size && !empty($multi_attr['values']))): ?>
                                         <div class="tf-product-info-variants mb-2">
                                             <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS (color_badge.PNG) -->
                                             <?php if ($has_color && !empty($color_map)): ?>
@@ -1222,22 +1258,24 @@ if (!empty($initial_variant)) {
                                                 </div>
                                             <?php endif; ?>
 
-                                            <!-- 2. SIZE SELECTION WITH SIZE CHART MODAL & OUT-OF-STOCK STYLING -->
-                                            <?php if ($has_size && !empty($product['attributes']['size']['values'])): ?>
+                                            <!-- 2. SIZE / STORAGE / OPTION SELECTION WITH OUT-OF-STOCK STYLING -->
+                                            <?php if ($has_size && !empty($multi_attr['values'])): ?>
                                                 <div class="variant-picker-item mb-2">
                                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                                         <div class="variant-picker-label">
-                                                            <span class="text-dark fw-bold" style="font-size: 15px;">Select Size</span>
+                                                            <span class="text-dark fw-bold" style="font-size: 15px;">Select <?= html_escape($multi_attr_name); ?></span>
                                                             <span class="text-secondary ms-1 small" id="selected-size-name-wrap">(<strong id="selected-size-name" class="text-dark"><?= html_escape($initial_size); ?></strong>)</span>
                                                         </div>
-                                                        <a href="#size-guide" data-bs-toggle="modal" class="text-decoration-none fw-semibold" style="color: #2874f0 !important; font-size: 14px;">
-                                                            Size Chart <i class="fa-solid fa-chevron-right ms-1" style="font-size: 11px;"></i>
-                                                        </a>
+                                                        <?php if (strcasecmp($multi_attr_slug, 'size') === 0 || strcasecmp($multi_attr_name, 'size') === 0): ?>
+                                                            <a href="#size-guide" data-bs-toggle="modal" class="text-decoration-none fw-semibold" style="color: #2874f0 !important; font-size: 14px;">
+                                                                Size Chart <i class="fa-solid fa-chevron-right ms-1" style="font-size: 11px;"></i>
+                                                            </a>
+                                                        <?php endif; ?>
                                                     </div>
 
                                                     <div class="d-flex flex-wrap gap-2" id="size-chips-wrapper">
                                                         <?php 
-                                                        foreach ($product['attributes']['size']['values'] as $s_val): 
+                                                        foreach ($multi_attr['values'] as $s_val): 
                                                             $s_name = $s_val['value'];
                                                             $is_active_size = ($s_name === $initial_size);
                                                             
@@ -1251,7 +1289,7 @@ if (!empty($initial_variant)) {
                                                                     class="variant-size-chip <?= $is_active_size ? 'active' : ''; ?> <?= !$in_stock ? 'is-out-of-stock' : ''; ?>" 
                                                                     data-size="<?= html_escape($s_name); ?>"
                                                                     onclick="selectSize('<?= html_escape($s_name); ?>', this)"
-                                                                    title="<?= !$in_stock ? 'Out of stock' : 'Size ' . html_escape($s_name); ?>">
+                                                                    title="<?= !$in_stock ? 'Out of stock' : html_escape($multi_attr_name) . ' ' . html_escape($s_name); ?>">
                                                                 <?= html_escape($s_name); ?>
                                                             </button>
                                                         <?php endforeach; ?>
@@ -1357,17 +1395,18 @@ if (!empty($initial_variant)) {
                                             $seen_spec_keys['category'] = true;
                                         }
 
-                                        // Size
-                                        $spec_sizes = [];
-                                        if (!empty($product['attributes']['size']['values'])) {
-                                            foreach ($product['attributes']['size']['values'] as $sv) {
-                                                if (!empty($sv['value'])) $spec_sizes[] = $sv['value'];
+                                        // Size / Storage / Multi Attribute
+                                        $spec_multi_vals = [];
+                                        if (!empty($multi_attr['values'])) {
+                                            foreach ($multi_attr['values'] as $sv) {
+                                                if (!empty($sv['value'])) $spec_multi_vals[] = $sv['value'];
                                             }
                                         } elseif (!empty($initial_size)) {
-                                            $spec_sizes[] = $initial_size;
+                                            $spec_multi_vals[] = $initial_size;
                                         }
-                                        if (!empty($spec_sizes)) {
-                                            $merged_specs[] = ['name' => 'Size', 'value' => implode(', ', array_unique($spec_sizes))];
+                                        if (!empty($spec_multi_vals)) {
+                                            $merged_specs[] = ['name' => $multi_attr_name, 'value' => implode(', ', array_unique($spec_multi_vals))];
+                                            $seen_spec_keys[strtolower($multi_attr_name)] = true;
                                             $seen_spec_keys['size'] = true;
                                         }
 
@@ -2300,6 +2339,8 @@ if (!empty($initial_variant)) {
     var hasVariants      = <?= $has_variants ? 'true' : 'false'; ?>;
     var hasColor         = <?= $has_color ? 'true' : 'false'; ?>;
     var hasSize          = <?= $has_size ? 'true' : 'false'; ?>;
+    var multiAttrName    = "<?= !empty($multi_attr_name) ? addslashes($multi_attr_name) : 'Size'; ?>";
+    var multiAttrSlug    = "<?= !empty($multi_attr_slug) ? addslashes($multi_attr_slug) : 'size'; ?>";
     var isProductInWishlist = <?= !empty($is_in_wishlist) ? 'true' : 'false'; ?>;
 
     // Active state
@@ -2609,10 +2650,12 @@ if (!empty($initial_variant)) {
             seenKeys['category'] = true;
         }
 
-        // 3. Size
+        // 3. Size / Storage / Option
         var curSize = (variantData && variantData.size) ? variantData.size : selectedSize;
         if (curSize) {
-            mergedSpecs.push({ name: 'Size', value: curSize });
+            var optSpecLabel = multiAttrName || 'Option';
+            mergedSpecs.push({ name: optSpecLabel, value: curSize });
+            seenKeys[optSpecLabel.toLowerCase()] = true;
             seenKeys['size'] = true;
         }
 
@@ -2752,11 +2795,11 @@ if (!empty($initial_variant)) {
         hideVariantLoader(250);
     };
 
-    // 5. SIZE SELECTION
+    // 5. SIZE / STORAGE / OPTION SELECTION
     window.selectSize = function(sizeName, chipEl) {
         // If out of stock, warn user or prompt
         if (chipEl && chipEl.classList.contains('is-out-of-stock')) {
-            alert('Size ' + sizeName + ' is currently out of stock for color ' + selectedColor + '. You can select another size or color.');
+            alert(multiAttrName + ' ' + sizeName + ' is currently out of stock for color ' + selectedColor + '. You can select another option or color.');
             return;
         }
 
@@ -2791,7 +2834,7 @@ if (!empty($initial_variant)) {
         });
     };
 
-    // 6. UPDATE SIZE AVAILABILITY BASED ON SELECTED COLOR
+    // 6. UPDATE SIZE / STORAGE AVAILABILITY BASED ON SELECTED COLOR
     function updateSizeAvailability() {
         if (!hasSize) return;
 
@@ -2810,7 +2853,7 @@ if (!empty($initial_variant)) {
                 ch.title = 'Out of stock';
             } else {
                 ch.classList.remove('is-out-of-stock');
-                ch.title = 'Size ' + s;
+                ch.title = multiAttrName + ' ' + s;
                 if (!firstInStockSize) firstInStockSize = s;
             }
         });

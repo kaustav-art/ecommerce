@@ -24,10 +24,15 @@
               <label class="form-label" for="attr_type">Display Type</label>
               <select class="form-select" id="attr_type" name="type">
                 <option value="select">Dropdown Select</option>
+                <option value="multiple_select">Multiple Select</option>
                 <option value="button">Button / Swatch (Pill)</option>
                 <option value="color">Color Swatch (Hex / Visual)</option>
                 <option value="text">Custom Text</option>
               </select>
+              <div id="attr_type_locked_alert" class="alert alert-warning py-2 px-3 mt-2 small" style="display: none;">
+                <i class="fa-solid fa-lock me-1"></i>
+                <span>Display Type is <strong>locked</strong> because this attribute is currently used in <strong id="attr_locked_product_count">0</strong> product(s).</span>
+              </div>
             </div>
 
             <button type="submit" class="btn btn-primary w-100 mb-2">Save Attribute</button>
@@ -60,7 +65,14 @@
                   <tr>
                     <td><strong><?= html_escape($a['name']); ?></strong></td>
                     <td><code><?= html_escape($a['slug']); ?></code></td>
-                    <td><span class="badge bg-label-info"><?= ucfirst($a['type']); ?></span></td>
+                    <td>
+                      <span class="badge bg-label-info"><?= ($a['type'] === 'multiselect') ? 'Multiple Select' : ucwords(str_replace('_', ' ', $a['type'])); ?></span>
+                      <?php if (!empty($a['is_locked'])): ?>
+                        <span class="badge bg-label-warning ms-1" title="In use by <?= $a['products_count']; ?> product(s) - Display type locked">
+                          <i class="fa-solid fa-lock" style="font-size: 10px;"></i> <?= $a['products_count']; ?> Prod
+                        </span>
+                      <?php endif; ?>
+                    </td>
                     <td>
                       <a href="<?= site_url('attributes/values/' . $a['id']); ?>" class="badge bg-primary text-white text-decoration-none">
                         <?= $a['values_count']; ?> Values &raquo;
@@ -97,7 +109,28 @@ function editAttr(a) {
   document.getElementById('attr-form-title').innerText = 'Edit Attribute: ' + a.name;
   document.getElementById('attr_id').value = a.id;
   document.getElementById('attr_name').value = a.name;
-  document.getElementById('attr_type').value = a.type;
+  var typeSelect = document.getElementById('attr_type');
+  typeSelect.value = a.type;
+  if (!typeSelect.value && (a.type === 'multiselect' || a.type === 'multiple')) {
+    typeSelect.value = 'multiple_select';
+  }
+
+  // Lock Display Type if attribute is used in products
+  var lockedAlert = document.getElementById('attr_type_locked_alert');
+  var lockedCount = document.getElementById('attr_locked_product_count');
+  if (a.is_locked || (a.products_count && parseInt(a.products_count, 10) > 0)) {
+    typeSelect.disabled = true;
+    typeSelect.title = "Display type cannot be changed because this attribute is used in products";
+    if (lockedAlert) {
+      lockedAlert.style.display = 'block';
+      if (lockedCount) lockedCount.innerText = a.products_count;
+    }
+  } else {
+    typeSelect.disabled = false;
+    typeSelect.title = "";
+    if (lockedAlert) lockedAlert.style.display = 'none';
+  }
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -105,6 +138,11 @@ function resetAttrForm() {
   document.getElementById('attr-form-title').innerText = 'Add Attribute';
   document.getElementById('attr_id').value = '';
   document.getElementById('attr_name').value = '';
-  document.getElementById('attr_type').value = 'select';
+  var typeSelect = document.getElementById('attr_type');
+  typeSelect.value = 'select';
+  typeSelect.disabled = false;
+  typeSelect.title = "";
+  var lockedAlert = document.getElementById('attr_type_locked_alert');
+  if (lockedAlert) lockedAlert.style.display = 'none';
 }
 </script>

@@ -61,6 +61,63 @@ class variants extends MY_Controller {
         }
 
         $attributes = $this->attribute_model->get_all();
+        $assigned_product_attrs = $this->attribute_model->get_product_attributes($product_id);
+
+        $active_multi_attr = null;
+        $active_multi_attr_id = null;
+
+        // 1. Detect from assigned product attributes
+        foreach ($assigned_product_attrs as $apa) {
+            $is_multi = (in_array(strtolower($apa['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                         || strcasecmp($apa['slug'], 'size') === 0 || strcasecmp($apa['name'], 'size') === 0
+                         || strcasecmp($apa['slug'], 'storage') === 0 || strcasecmp($apa['name'], 'storage') === 0);
+            if ($is_multi) {
+                $active_multi_attr_id = (int)$apa['attribute_id'];
+                break;
+            }
+        }
+
+        // 2. Detect from existing product variants if not in product_attributes
+        if (!$active_multi_attr_id) {
+            $product_variants = $this->variant_model->get_by_product($product_id);
+            if (!empty($product_variants)) {
+                foreach ($product_variants as $pv) {
+                    if (!empty($pv['values'])) {
+                        foreach ($pv['values'] as $pv_val) {
+                            $is_multi = (in_array(strtolower($pv_val['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                                         || strcasecmp($pv_val['attribute_slug'], 'size') === 0 || strcasecmp($pv_val['attribute_name'], 'size') === 0
+                                         || strcasecmp($pv_val['attribute_slug'], 'storage') === 0 || strcasecmp($pv_val['attribute_name'], 'storage') === 0);
+                            if ($is_multi) {
+                                $active_multi_attr_id = (int)$pv_val['attribute_id'];
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback to any attribute with type multiple_select or slug storage/size
+        if (!$active_multi_attr_id && !empty($attributes)) {
+            foreach ($attributes as $attr) {
+                $is_multi = (in_array(strtolower($attr['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                             || strcasecmp($attr['slug'], 'storage') === 0 || strcasecmp($attr['name'], 'storage') === 0
+                             || strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0);
+                if ($is_multi) {
+                    $active_multi_attr_id = (int)$attr['id'];
+                    break;
+                }
+            }
+        }
+
+        if ($active_multi_attr_id && !empty($attributes)) {
+            foreach ($attributes as $attr) {
+                if ((int)$attr['id'] === $active_multi_attr_id) {
+                    $active_multi_attr = $attr;
+                    break;
+                }
+            }
+        }
 
         // Base highlights from product if available
         $product_highlights = !empty($product['highlights']) ? (json_decode($product['highlights'], true) ?: []) : [];
@@ -69,16 +126,17 @@ class variants extends MY_Controller {
         $product_specs = !empty($product['specifications']) ? $product['specifications'] : [];
 
         $data = [
-            'title'          => 'Add Product Variant | ' . html_escape($product['title']) . ' | Admin',
-            'active_menu'    => 'products',
-            'active_submenu' => 'products_list',
-            'product'        => $product,
-            'variant'        => [],
-            'is_edit'        => false,
-            'form_action'    => site_url('variants/add/' . $product_id),
-            'attributes'     => $attributes,
-            'highlights'     => $product_highlights,
-            'specifications' => $product_specs
+            'title'             => 'Add Product Variant | ' . html_escape($product['title']) . ' | Admin',
+            'active_menu'       => 'products',
+            'active_submenu'    => 'products_list',
+            'product'           => $product,
+            'variant'           => [],
+            'is_edit'           => false,
+            'form_action'       => site_url('variants/add/' . $product_id),
+            'attributes'        => $attributes,
+            'active_multi_attr' => $active_multi_attr,
+            'highlights'        => $product_highlights,
+            'specifications'    => $product_specs
         ];
 
         $this->render('variants/form', $data);
@@ -132,10 +190,27 @@ class variants extends MY_Controller {
                 'sizes'                 => []
             ];
 
+            $fallback_multi_id = null;
+            $assigned_attrs = $this->attribute_model->get_product_attributes($product_id);
+            foreach ($assigned_attrs as $aa) {
+                if (in_array(strtolower($aa['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                    || strcasecmp($aa['slug'], 'size') === 0 || strcasecmp($aa['name'], 'size') === 0
+                    || strcasecmp($aa['slug'], 'storage') === 0 || strcasecmp($aa['name'], 'storage') === 0) {
+                    $fallback_multi_id = (int)$aa['attribute_id'];
+                    break;
+                }
+            }
+
             if (!empty($single['values'])) {
                 foreach ($single['values'] as $val) {
-                    $is_size = (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0);
-                    if ($is_size) {
+                    $is_multi = false;
+                    if ($fallback_multi_id && (int)$val['attribute_id'] === $fallback_multi_id) {
+                        $is_multi = true;
+                    } elseif (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0
+                              || strcasecmp($val['attribute_slug'], 'storage') === 0 || strcasecmp($val['attribute_name'], 'storage') === 0) {
+                        $is_multi = true;
+                    }
+                    if ($is_multi) {
                         $variant_data['sizes'][] = [
                             'variant_id'   => (int) $single['id'],
                             'size_id'      => (int) $val['attribute_value_id'],
@@ -161,6 +236,31 @@ class variants extends MY_Controller {
 
         $attributes = $this->attribute_model->get_all();
 
+        $active_multi_attr = null;
+        $active_multi_attr_id = !empty($variant_data['multi_attr_id']) ? (int)$variant_data['multi_attr_id'] : null;
+
+        if (!$active_multi_attr_id) {
+            $assigned_product_attrs = $this->attribute_model->get_product_attributes($product_id);
+            foreach ($assigned_product_attrs as $apa) {
+                $is_multi = (in_array(strtolower($apa['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                             || strcasecmp($apa['slug'], 'size') === 0 || strcasecmp($apa['name'], 'size') === 0
+                             || strcasecmp($apa['slug'], 'storage') === 0 || strcasecmp($apa['name'], 'storage') === 0);
+                if ($is_multi) {
+                    $active_multi_attr_id = (int)$apa['attribute_id'];
+                    break;
+                }
+            }
+        }
+
+        if ($active_multi_attr_id && !empty($attributes)) {
+            foreach ($attributes as $attr) {
+                if ((int)$attr['id'] === $active_multi_attr_id) {
+                    $active_multi_attr = $attr;
+                    break;
+                }
+            }
+        }
+
         // Decode highlights and specifications
         $highlights = [];
         if (!empty($variant_data['highlights'])) {
@@ -177,16 +277,17 @@ class variants extends MY_Controller {
         }
 
         $data = [
-            'title'          => 'Edit Variant: ' . html_escape($variant_data['title']) . ' | Admin',
-            'active_menu'    => 'products',
-            'active_submenu' => 'products_list',
-            'product'        => $product,
-            'variant'        => $variant_data,
-            'is_edit'        => true,
-            'form_action'    => site_url('variants/edit/' . $product_id . '/' . $variant_id),
-            'attributes'     => $attributes,
-            'highlights'     => $highlights,
-            'specifications' => $specifications
+            'title'             => 'Edit Variant: ' . html_escape($variant_data['title']) . ' | Admin',
+            'active_menu'       => 'products',
+            'active_submenu'    => 'products_list',
+            'product'           => $product,
+            'variant'           => $variant_data,
+            'is_edit'           => true,
+            'form_action'       => site_url('variants/edit/' . $product_id . '/' . $variant_id),
+            'attributes'        => $attributes,
+            'active_multi_attr' => $active_multi_attr,
+            'highlights'        => $highlights,
+            'specifications'    => $specifications
         ];
 
         $this->render('variants/form', $data);
@@ -267,19 +368,67 @@ class variants extends MY_Controller {
             $attr_vals = $this->input->post('attr_vals') ?: [];
             $size_vals = $this->input->post('size_vals');
 
-            // Look up Size attribute definition
+            // Look up Multi-Select attribute definition (Storage, Size, etc.)
             $all_attributes = $this->attribute_model->get_all();
+            $active_multi_id = (int) $this->input->post('active_multi_attr_id');
             $size_attr_id = null;
+            $size_attr_name = 'Option';
             $size_map = [];
-            foreach ($all_attributes as $attr) {
-                if (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0) {
-                    $size_attr_id = (int) $attr['id'];
-                    if (!empty($attr['values'])) {
-                        foreach ($attr['values'] as $val) {
-                            $size_map[$val['id']] = $val['value'];
+
+            if ($active_multi_id > 0) {
+                foreach ($all_attributes as $attr) {
+                    if ((int)$attr['id'] === $active_multi_id) {
+                        $size_attr_id = (int) $attr['id'];
+                        $size_attr_name = $attr['name'];
+                        if (!empty($attr['values'])) {
+                            foreach ($attr['values'] as $val) {
+                                $size_map[$val['id']] = $val['value'];
+                            }
                         }
+                        break;
                     }
-                    break;
+                }
+            }
+
+            // Fallback: check product_attributes
+            if (!$size_attr_id) {
+                $assigned_product_attrs = $this->attribute_model->get_product_attributes($product_id);
+                foreach ($assigned_product_attrs as $apa) {
+                    $is_multi = (in_array(strtolower($apa['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                                 || strcasecmp($apa['slug'], 'size') === 0 || strcasecmp($apa['name'], 'size') === 0
+                                 || strcasecmp($apa['slug'], 'storage') === 0 || strcasecmp($apa['name'], 'storage') === 0);
+                    if ($is_multi) {
+                        $size_attr_id = (int) $apa['attribute_id'];
+                        $size_attr_name = $apa['name'];
+                        foreach ($all_attributes as $attr) {
+                            if ((int)$attr['id'] === $size_attr_id && !empty($attr['values'])) {
+                                foreach ($attr['values'] as $val) {
+                                    $size_map[$val['id']] = $val['value'];
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Fallback: check all attributes for multiple_select or size/storage
+            if (!$size_attr_id) {
+                foreach ($all_attributes as $attr) {
+                    $is_multi = (in_array(strtolower($attr['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                                 || strcasecmp($attr['slug'], 'storage') === 0 || strcasecmp($attr['name'], 'storage') === 0
+                                 || strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0);
+                    if ($is_multi) {
+                        $size_attr_id = (int) $attr['id'];
+                        $size_attr_name = $attr['name'];
+                        if (!empty($attr['values'])) {
+                            foreach ($attr['values'] as $val) {
+                                $size_map[$val['id']] = $val['value'];
+                            }
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -311,8 +460,11 @@ class variants extends MY_Controller {
                     foreach ($selected_sizes as $s_id) {
                         $s_name = $size_map[$s_id] ?? '';
                         $v_sku = $base_sku;
-                        if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
-                            $v_sku .= '-' . strtoupper($s_name);
+                        if (!empty($s_name)) {
+                            $clean_sname = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s_name));
+                            if (!empty($clean_sname) && !preg_match('/-' . preg_quote($clean_sname, '/') . '$/i', $v_sku)) {
+                                $v_sku .= '-' . $clean_sname;
+                            }
                         }
                         $v_title = $base_title;
                         if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
@@ -420,13 +572,16 @@ class variants extends MY_Controller {
                     foreach ($selected_sizes as $s_id) {
                         $s_name = $size_map[$s_id] ?? '';
 
-                        // Append size to SKU if not already present
+                        // Append option to SKU if not already present
                         $v_sku = $base_sku;
-                        if (!empty($s_name) && !preg_match('/-' . preg_quote($s_name, '/') . '$/i', $v_sku)) {
-                            $v_sku .= '-' . strtoupper($s_name);
+                        if (!empty($s_name)) {
+                            $clean_sname = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s_name));
+                            if (!empty($clean_sname) && !preg_match('/-' . preg_quote($clean_sname, '/') . '$/i', $v_sku)) {
+                                $v_sku .= '-' . $clean_sname;
+                            }
                         }
 
-                        // Append size to title if not already present
+                        // Append option to title if not already present
                         $v_title = $base_title;
                         if (!empty($s_name) && !preg_match('/\/\s*' . preg_quote($s_name, '/') . '$/i', $v_title)) {
                             $v_title .= ' / ' . $s_name;
@@ -466,7 +621,7 @@ class variants extends MY_Controller {
                         $created_count++;
                     }
                     $this->variant_model->sync_product_stock($product_id);
-                    $this->session->set_flashdata('success', $created_count . ' variants created successfully with managed stock by size!');
+                    $this->session->set_flashdata('success', $created_count . ' variants created successfully with managed stock by ' . strtolower($size_attr_name) . '!');
                 } else {
                     // NO SIZE ATTRIBUTE SELECTED
                     $data = [

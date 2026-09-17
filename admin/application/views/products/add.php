@@ -37,6 +37,9 @@
 .sticky-organization-card .card-body::-webkit-scrollbar-thumb:hover {
   background: #b5b9c0;
 }
+.add-size-chip:hover, .add-multi-chip:hover {
+  border-color: #666cff !important;
+}
 </style>
 
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -133,23 +136,27 @@
             <?php if (!empty($attributes)): ?>
               <div class="row">
                 <?php 
-                  $size_attribute = null;
-                  $other_attributes = [];
+                  $multi_select_attributes = [];
+                  $single_attributes = [];
+
                   foreach ($attributes as $attr) {
-                    if (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0) {
-                      $size_attribute = $attr;
+                    $is_size = (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0);
+                    $is_multi = in_array(strtolower($attr['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple']) || $is_size;
+
+                    if ($is_multi) {
+                      $multi_select_attributes[] = $attr;
                     } else {
-                      $other_attributes[] = $attr;
+                      $single_attributes[] = $attr;
                     }
                   }
                 ?>
 
-                <!-- Non-Size Attributes (Color, Material, etc.) -->
-                <?php if (!empty($other_attributes)): ?>
+                <!-- Non-Size / Single-Select Attributes (Color, Material, etc.) -->
+                <?php if (!empty($single_attributes)): ?>
                   <div class="col-12 mb-3">
-                    <label class="form-label fw-semibold text-dark">Assign Non-Size Attributes (e.g. Color, Material):</label>
+                    <label class="form-label fw-semibold text-dark">Assign Attributes (e.g. Color, Material):</label>
                     <div class="row g-3">
-                      <?php foreach ($other_attributes as $attr): ?>
+                      <?php foreach ($single_attributes as $attr): ?>
                         <div class="col-md-6">
                           <div class="p-2 border rounded bg-light">
                             <label class="form-label small fw-bold mb-1" for="add_attr_val_<?= $attr['id']; ?>">
@@ -172,88 +179,149 @@
                   </div>
                 <?php endif; ?>
 
-                <!-- Size Multiple Selector & Stock by Size Management -->
-                <?php if ($size_attribute && !empty($size_attribute['values'])): ?>
-                  <div class="col-12 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                      <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                          <label class="form-label fw-bold mb-0 text-dark">
-                            <i class="fa-solid fa-ruler-combined text-info me-1"></i> Assign Sizes <span class="badge bg-label-info ms-1" style="font-size: 10px;">Multiple Selection</span>
-                          </label>
-                          <small class="text-muted d-block" style="font-size: 11px;">Select all sizes available for this product/variant.</small>
-                        </div>
-                        <div class="d-flex gap-2">
-                          <a href="javascript:void(0);" class="small text-primary text-decoration-none fw-semibold" onclick="selectAllAddSizes(true)">Select All</a>
-                          <span class="text-muted small">|</span>
-                          <a href="javascript:void(0);" class="small text-secondary text-decoration-none" onclick="selectAllAddSizes(false)">Clear</a>
-                        </div>
-                      </div>
-
-                      <!-- Size Chips -->
-                      <div class="d-flex flex-wrap gap-2 mb-2" id="add-size-chips-wrapper">
-                        <?php foreach ($size_attribute['values'] as $v): ?>
-                          <div 
-                            class="border rounded px-3 py-1 text-center add-size-chip" 
-                            id="add_size_chip_<?= $v['id']; ?>" 
-                            style="cursor: pointer; min-width: 44px; font-size: 13px; font-weight: 600; user-select: none; background: #fff; border-color: #d4d5d9; color: #515569; transition: all 0.15s ease;"
-                            onclick="toggleAddSizeChip(<?= $v['id']; ?>, '<?= html_escape($v['value']); ?>')"
-                          >
-                            <input 
-                              type="checkbox" 
-                              name="size_vals[]" 
-                              value="<?= $v['id']; ?>" 
-                              data-val="<?= html_escape($v['value']); ?>" 
-                              id="add_size_input_<?= $v['id']; ?>" 
-                              class="d-none add-size-checkbox"
-                            />
-                            <span><?= html_escape($v['value']); ?></span>
-                          </div>
-                        <?php endforeach; ?>
-                      </div>
-
-                      <!-- Manage Stock by Size Dynamic Container -->
-                      <div id="add-size-stock-manager" class="mt-3 p-3 bg-white rounded border" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
-                          <div>
-                            <span class="fw-bold text-dark fs-6">
-                              <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> Manage Stock by Size
-                            </span>
-                            <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity for each selected size.</small>
-                          </div>
-
-                        </div>
-
-                        <!-- Table of Selected Sizes for Stock -->
-                        <div class="table-responsive">
-                          <table class="table table-sm table-bordered align-middle mb-0">
-                            <thead class="table-light">
-                              <tr>
-                                <th style="width: 80px;" class="text-center">Size</th>
-                                <th>Variant SKU</th>
-                                <th style="width: 160px;">Stock Quantity</th>
-                                <th style="width: 160px;">Sale Price ($)</th>
-                                <th style="width: 110px;" class="text-center">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody id="add-size-stock-tbody">
-                              <!-- dynamically populated by JS -->
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top flex-wrap gap-2">
-                          <span class="text-muted small" id="add-selected-sizes-count">0 sizes selected</span>
-                          <div class="text-end">
-                            <small class="text-muted">Total Stock for this product: </small>
-                            <strong class="text-primary fs-6" id="add-total-sizes-stock">0 units</strong>
-                          </div>
-                        </div>
-                      </div>
-
+                <!-- Multiple-Selection Attributes (e.g. Size for Apparel, Storage for Phones) -->
+                <?php if (!empty($multi_select_attributes)): ?>
+                  <div class="col-12 mb-2">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-1">
+                      <label class="form-label fw-semibold text-dark mb-0">
+                        Multiple Selection Attribute (Variants & Stock Dimension):
+                      </label>
+                      <small class="text-muted" style="font-size: 11px;">
+                        <i class="fa-solid fa-circle-info text-info me-1"></i> Only one Multiple Selection attribute can be active per product (e.g. Size for apparel or Storage for phones).
+                      </small>
                     </div>
                   </div>
+
+                  <?php foreach ($multi_select_attributes as $m_attr): 
+                    $m_is_size = (strcasecmp($m_attr['slug'], 'size') === 0 || strcasecmp($m_attr['name'], 'size') === 0);
+                    $m_icon = $m_is_size ? 'fa-ruler-combined' : (strcasecmp($m_attr['slug'], 'storage') === 0 ? 'fa-hard-drive' : 'fa-tags');
+                  ?>
+                    <div class="col-12 mb-3 multi-attr-section" id="multi_attr_section_<?= $m_attr['id']; ?>" data-attr-id="<?= $m_attr['id']; ?>" data-attr-name="<?= html_escape($m_attr['name']); ?>">
+                      <div class="p-3 border rounded bg-light position-relative" id="multi_attr_card_<?= $m_attr['id']; ?>">
+                        
+                        <!-- Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                          <div>
+                            <label class="form-label fw-bold mb-0 text-dark d-flex align-items-center flex-wrap gap-1">
+                              <i class="fa-solid <?= $m_icon; ?> text-info me-1"></i> Assign <?= html_escape($m_attr['name']); ?>
+                              <span class="badge bg-label-info ms-1" style="font-size: 10px;">Multiple Selection</span>
+                              <span class="badge bg-label-success ms-1 active-multi-badge" id="active_multi_badge_<?= $m_attr['id']; ?>" style="font-size: 10px; display: none;">
+                                <i class="fa-solid fa-check me-1"></i>Active for Product
+                              </span>
+                            </label>
+                            <small class="text-muted d-block" style="font-size: 11px;">Select all <?= strtolower(html_escape($m_attr['name'])); ?> options available for this product.</small>
+                          </div>
+                          <div class="d-flex gap-2 align-items-center">
+                            <a href="javascript:void(0);" class="small text-primary text-decoration-none fw-semibold multi-select-all-btn" id="multi_select_all_<?= $m_attr['id']; ?>" onclick="selectAllMultiAttr(<?= $m_attr['id']; ?>, true)">Select All</a>
+                            <span class="text-muted small">|</span>
+                            <a href="javascript:void(0);" class="small text-secondary text-decoration-none multi-clear-btn" id="multi_clear_<?= $m_attr['id']; ?>" onclick="selectAllMultiAttr(<?= $m_attr['id']; ?>, false)">Clear</a>
+                          </div>
+                        </div>
+
+                        <!-- Locked notice if another multi attribute is active -->
+                        <div class="alert alert-warning py-2 px-3 mb-2 small align-items-center justify-content-between multi-attr-locked-alert" id="multi_locked_alert_<?= $m_attr['id']; ?>" style="display: none;">
+                          <div>
+                            <i class="fa-solid fa-lock me-1 text-warning"></i>
+                            <span id="multi_locked_msg_<?= $m_attr['id']; ?>">Another attribute is currently selected. Only one Multiple Selection attribute can be chosen per product.</span>
+                          </div>
+                          <button type="button" class="btn btn-xs btn-outline-warning ms-2" onclick="switchToMultiAttr(<?= $m_attr['id']; ?>)">
+                            Switch to <?= html_escape($m_attr['name']); ?>
+                          </button>
+                        </div>
+
+                        <!-- Interactive Chips -->
+                        <div class="d-flex flex-wrap gap-2 mb-2" id="multi-chips-wrapper-<?= $m_attr['id']; ?>">
+                          <?php if (!empty($m_attr['values'])): ?>
+                            <?php foreach ($m_attr['values'] as $v): ?>
+                              <div 
+                                class="border rounded px-3 py-1 text-center add-multi-chip multi-chip-<?= $m_attr['id']; ?>" 
+                                id="multi_chip_<?= $m_attr['id']; ?>_<?= $v['id']; ?>" 
+                                style="cursor: pointer; min-width: 44px; font-size: 13px; font-weight: 600; user-select: none; background: #fff; border-color: #d4d5d9; color: #515569; transition: all 0.15s ease;"
+                                onclick="handleMultiChipClick(<?= $m_attr['id']; ?>, <?= $v['id']; ?>, '<?= html_escape($v['value']); ?>')"
+                              >
+                                <input 
+                                  type="checkbox" 
+                                  name="multi_vals[]" 
+                                  value="<?= $v['id']; ?>" 
+                                  data-val="<?= html_escape($v['value']); ?>" 
+                                  data-color="<?= html_escape($v['color_code'] ?? ''); ?>" 
+                                  data-attr-id="<?= $m_attr['id']; ?>"
+                                  data-attr-name="<?= html_escape($m_attr['name']); ?>"
+                                  id="multi_input_<?= $m_attr['id']; ?>_<?= $v['id']; ?>" 
+                                  class="d-none add-multi-checkbox multi-checkbox-<?= $m_attr['id']; ?>"
+                                  disabled
+                                />
+                                <?php if (!empty($v['color_code'])): ?>
+                                  <span class="d-inline-block rounded-circle me-1 border shadow-sm" style="width: 12px; height: 12px; vertical-align: middle; background-color: <?= html_escape($v['color_code']); ?>;"></span>
+                                <?php endif; ?>
+                                <span><?= html_escape($v['value']); ?></span>
+                              </div>
+                            <?php endforeach; ?>
+                          <?php else: ?>
+                            <small class="text-muted">No values created yet for <?= html_escape($m_attr['name']); ?>. <a href="<?= site_url('attributes/values/' . $m_attr['id']); ?>" target="_blank">Add values</a></small>
+                          <?php endif; ?>
+                        </div>
+
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+
+                  <!-- Hidden field to pass the single active multiple attribute ID -->
+                  <input type="hidden" name="active_multi_attr_id" id="active_multi_attr_id" value="">
                 <?php endif; ?>
+
+                <!-- Dynamic Stock & Price Management Table for Active Multi-Select Dimension -->
+                <div class="col-12 mb-3" id="add-multi-stock-manager" style="display: none;">
+                  <div class="p-3 bg-white rounded border">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
+                      <div>
+                        <span class="fw-bold text-dark fs-6">
+                          <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> <span id="add-multi-stock-title">Manage Stock by Option</span>
+                        </span>
+                        <small class="text-muted d-block" id="add-multi-stock-subtitle" style="font-size: 11px;">Specify individual inventory quantity and sale price for each selected option.</small>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <!-- Quick Bulk Stock -->
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                          <input type="number" min="0" class="form-control" id="add_quick_stock_val" placeholder="Qty" value="10">
+                          <button type="button" class="btn btn-outline-primary" onclick="applyAddStockToAll()" title="Apply to all selected">Apply All</button>
+                        </div>
+                        <!-- Quick Bulk Sale Price -->
+                        <div class="input-group input-group-sm" style="width: 170px;">
+                          <span class="input-group-text">$</span>
+                          <input type="number" step="0.01" min="0" class="form-control" id="add_quick_sale_price_val" placeholder="Sale Price">
+                          <button type="button" class="btn btn-outline-primary" onclick="applyAddSalePriceToAll()" title="Apply to all selected">Apply All</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Table of Selected Multi Attribute Values for Stock -->
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th style="width: 110px;" class="text-center" id="add-multi-stock-th-label">Option</th>
+                            <th>Variant SKU</th>
+                            <th style="width: 160px;">Stock Quantity</th>
+                            <th style="width: 160px;">Sale Price ($)</th>
+                            <th style="width: 110px;" class="text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="add-multi-stock-tbody">
+                          <!-- dynamically populated by JS -->
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top flex-wrap gap-2">
+                      <span class="text-muted small" id="add-selected-multi-count">0 options selected</span>
+                      <div class="text-end">
+                        <small class="text-muted">Total Stock for this product: </small>
+                        <strong class="text-primary fs-6" id="add-total-multi-stock">0 units</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
               </div>
             <?php else: ?>
@@ -535,14 +603,101 @@ function renderNewGalleryPreviews() {
   });
 }
 
-// Size Chip Toggle
-function toggleAddSizeChip(valId, valName) {
-  var cb = document.getElementById('add_size_input_' + valId);
-  var chip = document.getElementById('add_size_chip_' + valId);
+// --- Exclusive Multiple-Selection Attribute Dimension & Dynamic Stock/Price Management ---
+var currentActiveMultiAttrId = null;
+
+function handleMultiChipClick(attrId, valId, valName) {
+  // If another multi attribute has selections, enforce "only one Multiple Selection can select not both"
+  if (currentActiveMultiAttrId && currentActiveMultiAttrId !== attrId) {
+    var activeCard = document.getElementById('multi_attr_section_' + currentActiveMultiAttrId);
+    var activeName = activeCard ? activeCard.getAttribute('data-attr-name') : 'another attribute';
+    var targetCard = document.getElementById('multi_attr_section_' + attrId);
+    var targetName = targetCard ? targetCard.getAttribute('data-attr-name') : 'this attribute';
+
+    if (!confirm('Only one Multiple Selection attribute can be active per product (e.g. Size for apparel or Storage for phones).\n\nSwitching to "' + targetName + '" will clear your "' + activeName + '" selections. Proceed?')) {
+      return;
+    }
+    clearMultiAttrSelections(currentActiveMultiAttrId);
+  }
+
+  var cb = document.getElementById('multi_input_' + attrId + '_' + valId);
+  var chip = document.getElementById('multi_chip_' + attrId + '_' + valId);
   if (!cb || !chip) return;
 
   cb.checked = !cb.checked;
-  if (cb.checked) {
+  cb.disabled = !cb.checked; // Only checked chips submit in POST
+  updateChipStyle(chip, cb.checked);
+
+  // Check how many chips are selected in this attribute
+  var checkedInThis = document.querySelectorAll('.multi-checkbox-' + attrId + ':checked');
+  if (checkedInThis.length > 0) {
+    currentActiveMultiAttrId = attrId;
+    document.getElementById('active_multi_attr_id').value = attrId;
+  } else {
+    currentActiveMultiAttrId = null;
+    document.getElementById('active_multi_attr_id').value = '';
+  }
+
+  updateMultiAttrCardsState();
+  renderMultiStockTable();
+  updateVariantNameAndSkuPreview();
+}
+
+function selectAllMultiAttr(attrId, enable) {
+  if (enable && currentActiveMultiAttrId && currentActiveMultiAttrId !== attrId) {
+    var activeCard = document.getElementById('multi_attr_section_' + currentActiveMultiAttrId);
+    var activeName = activeCard ? activeCard.getAttribute('data-attr-name') : 'another attribute';
+    var targetCard = document.getElementById('multi_attr_section_' + attrId);
+    var targetName = targetCard ? targetCard.getAttribute('data-attr-name') : 'this attribute';
+
+    if (!confirm('Only one Multiple Selection attribute can be active per product.\n\nSwitching to "' + targetName + '" will clear "' + activeName + '". Proceed?')) {
+      return;
+    }
+    clearMultiAttrSelections(currentActiveMultiAttrId);
+  }
+
+  document.querySelectorAll('.multi-checkbox-' + attrId).forEach(function(cb) {
+    cb.checked = enable;
+    cb.disabled = !enable;
+    var chip = document.getElementById('multi_chip_' + attrId + '_' + cb.value);
+    if (chip) updateChipStyle(chip, enable);
+  });
+
+  if (enable) {
+    currentActiveMultiAttrId = attrId;
+    document.getElementById('active_multi_attr_id').value = attrId;
+  } else {
+    if (currentActiveMultiAttrId === attrId) {
+      currentActiveMultiAttrId = null;
+      document.getElementById('active_multi_attr_id').value = '';
+    }
+  }
+
+  updateMultiAttrCardsState();
+  renderMultiStockTable();
+  updateVariantNameAndSkuPreview();
+}
+
+function switchToMultiAttr(attrId) {
+  if (currentActiveMultiAttrId && currentActiveMultiAttrId !== attrId) {
+    clearMultiAttrSelections(currentActiveMultiAttrId);
+  }
+  currentActiveMultiAttrId = attrId;
+  document.getElementById('active_multi_attr_id').value = attrId;
+  selectAllMultiAttr(attrId, true);
+}
+
+function clearMultiAttrSelections(attrId) {
+  document.querySelectorAll('.multi-checkbox-' + attrId).forEach(function(cb) {
+    cb.checked = false;
+    cb.disabled = true;
+    var chip = document.getElementById('multi_chip_' + attrId + '_' + cb.value);
+    if (chip) updateChipStyle(chip, false);
+  });
+}
+
+function updateChipStyle(chip, isChecked) {
+  if (isChecked) {
     chip.style.background = '#666cff';
     chip.style.borderColor = '#666cff';
     chip.style.color = '#fff';
@@ -551,94 +706,126 @@ function toggleAddSizeChip(valId, valName) {
     chip.style.borderColor = '#d4d5d9';
     chip.style.color = '#515569';
   }
-
-  renderAddSizeStockTable();
 }
 
-function selectAllAddSizes(enable) {
-  document.querySelectorAll('.add-size-checkbox').forEach(function(cb) {
-    cb.checked = enable;
-    var chip = document.getElementById('add_size_chip_' + cb.value);
-    if (chip) {
-      if (enable) {
-        chip.style.background = '#666cff';
-        chip.style.borderColor = '#666cff';
-        chip.style.color = '#fff';
-      } else {
-        chip.style.background = '#fff';
-        chip.style.borderColor = '#d4d5d9';
-        chip.style.color = '#515569';
+function updateMultiAttrCardsState() {
+  var activeCard = currentActiveMultiAttrId ? document.getElementById('multi_attr_section_' + currentActiveMultiAttrId) : null;
+  var activeName = activeCard ? activeCard.getAttribute('data-attr-name') : '';
+
+  document.querySelectorAll('.multi-attr-section').forEach(function(sec) {
+    var secAttrId = parseInt(sec.getAttribute('data-attr-id'), 10);
+    var badge = document.getElementById('active_multi_badge_' + secAttrId);
+    var alert = document.getElementById('multi_locked_alert_' + secAttrId);
+    var lockedMsg = document.getElementById('multi_locked_msg_' + secAttrId);
+    var card = document.getElementById('multi_attr_card_' + secAttrId);
+
+    if (!currentActiveMultiAttrId) {
+      if (badge) badge.style.display = 'none';
+      if (alert) alert.style.display = 'none';
+      if (card) { card.style.opacity = '1'; card.classList.remove('border-primary'); }
+    } else if (currentActiveMultiAttrId === secAttrId) {
+      if (badge) badge.style.display = 'inline-flex';
+      if (alert) alert.style.display = 'none';
+      if (card) { card.style.opacity = '1'; card.classList.add('border-primary'); }
+    } else {
+      if (badge) badge.style.display = 'none';
+      if (alert) {
+        alert.style.display = 'flex';
+        if (lockedMsg) {
+          lockedMsg.textContent = activeName + ' is currently selected. Only one Multiple Selection attribute can be chosen per product.';
+        }
       }
+      if (card) { card.style.opacity = '0.75'; card.classList.remove('border-primary'); }
     }
   });
-
-  renderAddSizeStockTable();
 }
 
-// Render dynamic stock-by-size table
-function renderAddSizeStockTable() {
-  var checkedCbs = document.querySelectorAll('.add-size-checkbox:checked');
-  var container = document.getElementById('add-size-stock-manager');
-  var tbody = document.getElementById('add-size-stock-tbody');
-  var countEl = document.getElementById('add-selected-sizes-count');
+// Render dynamic stock-by-attribute table (supports Size, Storage, RAM, etc.)
+function renderMultiStockTable() {
+  var container = document.getElementById('add-multi-stock-manager');
+  var tbody = document.getElementById('add-multi-stock-tbody');
+  var countEl = document.getElementById('add-selected-multi-count');
   var salePriceWrapper = document.getElementById('add_sale_price_wrapper');
+  var titleEl = document.getElementById('add-multi-stock-title');
+  var subtitleEl = document.getElementById('add-multi-stock-subtitle');
+  var thLabel = document.getElementById('add-multi-stock-th-label');
   if (!container || !tbody) return;
 
-  var baseSku = (document.getElementById('sku') ? document.getElementById('sku').value.trim() : '') || 'SKU';
-  var defaultSalePrice = (document.getElementById('sale_price') ? document.getElementById('sale_price').value.trim() : '') || '';
+  if (!currentActiveMultiAttrId) {
+    container.style.display = 'none';
+    if (salePriceWrapper) salePriceWrapper.style.display = 'block';
+    if (countEl) countEl.textContent = '0 options selected';
+    tbody.innerHTML = '';
+    recalcAddTotalStock();
+    return;
+  }
+
+  var activeCard = document.getElementById('multi_attr_section_' + currentActiveMultiAttrId);
+  var attrName = activeCard ? activeCard.getAttribute('data-attr-name') : 'Option';
+  var checkedCbs = document.querySelectorAll('.multi-checkbox-' + currentActiveMultiAttrId + ':checked');
 
   if (checkedCbs.length === 0) {
     container.style.display = 'none';
     if (salePriceWrapper) salePriceWrapper.style.display = 'block';
-    if (countEl) countEl.textContent = '0 sizes selected';
+    if (countEl) countEl.textContent = '0 options selected';
+    tbody.innerHTML = '';
+    recalcAddTotalStock();
     return;
   }
 
   container.style.display = 'block';
   if (salePriceWrapper) salePriceWrapper.style.display = 'none';
-  if (countEl) countEl.textContent = checkedCbs.length + ' size(s) selected';
+  if (titleEl) titleEl.textContent = 'Manage Stock by ' + attrName;
+  if (subtitleEl) subtitleEl.textContent = 'Specify individual inventory quantity and sale price for each selected ' + attrName.toLowerCase() + '.';
+  if (thLabel) thLabel.textContent = attrName;
+  if (countEl) countEl.textContent = checkedCbs.length + ' ' + attrName.toLowerCase() + ' option(s) selected';
 
-  // Save current values if already entered
+  var baseSku = (document.getElementById('sku') ? document.getElementById('sku').value.trim() : '') || 'SKU';
+  var defaultSalePrice = (document.getElementById('sale_price') ? document.getElementById('sale_price').value.trim() : '') || '';
+
+  // Preserve existing inputs
   var currentVals = {};
-  document.querySelectorAll('.add-size-qty-input').forEach(function(inp) {
-    var sid = inp.getAttribute('data-size-id');
-    currentVals[sid] = currentVals[sid] || {};
-    currentVals[sid].stock = inp.value;
+  document.querySelectorAll('.add-multi-qty-input').forEach(function(inp) {
+    var vid = inp.getAttribute('data-val-id');
+    currentVals[vid] = currentVals[vid] || {};
+    currentVals[vid].stock = inp.value;
   });
-  document.querySelectorAll('.add-size-sale-price-input').forEach(function(inp) {
-    var sid = inp.getAttribute('data-size-id');
-    currentVals[sid] = currentVals[sid] || {};
-    currentVals[sid].sale_price = inp.value;
+  document.querySelectorAll('.add-multi-sale-price-input').forEach(function(inp) {
+    var vid = inp.getAttribute('data-val-id');
+    currentVals[vid] = currentVals[vid] || {};
+    currentVals[vid].sale_price = inp.value;
   });
 
   tbody.innerHTML = '';
   checkedCbs.forEach(function(cb) {
-    var sizeId = cb.value;
-    var sizeName = cb.getAttribute('data-val') || '';
-    var existingQty = (currentVals[sizeId] && currentVals[sizeId].stock !== undefined && currentVals[sizeId].stock !== '') ? currentVals[sizeId].stock : '0';
-    var existingSalePrice = (currentVals[sizeId] && currentVals[sizeId].sale_price !== undefined && currentVals[sizeId].sale_price !== '') ? currentVals[sizeId].sale_price : defaultSalePrice;
-    var vSku = baseSku + '-' + sizeName.toUpperCase();
+    var valId = cb.value;
+    var valName = cb.getAttribute('data-val') || '';
+    var existingQty = (currentVals[valId] && currentVals[valId].stock !== undefined && currentVals[valId].stock !== '') ? currentVals[valId].stock : '10';
+    var existingSalePrice = (currentVals[valId] && currentVals[valId].sale_price !== undefined && currentVals[valId].sale_price !== '') ? currentVals[valId].sale_price : defaultSalePrice;
+    
+    var cleanSuffix = valName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    var vSku = baseSku + '-' + cleanSuffix;
     var isOutOfStock = parseInt(existingQty, 10) === 0;
 
     var tr = document.createElement('tr');
-    tr.id = 'add_size_row_' + sizeId;
+    tr.id = 'add_multi_row_' + valId;
     tr.innerHTML = 
-      '<td class="text-center"><span class="badge bg-primary fw-bold fs-6">' + sizeName + '</span></td>' +
-      '<td><code class="add-size-sku-preview">' + vSku + '</code></td>' +
+      '<td class="text-center"><span class="badge bg-primary fw-bold fs-6">' + escapeHtml(valName) + '</span></td>' +
+      '<td><code class="add-multi-sku-preview">' + escapeHtml(vSku) + '</code></td>' +
       '<td>' +
         '<div class="input-group input-group-sm">' +
           '<span class="input-group-text"><i class="fa-solid fa-boxes-stacked" style="font-size: 10px;"></i></span>' +
-          '<input type="number" min="0" class="form-control text-end add-size-qty-input" name="size_stock[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingQty) + '" placeholder="0" oninput="recalcAddTotalStock()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcAddTotalStock(); }">' +
+          '<input type="number" min="0" class="form-control text-end add-multi-qty-input" name="multi_stock[' + valId + ']" data-val-id="' + valId + '" value="' + escapeHtml(existingQty) + '" placeholder="0" oninput="recalcAddTotalStock()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcAddTotalStock(); }">' +
         '</div>' +
       '</td>' +
       '<td>' +
         '<div class="input-group input-group-sm">' +
           '<span class="input-group-text">$</span>' +
-          '<input type="number" step="0.01" min="0" class="form-control text-end add-size-sale-price-input" name="size_sale_price[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
+          '<input type="number" step="0.01" min="0" class="form-control text-end add-multi-sale-price-input" name="multi_sale_price[' + valId + ']" data-val-id="' + valId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
         '</div>' +
       '</td>' +
       '<td class="text-center">' +
-        '<span class="badge ' + (isOutOfStock ? 'bg-label-danger' : 'bg-label-success') + ' add-size-status-badge">' +
+        '<span class="badge ' + (isOutOfStock ? 'bg-label-danger' : 'bg-label-success') + ' add-multi-status-badge">' +
           (isOutOfStock ? 'Out of stock' : 'In stock') +
         '</span>' +
       '</td>';
@@ -650,7 +837,7 @@ function renderAddSizeStockTable() {
 
 function applyAddStockToAll() {
   var val = document.getElementById('add_quick_stock_val') ? document.getElementById('add_quick_stock_val').value : '10';
-  document.querySelectorAll('.add-size-qty-input').forEach(function(inp) {
+  document.querySelectorAll('.add-multi-qty-input').forEach(function(inp) {
     inp.value = val;
   });
   recalcAddTotalStock();
@@ -658,56 +845,72 @@ function applyAddStockToAll() {
 
 function applyAddSalePriceToAll() {
   var val = document.getElementById('add_quick_sale_price_val') ? document.getElementById('add_quick_sale_price_val').value : '';
-  document.querySelectorAll('.add-size-sale-price-input').forEach(function(inp) {
+  document.querySelectorAll('.add-multi-sale-price-input').forEach(function(inp) {
     inp.value = val;
   });
 }
 
 function recalcAddTotalStock() {
   var total = 0;
-  document.querySelectorAll('.add-size-qty-input').forEach(function(inp) {
-    var qty = parseInt(inp.value, 10) || 0;
-    total += qty;
-    var row = inp.closest('tr');
-    if (row) {
-      var badge = row.querySelector('.add-size-status-badge');
-      if (badge) {
-        if (qty <= 0) {
-          badge.className = 'badge bg-label-danger add-size-status-badge';
-          badge.textContent = 'Out of stock';
-        } else {
-          badge.className = 'badge bg-label-success add-size-status-badge';
-          badge.textContent = 'In stock';
+  var qtyInputs = document.querySelectorAll('.add-multi-qty-input');
+  if (qtyInputs.length > 0) {
+    qtyInputs.forEach(function(inp) {
+      var qty = parseInt(inp.value, 10) || 0;
+      total += qty;
+      var row = inp.closest('tr');
+      if (row) {
+        var badge = row.querySelector('.add-multi-status-badge');
+        if (badge) {
+          if (qty <= 0) {
+            badge.className = 'badge bg-label-danger add-multi-status-badge';
+            badge.textContent = 'Out of stock';
+          } else {
+            badge.className = 'badge bg-label-success add-multi-status-badge';
+            badge.textContent = 'In stock';
+          }
         }
       }
-    }
-  });
+    });
 
-  var totalEl = document.getElementById('add-total-sizes-stock');
-  if (totalEl) {
-    totalEl.textContent = total + ' units';
-  }
+    var totalEl = document.getElementById('add-total-multi-stock');
+    if (totalEl) totalEl.textContent = total + ' units';
 
-  // Sync with main stock_quantity input
-  var mainStockInp = document.getElementById('stock_quantity');
-  if (mainStockInp) {
-    mainStockInp.value = total;
+    var mainStockInp = document.getElementById('stock_quantity');
+    if (mainStockInp) mainStockInp.value = total;
+  } else {
+    var totalEl = document.getElementById('add-total-multi-stock');
+    if (totalEl) totalEl.textContent = '0 units';
   }
 }
 
 function syncAddSkuWithVariants() {
   var baseSku = (document.getElementById('sku') ? document.getElementById('sku').value.trim() : '') || 'SKU';
-  document.querySelectorAll('#add-size-stock-tbody tr').forEach(function(row) {
-    var sizeBadge = row.querySelector('span.badge.bg-primary');
-    var skuCode = row.querySelector('.add-size-sku-preview');
-    if (sizeBadge && skuCode) {
-      skuCode.textContent = baseSku + '-' + sizeBadge.textContent.trim().toUpperCase();
+  document.querySelectorAll('#add-multi-stock-tbody tr').forEach(function(row) {
+    var badge = row.querySelector('span.badge.bg-primary');
+    var skuCode = row.querySelector('.add-multi-sku-preview');
+    if (badge && skuCode) {
+      var cleanSuffix = badge.textContent.trim().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      skuCode.textContent = baseSku + '-' + cleanSuffix;
     }
   });
 }
 
 function updateVariantNameAndSkuPreview() {
   syncAddSkuWithVariants();
+}
+
+// Backward compatibility wrappers
+function toggleAddSizeChip(valId, valName) {
+  handleMultiChipClick(currentActiveMultiAttrId || 2, valId, valName);
+}
+function selectAllAddSizes(enable) {
+  selectAllMultiAttr(currentActiveMultiAttrId || 2, enable);
+}
+function toggleAddMultiChip(attrId, valId, valName) {
+  handleMultiChipClick(attrId, valId, valName);
+}
+function selectAllAddMultiAttr(attrId, enable) {
+  selectAllMultiAttr(attrId, enable);
 }
 
 // Highlights & Specifications dynamic management

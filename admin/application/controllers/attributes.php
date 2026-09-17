@@ -19,14 +19,22 @@ class attributes extends MY_Controller {
                 $name = $this->input->post('name', TRUE);
                 $data = [
                     'name' => $name,
-                    'slug' => url_title($name, 'dash', TRUE),
-                    'type' => $this->input->post('type', TRUE) ?: 'select'
+                    'slug' => url_title($name, 'dash', TRUE)
                 ];
                 $id = $this->input->post('id');
                 if (!empty($id)) {
+                    // Display type cannot be changed if attribute is already used in products
+                    $is_locked = $this->attribute_model->is_used_in_products($id);
+                    if ($is_locked) {
+                        $existing = $this->attribute_model->get_by_id($id);
+                        $data['type'] = $existing['type'];
+                    } else {
+                        $data['type'] = $this->input->post('type', TRUE) ?: 'select';
+                    }
                     $this->attribute_model->update($id, $data);
                     $this->session->set_flashdata('success', 'Attribute updated successfully.');
                 } else {
+                    $data['type'] = $this->input->post('type', TRUE) ?: 'select';
                     $this->attribute_model->create($data);
                     $this->session->set_flashdata('success', 'Attribute created successfully.');
                 }
@@ -97,6 +105,11 @@ class attributes extends MY_Controller {
     public function delete($id)
     {
         $this->require_permission('products.manage');
+        if ($this->attribute_model->is_used_in_products($id)) {
+            $this->session->set_flashdata('error', 'Cannot delete this attribute because it is currently used in products.');
+            redirect('attributes');
+            return;
+        }
         $this->attribute_model->delete($id);
         $this->session->set_flashdata('success', 'Attribute deleted.');
         redirect('attributes');

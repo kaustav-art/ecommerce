@@ -84,9 +84,113 @@
     </div>
   <?php endif; ?>
 
+  <?php
+    // Determine active multi-select attribute (Storage for phones, Size for apparel, etc.)
+    $size_attribute = null;
+    $multi_attr_id = !empty($active_multi_attr['id']) ? (int)$active_multi_attr['id'] : (!empty($variant['multi_attr_id']) ? (int)$variant['multi_attr_id'] : null);
+
+    if (!empty($active_multi_attr)) {
+      $size_attribute = $active_multi_attr;
+    } elseif ($multi_attr_id && !empty($attributes)) {
+      foreach ($attributes as $a) {
+        if ((int)$a['id'] === $multi_attr_id) {
+          $size_attribute = $a;
+          break;
+        }
+      }
+    }
+
+    if (!$size_attribute && !empty($attributes)) {
+      foreach ($attributes as $a) {
+        if (in_array(strtolower($a['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])) {
+          $size_attribute = $a;
+          break;
+        }
+      }
+    }
+    if (!$size_attribute && !empty($attributes)) {
+      foreach ($attributes as $a) {
+        if (strcasecmp($a['slug'], 'storage') === 0 || strcasecmp($a['name'], 'storage') === 0) {
+          $size_attribute = $a;
+          break;
+        }
+      }
+    }
+    if (!$size_attribute && !empty($attributes)) {
+      foreach ($attributes as $a) {
+        if (strcasecmp($a['slug'], 'size') === 0 || strcasecmp($a['name'], 'size') === 0) {
+          $size_attribute = $a;
+          break;
+        }
+      }
+    }
+
+    $multi_name = !empty($size_attribute) ? $size_attribute['name'] : 'Size';
+    $multi_slug = !empty($size_attribute) ? strtolower($size_attribute['slug']) : 'size';
+    $multi_icon = ($multi_slug === 'storage') ? 'fa-hard-drive' : (($multi_slug === 'size') ? 'fa-ruler-combined' : 'fa-tags');
+
+    $other_attributes = [];
+    if (!empty($attributes)) {
+      foreach ($attributes as $attr) {
+        if (!empty($size_attribute) && (int)$attr['id'] === (int)$size_attribute['id']) {
+          continue;
+        }
+        // Exclude other multi-select attributes to enforce single multiple selection rule
+        $is_other_multi = in_array(strtolower($attr['type'] ?? ''), ['multiple_select', 'multiselect', 'multiple'])
+                          || strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0
+                          || strcasecmp($attr['slug'], 'storage') === 0 || strcasecmp($attr['name'], 'storage') === 0;
+        if ($is_other_multi) {
+          continue;
+        }
+        $other_attributes[] = $attr;
+      }
+    }
+
+    // Pre-selected non-multi attribute values if editing
+    $selected_non_size = [];
+    if (!empty($variant['non_size_attrs'])) {
+      foreach ($variant['non_size_attrs'] as $nsa) {
+        $selected_non_size[$nsa['attribute_id']] = $nsa['attribute_value_id'];
+      }
+    } elseif (!empty($variant['values'])) {
+      foreach ($variant['values'] as $val) {
+        $is_multi_val = (!empty($size_attribute) && (int)$val['attribute_id'] === (int)$size_attribute['id'])
+                        || (strcasecmp($val['attribute_slug'], $multi_slug) === 0 || strcasecmp($val['attribute_name'], $multi_name) === 0);
+        if (!$is_multi_val) {
+          $selected_non_size[$val['attribute_id']] = $val['attribute_value_id'];
+        }
+      }
+    }
+
+    // Pre-selected multi options map: id => [stock, sale_price, price]
+    $selected_sizes_map = [];
+    if (!empty($variant['sizes'])) {
+      foreach ($variant['sizes'] as $sz) {
+        $selected_sizes_map[$sz['size_id']] = [
+          'stock'      => (isset($sz['stock']) && $sz['stock'] !== '' && $sz['stock'] !== null) ? $sz['stock'] : 0,
+          'sale_price' => (isset($sz['sale_price']) && $sz['sale_price'] !== null) ? $sz['sale_price'] : '',
+          'price'      => isset($sz['price']) ? $sz['price'] : ''
+        ];
+      }
+    } elseif (!empty($variant['values'])) {
+      foreach ($variant['values'] as $val) {
+        $is_multi_val = (!empty($size_attribute) && (int)$val['attribute_id'] === (int)$size_attribute['id'])
+                        || (strcasecmp($val['attribute_slug'], $multi_slug) === 0 || strcasecmp($val['attribute_name'], $multi_name) === 0);
+        if ($is_multi_val) {
+          $selected_sizes_map[$val['attribute_value_id']] = [
+            'stock'      => (isset($variant['stock_quantity']) && $variant['stock_quantity'] !== '' && $variant['stock_quantity'] !== null) ? $variant['stock_quantity'] : 0,
+            'sale_price' => (isset($variant['sale_price']) && $variant['sale_price'] !== null) ? $variant['sale_price'] : '',
+            'price'      => isset($variant['price']) ? $variant['price'] : ''
+          ];
+        }
+      }
+    }
+  ?>
+
   <form action="<?= $form_action; ?>" method="POST" enctype="multipart/form-data" id="variantForm">
     <input type="hidden" name="id" id="var_id" value="<?= !empty($variant['primary_id']) ? $variant['primary_id'] : (!empty($variant['id']) ? $variant['id'] : ''); ?>">
     <input type="hidden" name="group_variant_ids" id="var_group_variant_ids" value="<?= !empty($variant['variant_ids']) ? implode(',', $variant['variant_ids']) : ''; ?>">
+    <input type="hidden" name="active_multi_attr_id" value="<?= !empty($size_attribute) ? $size_attribute['id'] : ''; ?>">
     <input type="hidden" name="gallery_submitted" value="1">
 
     <div class="row">
@@ -114,7 +218,7 @@
                 required
               />
               <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                <i class="fa-solid fa-lock text-muted me-1"></i> Read-only base title. When creating multiple sizes below, each size suffix will automatically append (e.g. / S, / M).
+                <i class="fa-solid fa-lock text-muted me-1"></i> Read-only base title. When creating multiple <?= strtolower(html_escape($multi_name)); ?> variations below, each <?= strtolower(html_escape($multi_name)); ?> suffix will automatically append (e.g. / 128GB, / M).
               </small>
             </div>
           </div>
@@ -180,7 +284,7 @@
                   oninput="updateSkuPreview()"
                 />
                 <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                  <i class="fa-solid fa-lock text-muted me-1"></i> Read-only base SKU. When creating multiple sizes below, the size code will append (e.g. -S, -M).
+                  <i class="fa-solid fa-lock text-muted me-1"></i> Read-only base SKU. When creating multiple <?= strtolower(html_escape($multi_name)); ?> variations below, the <?= strtolower(html_escape($multi_name)); ?> code will append (e.g. -128GB, -M).
                 </small>
                 <div id="sku-preview-helper" class="text-primary small mt-1" style="font-size: 11px; display: none;"></div>
               </div>
@@ -197,7 +301,7 @@
                   required
                 />
                 <small class="text-muted d-block mt-1" id="var_stock_helper" style="font-size: 11px;">
-                  Default variant inventory. When sizes are selected below, this auto-sums all size stocks.
+                  Default variant inventory. When <?= strtolower(html_escape($multi_name)); ?> options are selected below, this auto-sums all stocks.
                 </small>
               </div>
               <div class="col-md-6 mb-3" id="var_sale_price_wrapper" style="<?= (!empty($selected_sizes_map) || (!empty($size_attribute) && !empty($size_attribute['values']))) ? 'display: none;' : ''; ?>">
@@ -215,7 +319,7 @@
                   />
                 </div>
                 <small class="text-muted d-block mt-1" style="font-size: 11px;">
-                  Active when no size attributes are defined for this product/variant.
+                  Active when no <?= strtolower(html_escape($multi_name)); ?> attributes are defined for this product/variant.
                 </small>
               </div>
             </div>
@@ -228,63 +332,16 @@
             <h5 class="card-title mb-0 d-flex align-items-center text-dark">
               <i class="fa-solid fa-tags text-primary me-2"></i> Assign Attributes
             </h5>
-            <small class="text-muted">Assign attributes (Color, Size, Material, etc.) and manage individual stock per size.</small>
+            <small class="text-muted">Assign attributes (Color, <?= html_escape($multi_name); ?>, Material, etc.) and manage individual stock per <?= strtolower(html_escape($multi_name)); ?>.</small>
           </div>
           <div class="card-body">
             <?php if (!empty($attributes)): ?>
               <div class="row">
-                <?php 
-                  $size_attribute = null;
-                  $other_attributes = [];
-                  foreach ($attributes as $attr) {
-                    if (strcasecmp($attr['slug'], 'size') === 0 || strcasecmp($attr['name'], 'size') === 0) {
-                      $size_attribute = $attr;
-                    } else {
-                      $other_attributes[] = $attr;
-                    }
-                  }
 
-                  // Pre-selected non-size attribute values if editing
-                  $selected_non_size = [];
-                  if (!empty($variant['non_size_attrs'])) {
-                    foreach ($variant['non_size_attrs'] as $nsa) {
-                      $selected_non_size[$nsa['attribute_id']] = $nsa['attribute_value_id'];
-                    }
-                  } elseif (!empty($variant['values'])) {
-                    foreach ($variant['values'] as $val) {
-                      if (strcasecmp($val['attribute_slug'], 'size') !== 0 && strcasecmp($val['attribute_name'], 'size') !== 0) {
-                        $selected_non_size[$val['attribute_id']] = $val['attribute_value_id'];
-                      }
-                    }
-                  }
-
-                  // Pre-selected sizes map: size_id => [stock, sale_price, price]
-                  $selected_sizes_map = [];
-                  if (!empty($variant['sizes'])) {
-                    foreach ($variant['sizes'] as $sz) {
-                      $selected_sizes_map[$sz['size_id']] = [
-                        'stock'      => (isset($sz['stock']) && $sz['stock'] !== '' && $sz['stock'] !== null) ? $sz['stock'] : 0,
-                        'sale_price' => (isset($sz['sale_price']) && $sz['sale_price'] !== null) ? $sz['sale_price'] : '',
-                        'price'      => isset($sz['price']) ? $sz['price'] : ''
-                      ];
-                    }
-                  } elseif (!empty($variant['values'])) {
-                    foreach ($variant['values'] as $val) {
-                      if (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0) {
-                        $selected_sizes_map[$val['attribute_value_id']] = [
-                          'stock'      => (isset($variant['stock_quantity']) && $variant['stock_quantity'] !== '' && $variant['stock_quantity'] !== null) ? $variant['stock_quantity'] : 0,
-                          'sale_price' => (isset($variant['sale_price']) && $variant['sale_price'] !== null) ? $variant['sale_price'] : '',
-                          'price'      => isset($variant['price']) ? $variant['price'] : ''
-                        ];
-                      }
-                    }
-                  }
-                ?>
-
-                <!-- Non-Size Attributes (e.g. Color, Material) -->
+                <!-- Non-Multi Attributes (e.g. Color, Material) -->
                 <?php if (!empty($other_attributes)): ?>
                   <div class="col-12 mb-3">
-                    <label class="form-label fw-semibold text-dark">Assign Non-Size Attributes (e.g. Color, Material):</label>
+                    <label class="form-label fw-semibold text-dark">Assign Non-<?= html_escape($multi_name); ?> Attributes (e.g. Color, Material):</label>
                     <div class="row g-3">
                       <?php foreach ($other_attributes as $attr): ?>
                         <div class="col-md-6">
@@ -320,16 +377,16 @@
                   </div>
                 <?php endif; ?>
 
-                <!-- Size Multiple Selector & Stock by Size Management -->
+                <!-- Multi-Select Option (e.g. Storage, Size) & Stock Management -->
                 <?php if ($size_attribute && !empty($size_attribute['values'])): ?>
                   <div class="col-12 mb-3">
                     <div class="p-3 border rounded bg-light">
                       <div class="d-flex justify-content-between align-items-center mb-2">
                         <div>
                           <label class="form-label fw-bold mb-0 text-dark">
-                            <i class="fa-solid fa-ruler-combined text-info me-1"></i> Assign Sizes <span class="badge bg-label-info ms-1" style="font-size: 10px;">Multiple Selection</span>
+                            <i class="fa-solid <?= $multi_icon; ?> text-info me-1"></i> Assign <?= html_escape($multi_name); ?> <span class="badge bg-label-info ms-1" style="font-size: 10px;">Multiple Selection</span>
                           </label>
-                          <small class="text-muted d-block" style="font-size: 11px;">Select all sizes available for this variant group.</small>
+                          <small class="text-muted d-block" style="font-size: 11px;">Select all <?= strtolower(html_escape($multi_name)); ?> options available for this variant group.</small>
                         </div>
                         <div class="d-flex gap-2">
                           <a href="javascript:void(0);" class="small text-primary text-decoration-none fw-semibold" onclick="selectAllSizes(true)">Select All</a>
@@ -338,7 +395,7 @@
                         </div>
                       </div>
 
-                      <!-- Size Chips -->
+                      <!-- Multi-Option Chips -->
                       <div class="d-flex flex-wrap gap-2 mb-2" id="size-chips-wrapper">
                         <?php foreach ($size_attribute['values'] as $v): 
                           $isSizeActive = isset($selected_sizes_map[$v['id']]);
@@ -362,24 +419,23 @@
                         <?php endforeach; ?>
                       </div>
 
-                      <!-- Manage Stock by Size Dynamic Container -->
+                      <!-- Manage Stock by Multi-Option Dynamic Container -->
                       <div id="var_size_stock_manager" class="mt-3 p-3 bg-white rounded border" style="<?= !empty($selected_sizes_map) ? 'display: block;' : 'display: none;'; ?>">
                         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
                           <div>
                             <span class="fw-bold text-dark fs-6">
-                              <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> Manage Stock by Size
+                              <i class="fa-solid fa-boxes-stacked text-primary me-1"></i> Manage Stock by <?= html_escape($multi_name); ?>
                             </span>
-                            <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity and sale price for each selected size.</small>
+                            <small class="text-muted d-block" style="font-size: 11px;">Specify individual inventory quantity and sale price for each selected <?= strtolower(html_escape($multi_name)); ?>.</small>
                           </div>
-
                         </div>
 
-                        <!-- Table of Selected Sizes for Stock -->
+                        <!-- Table of Selected Options for Stock -->
                         <div class="table-responsive">
                           <table class="table table-sm table-bordered align-middle mb-0">
                             <thead class="table-light">
                               <tr>
-                                <th style="width: 80px;" class="text-center">Size</th>
+                                <th style="width: 100px;" class="text-center"><?= html_escape($multi_name); ?></th>
                                 <th>Variant SKU</th>
                                 <th style="width: 170px;">Stock Quantity</th>
                                 <th style="width: 170px;">Sale Price ($)</th>
@@ -393,7 +449,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top flex-wrap gap-2">
-                          <span class="text-muted small" id="selected-sizes-count">0 sizes selected</span>
+                          <span class="text-muted small" id="selected-sizes-count">0 <?= strtolower(html_escape($multi_name)); ?> options selected</span>
                           <div class="text-end">
                             <small class="text-muted">Total Stock for this variant: </small>
                             <strong class="text-primary fs-6" id="var-total-sizes-stock">0 units</strong>
@@ -663,6 +719,7 @@ var newVarGalleryDT = new DataTransfer();
 
 // Pre-existing sizes stock map for edit mode
 var presetSizesMap = <?= !empty($selected_sizes_map) ? json_encode($selected_sizes_map) : '{}'; ?>;
+var multiAttrName = <?= json_encode($multi_name); ?>;
 
 function previewVarImage(input) {
   if (input.files && input.files[0]) {
@@ -846,13 +903,14 @@ function updateSizeSelectionInfo() {
     names.push(c.getAttribute('data-val'));
   });
 
+  var dimName = (multiAttrName || 'option').toLowerCase();
   if (infoEl) {
     if (checked.length === 0) {
-      infoEl.textContent = '0 sizes selected';
+      infoEl.textContent = '0 ' + dimName + ' options selected';
     } else if (checked.length === 1) {
-      infoEl.textContent = '1 size selected: ' + names[0];
+      infoEl.textContent = '1 ' + dimName + ' selected: ' + names[0];
     } else {
-      infoEl.innerHTML = '<strong class="text-primary">' + checked.length + ' sizes selected:</strong> ' + names.join(', ');
+      infoEl.innerHTML = '<strong class="text-primary">' + checked.length + ' ' + dimName + ' options selected:</strong> ' + names.join(', ');
     }
   }
 
@@ -1070,7 +1128,7 @@ function updateSkuPreview() {
   });
 
   helper.style.display = 'block';
-  helper.innerHTML = '<i class="fa-solid fa-layer-group me-1"></i>Group of ' + checked.length + ' sizes: <code class="text-dark">' + skus.join(', ') + '</code>';
+  helper.innerHTML = '<i class="fa-solid fa-layer-group me-1"></i>Group of ' + checked.length + ' ' + (multiAttrName || 'option').toLowerCase() + ' variations: <code class="text-dark">' + skus.join(', ') + '</code>';
 }
 
 // Highlights dynamic management

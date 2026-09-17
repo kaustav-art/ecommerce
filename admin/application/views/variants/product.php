@@ -35,11 +35,14 @@
   <?php endif; ?>
 
   <!-- Card: Existing Variants List (Full Width) -->
+  <?php 
+    $primary_multi_attr_name = !empty($variant_groups[0]['multi_attr_name']) ? $variant_groups[0]['multi_attr_name'] : 'Sizes';
+  ?>
   <div class="card shadow-sm">
     <div class="card-header border-bottom d-flex justify-content-between align-items-center py-3">
       <div>
         <h5 class="card-title mb-0">Existing Variants (<?= count($variant_groups); ?> Groups)</h5>
-        <small class="text-muted"><?= count($variants); ?> individual size variations total</small>
+        <small class="text-muted"><?= count($variants); ?> individual <?= strtolower(html_escape($primary_multi_attr_name)); ?> variations total</small>
       </div>
       <div>
         <a href="<?= site_url('variants/add/' . $product['id']); ?>" class="btn btn-primary btn-sm">
@@ -53,7 +56,7 @@
           <tr>
             <th style="min-width: 240px;">Variant</th>
             <th>Base SKU</th>
-            <th style="min-width: 250px;">Attributes & Grouped Sizes</th>
+            <th style="min-width: 250px;">Attributes & Grouped <?= html_escape($primary_multi_attr_name); ?></th>
             <th>Highlights & Specs</th>
             <th>Price</th>
             <th>Stock</th>
@@ -108,11 +111,11 @@
                 <td>
                   <code class="fw-bold fs-7"><?= html_escape($grp['base_sku']); ?></code>
                   <?php if ($grp['has_sizes']): ?>
-                    <small class="text-muted d-block" style="font-size: 11px;"><?= count($grp['sizes']); ?> size variations</small>
+                    <small class="text-muted d-block" style="font-size: 11px;"><?= count($grp['sizes']); ?> <?= strtolower(html_escape($grp['multi_attr_name'] ?? 'size')); ?> variations</small>
                   <?php endif; ?>
                 </td>
 
-                <!-- Attributes & Grouped Sizes -->
+                <!-- Attributes & Grouped Sizes / Options -->
                 <td>
                   <?php if ($grp['has_sizes'] && !empty($grp['sizes'])): ?>
                     <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
@@ -132,7 +135,7 @@
                       <i class="fa-solid fa-boxes-stacked me-1"></i>Quick Adjust Stocks
                     </button>
                   <?php else: ?>
-                    <span class="text-muted small">Single Variant (No sizes)</span>
+                    <span class="text-muted small">Single Variant</span>
                   <?php endif; ?>
                 </td>
 
@@ -195,7 +198,7 @@
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-info"
-                        title="Manage Stock by Size"
+                        title="Manage Stock by <?= html_escape($grp['multi_attr_name'] ?? 'Option'); ?>"
                         onclick="openQuickStockModal(<?= htmlspecialchars(json_encode($grp), ENT_QUOTES, 'UTF-8'); ?>)"
                       >
                         <i class="fa-solid fa-boxes-stacked"></i>
@@ -242,7 +245,7 @@
       <div class="modal-header pb-2 border-bottom">
         <div>
           <h5 class="modal-title mb-0" id="quickStockModalTitle">
-            <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> Manage Stock by Size
+            <i class="fa-solid fa-boxes-stacked text-primary me-2"></i> <span id="qs-modal-heading">Manage Stock</span>
           </h5>
           <small class="text-muted" id="quickStockModalSubtitle"></small>
         </div>
@@ -253,7 +256,7 @@
           <input type="hidden" id="qs_product_id" value="<?= $product['id']; ?>">
           
           <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-            <span class="small fw-semibold text-secondary">Adjust quantities for each size:</span>
+            <span class="small fw-semibold text-secondary" id="qs-adjust-label">Adjust quantities:</span>
             <div class="d-flex align-items-center gap-1">
               <input type="number" min="0" class="form-control form-control-sm text-end" id="qs_quick_set_all" placeholder="Qty" value="10" style="width: 65px;">
               <button type="button" class="btn btn-outline-primary btn-xs" onclick="applyQsStockToAll()">Set All</button>
@@ -287,12 +290,18 @@ var qsModalInstance = null;
 
 function openQuickStockModal(grp) {
   activeQsGroup = grp;
+  var optName = grp.multi_attr_name || 'Option';
+  var headingEl = document.getElementById('qs-modal-heading');
+  if (headingEl) headingEl.textContent = 'Manage Stock by ' + optName;
+  var adjustLabelEl = document.getElementById('qs-adjust-label');
+  if (adjustLabelEl) adjustLabelEl.textContent = 'Adjust quantities for each ' + optName.toLowerCase() + ':';
+
   document.getElementById('quickStockModalSubtitle').textContent = grp.title + ' (' + grp.base_sku + ')';
   var list = document.getElementById('quickStockList');
   list.innerHTML = '';
 
   if (!grp.sizes || grp.sizes.length === 0) {
-    list.innerHTML = '<div class="text-muted small py-2">No sizes configured for this variant.</div>';
+    list.innerHTML = '<div class="text-muted small py-2">No ' + optName.toLowerCase() + ' options configured for this variant.</div>';
     return;
   }
 

@@ -14,6 +14,8 @@ class attribute_model extends CI_Model {
         foreach ($attributes as &$attr) {
             $attr['values'] = $this->get_values($attr['id']);
             $attr['values_count'] = count($attr['values']);
+            $attr['products_count'] = $this->get_products_count($attr['id']);
+            $attr['is_locked'] = ($attr['products_count'] > 0);
         }
         return $attributes;
     }
@@ -23,8 +25,25 @@ class attribute_model extends CI_Model {
         $attr = $this->db->where('id', (int) $id)->get('attributes')->row_array();
         if ($attr) {
             $attr['values'] = $this->get_values($attr['id']);
+            $attr['products_count'] = $this->get_products_count($attr['id']);
+            $attr['is_locked'] = ($attr['products_count'] > 0);
         }
         return $attr;
+    }
+
+    public function get_products_count($attribute_id)
+    {
+        $pa_count = $this->db->where('attribute_id', (int) $attribute_id)->count_all_results('product_attributes');
+        if ($pa_count > 0) {
+            return (int) $pa_count;
+        }
+        $pvv_count = $this->db->where('attribute_id', (int) $attribute_id)->count_all_results('product_variant_values');
+        return (int) $pvv_count;
+    }
+
+    public function is_used_in_products($attribute_id)
+    {
+        return ($this->get_products_count($attribute_id) > 0);
     }
 
     public function get_values($attribute_id)
