@@ -8286,7 +8286,7 @@ input.style-line-bottom::placeholder {
   display: block;
   height: 100%;
   width: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   transition-duration: 700ms;
 }

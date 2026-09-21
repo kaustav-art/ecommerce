@@ -280,7 +280,7 @@ if (!empty($initial_variant)) {
 .product-grid-item img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
     transition: transform 0.35s ease;
 }
@@ -495,7 +495,7 @@ if (!empty($initial_variant)) {
 .color-thumb-card img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     border-radius: 8px;
     display: block;
     pointer-events: none;
@@ -739,7 +739,7 @@ if (!empty($initial_variant)) {
     .product-grid-item img {
         width: 100% !important;
         height: 100% !important;
-        object-fit: cover !important;
+        object-fit: contain !important;
         border-radius: 0 !important;
         display: block !important;
     }
@@ -878,7 +878,7 @@ if (!empty($initial_variant)) {
         border-radius: 7px !important;
         width: 100% !important;
         height: 100% !important;
-        object-fit: cover !important;
+        object-fit: contain !important;
     }
 
     /* Size selector section */

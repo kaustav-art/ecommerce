@@ -59,7 +59,7 @@
                       src="<?= base_url('../website/assets/images/' . $p['main_image']); ?>"
                       alt="<?= html_escape($p['title']); ?>"
                       class="rounded me-3"
-                      style="width: 48px; height: 48px; object-fit: cover;"
+                      style="width: 48px; height: 48px; object-fit: contain;"
                       onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'" />
                       <div>
                         <h6 class="mb-0 text-truncate" style="max-width: 280px;"><?= html_escape($p['title']); ?></h6>
