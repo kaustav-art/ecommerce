@@ -8,19 +8,37 @@ class cart extends MY_Controller {
         parent::__construct();
         $this->load->model('cart_model');
         $this->load->model('product_model');
+        $this->load->model('wishlist_model');
     }
 
     public function index()
     {
         $shipping_method = $this->session->userdata('shipping_method') ?: 'standard';
 
+        $user_id = $this->is_logged_in() ? $this->current_user['id'] : NULL;
+        $wishlist_items = [];
+        if ($user_id) {
+            $wishlist_items = $this->wishlist_model->get_by_user($user_id);
+        }
+
+        $recently_viewed_ids = $this->session->userdata('recently_viewed') ?: [];
+        $recently_viewed_products = [];
+        if (!empty($recently_viewed_ids) && is_array($recently_viewed_ids)) {
+            $recently_viewed_products = $this->product_model->get_by_ids($recently_viewed_ids);
+        }
+        if (empty($recently_viewed_products)) {
+            $recently_viewed_products = $this->product_model->get_products([], 6);
+        }
+
         $data = [
-            'title'                => 'Shopping Cart - ' . $this->site_name,
-            'active_page'          => 'cart',
-            'cart_items'           => $this->cart_model->get_items(),
-            'saved_items'          => $this->cart_model->get_saved_items(),
-            'cart_summary'         => $this->cart_model->get_cart_summary($shipping_method),
-            'cart_recommendations' => $this->product_model->get_products([], 8)
+            'title'                    => 'Shopping Cart - ' . $this->site_name,
+            'active_page'              => 'cart',
+            'cart_items'               => $this->cart_model->get_items(),
+            'saved_items'              => $this->cart_model->get_saved_items(),
+            'cart_summary'             => $this->cart_model->get_cart_summary($shipping_method),
+            'cart_recommendations'     => $this->product_model->get_products([], 8),
+            'recently_viewed_products' => $recently_viewed_products,
+            'wishlist_items'           => $wishlist_items
         ];
 
         $this->render('cart/index', $data);
@@ -97,6 +115,8 @@ class cart extends MY_Controller {
         $items = $this->cart_model->get_items();
         $result['cart_items'] = array_values($items);
         $result['item_total'] = isset($items[$cart_key]) ? (float) $items[$cart_key]['total'] : 0.00;
+        $result['item_price'] = isset($items[$cart_key]) ? (float) $items[$cart_key]['price'] : 0.00;
+        $result['item_regular_price'] = isset($items[$cart_key]) ? (float) $items[$cart_key]['regular_price'] : 0.00;
         $result['item_quantity'] = isset($items[$cart_key]) ? (int) $items[$cart_key]['quantity'] : 0;
 
         $is_ajax = $this->input->is_ajax_request() 
@@ -125,6 +145,58 @@ class cart extends MY_Controller {
             ]);
         } else {
             $this->session->set_flashdata('success', 'Item removed from shopping cart.');
+            redirect('cart');
+        }
+    }
+
+    public function move_to_wishlist()
+    {
+        $cart_key = urldecode($this->input->post('cart_key', TRUE) ?: (string) $this->input->get('cart_key'));
+        $product_id = (int) $this->input->post('product_id') ?: (int) $this->input->get('product_id');
+
+        if (!$product_id && $cart_key) {
+            $items = $this->cart_model->get_items();
+            if (isset($items[$cart_key])) {
+                $product_id = (int) $items[$cart_key]['id'];
+            }
+        }
+
+        if (!$this->is_logged_in()) {
+            if ($this->input->is_ajax_request()) {
+                $this->json_response([
+                    'success' => false,
+                    'require_login' => true,
+                    'message' => 'Please sign in to move items to your wishlist.'
+                ]);
+                return;
+            } else {
+                $this->session->set_flashdata('error', 'Please sign in to move items to your wishlist.');
+                redirect('cart');
+            }
+        }
+
+        $user_id = (int) $this->current_user['id'];
+        $this->load->model('wishlist_model');
+
+        if ($product_id > 0) {
+            if (!$this->wishlist_model->is_wishlisted($user_id, $product_id)) {
+                $this->wishlist_model->toggle($user_id, $product_id);
+            }
+        }
+
+        // Remove from cart
+        $result = $this->cart_model->remove_item($cart_key);
+
+        if ($this->input->is_ajax_request()) {
+            $this->json_response([
+                'success'      => true,
+                'message'      => 'Item moved to your wishlist.',
+                'cart_count'   => $result['cart_count'],
+                'cart_summary' => $result['cart_summary'],
+                'cart_items'   => array_values($this->cart_model->get_items())
+            ]);
+        } else {
+            $this->session->set_flashdata('success', 'Item moved to your wishlist.');
             redirect('cart');
         }
     }

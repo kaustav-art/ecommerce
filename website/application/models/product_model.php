@@ -3,9 +3,81 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class product_model extends CI_Model {
 
+    private $tax_multiplier = null;
+
     public function __construct()
     {
         parent::__construct();
+        $this->load->model('setting_model');
+    }
+
+    public function refresh_tax_multiplier()
+    {
+        $this->tax_multiplier = null;
+        return $this->get_tax_multiplier();
+    }
+
+    public function get_tax_multiplier()
+    {
+        if ($this->tax_multiplier !== null) {
+            return $this->tax_multiplier;
+        }
+        $tax_enabled   = (int) $this->setting_model->get('tax_enabled', 0);
+        $tax_inclusive = (int) $this->setting_model->get('tax_inclusive', 0);
+        $tax_rate      = (float) ($this->setting_model->get('tax_rate') ?: $this->setting_model->get('tax_rate_percent', 0.00));
+
+        if ($tax_enabled && $tax_inclusive == 1 && $tax_rate > 0) {
+            $this->tax_multiplier = 1 + ($tax_rate / 100);
+        } else {
+            $this->tax_multiplier = 1.0;
+        }
+        return $this->tax_multiplier;
+    }
+
+    public function apply_tax_pricing(&$prod)
+    {
+        if (empty($prod) || !is_array($prod)) {
+            return;
+        }
+        if (isset($prod['base_price'])) {
+            return;
+        }
+        $mult = $this->get_tax_multiplier();
+        if (isset($prod['price']) && is_numeric($prod['price'])) {
+            $prod['base_price'] = (float) $prod['price'];
+            if ($mult > 1.0) {
+                $prod['price'] = round($prod['base_price'] * $mult, 2);
+            }
+        }
+        if (isset($prod['sale_price']) && is_numeric($prod['sale_price']) && (float)$prod['sale_price'] > 0) {
+            $prod['base_sale_price'] = (float) $prod['sale_price'];
+            if ($mult > 1.0) {
+                $prod['sale_price'] = round($prod['base_sale_price'] * $mult, 2);
+            }
+        }
+    }
+
+    public function apply_variant_tax_pricing(&$v)
+    {
+        if (empty($v) || !is_array($v)) {
+            return;
+        }
+        if (isset($v['base_price'])) {
+            return;
+        }
+        $mult = $this->get_tax_multiplier();
+        if (isset($v['price']) && is_numeric($v['price'])) {
+            $v['base_price'] = (float) $v['price'];
+            if ($mult > 1.0) {
+                $v['price'] = round($v['base_price'] * $mult, 2);
+            }
+        }
+        if (isset($v['sale_price']) && is_numeric($v['sale_price']) && (float)$v['sale_price'] > 0) {
+            $v['base_sale_price'] = (float) $v['sale_price'];
+            if ($mult > 1.0) {
+                $v['sale_price'] = round($v['base_sale_price'] * $mult, 2);
+            }
+        }
     }
 
     public function get_products($filters = [], $limit = 12, $offset = 0)
@@ -38,11 +110,14 @@ class product_model extends CI_Model {
             $this->db->or_like('p.sku', $filters['search']);
             $this->db->group_end();
         }
+        $tax_mult = $this->get_tax_multiplier();
         if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
-            $this->db->where('COALESCE(p.sale_price, p.price) >=', (float) $filters['min_price']);
+            $min_val = ($tax_mult > 1.0) ? ((float) $filters['min_price'] / $tax_mult) : (float) $filters['min_price'];
+            $this->db->where('COALESCE(p.sale_price, p.price) >=', $min_val);
         }
         if (isset($filters['max_price']) && is_numeric($filters['max_price']) && $filters['max_price'] > 0) {
-            $this->db->where('COALESCE(p.sale_price, p.price) <=', (float) $filters['max_price']);
+            $max_val = ($tax_mult > 1.0) ? ((float) $filters['max_price'] / $tax_mult) : (float) $filters['max_price'];
+            $this->db->where('COALESCE(p.sale_price, p.price) <=', $max_val);
         }
         if (!empty($filters['on_sale'])) {
             $this->db->where('p.sale_price IS NOT NULL', NULL, FALSE);
@@ -97,6 +172,7 @@ class product_model extends CI_Model {
         $products = $this->db->get()->result_array();
         foreach ($products as &$prod) {
             $prod['gallery_images_decoded'] = json_decode($prod['gallery_images'], true) ?: [];
+            $this->apply_tax_pricing($prod);
         }
         return $products;
     }
@@ -129,11 +205,14 @@ class product_model extends CI_Model {
             $this->db->or_like('p.sku', $filters['search']);
             $this->db->group_end();
         }
+        $tax_mult = $this->get_tax_multiplier();
         if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
-            $this->db->where('COALESCE(p.sale_price, p.price) >=', (float) $filters['min_price']);
+            $min_val = ($tax_mult > 1.0) ? ((float) $filters['min_price'] / $tax_mult) : (float) $filters['min_price'];
+            $this->db->where('COALESCE(p.sale_price, p.price) >=', $min_val);
         }
         if (isset($filters['max_price']) && is_numeric($filters['max_price']) && $filters['max_price'] > 0) {
-            $this->db->where('COALESCE(p.sale_price, p.price) <=', (float) $filters['max_price']);
+            $max_val = ($tax_mult > 1.0) ? ((float) $filters['max_price'] / $tax_mult) : (float) $filters['max_price'];
+            $this->db->where('COALESCE(p.sale_price, p.price) <=', $max_val);
         }
         if (!empty($filters['on_sale'])) {
             $this->db->where('p.sale_price IS NOT NULL', NULL, FALSE);
@@ -182,6 +261,7 @@ class product_model extends CI_Model {
             $product['variants'] = $this->get_variants($product['id']);
             $product['attributes'] = $this->get_product_attributes_and_values($product['id']);
             $product['specifications'] = $this->get_specifications($product['id']);
+            $this->apply_tax_pricing($product);
         }
         return $product;
     }
@@ -203,6 +283,7 @@ class product_model extends CI_Model {
             $product['variants'] = $this->get_variants($product['id']);
             $product['attributes'] = $this->get_product_attributes_and_values($product['id']);
             $product['specifications'] = $this->get_specifications($product['id']);
+            $this->apply_tax_pricing($product);
         }
         return $product;
     }
@@ -222,12 +303,16 @@ class product_model extends CI_Model {
                  ->where('p.is_trending', 1)
                  ->order_by('p.id', 'DESC')
                  ->limit($limit);
-        return $this->db->get()->result_array();
+        $products = $this->db->get()->result_array();
+        foreach ($products as &$prod) {
+            $this->apply_tax_pricing($prod);
+        }
+        return $products;
     }
 
     public function get_related($category_id, $exclude_id, $limit = 4)
     {
-        return $this->db->select('p.*, c.name as category_name, b.name as brand_name')
+        $products = $this->db->select('p.*, c.name as category_name, b.name as brand_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->join('brands b', 'b.id = p.brand_id', 'left')
@@ -237,6 +322,10 @@ class product_model extends CI_Model {
                         ->limit($limit)
                         ->get()
                         ->result_array();
+        foreach ($products as &$prod) {
+            $this->apply_tax_pricing($prod);
+        }
+        return $products;
     }
 
     public function get_product_reviews($product_id)
@@ -279,6 +368,7 @@ class product_model extends CI_Model {
                              ->result_array();
 
         foreach ($variants as &$v) {
+            $this->apply_variant_tax_pricing($v);
             $v['values'] = $this->db->select('pvv.*, a.name as attribute_name, a.slug as attribute_slug, a.type as attribute_type, av.value as attribute_value, av.color_code')
                                     ->from('product_variant_values pvv')
                                     ->join('attributes a', 'a.id = pvv.attribute_id')
@@ -350,6 +440,7 @@ class product_model extends CI_Model {
     {
         $v = $this->db->where('id', (int) $variant_id)->get('product_variants')->row_array();
         if ($v) {
+            $this->apply_variant_tax_pricing($v);
             $v['values'] = $this->db->select('pvv.*, a.name as attribute_name, a.slug as attribute_slug, av.value as attribute_value, av.color_code')
                                     ->from('product_variant_values pvv')
                                     ->join('attributes a', 'a.id = pvv.attribute_id')
@@ -385,6 +476,7 @@ class product_model extends CI_Model {
         foreach ($products as &$p) {
             $p['gallery_images_decoded'] = json_decode($p['gallery_images'], true) ?: [];
             $p['specifications']         = $this->get_specifications($p['id']);
+            $this->apply_tax_pricing($p);
         }
         return $products;
     }
@@ -392,7 +484,7 @@ class product_model extends CI_Model {
     public function search_autocomplete($query, $limit = 8)
     {
         if (empty($query)) return [];
-        return $this->db->select('p.id, p.title, p.slug, p.sku, p.price, p.sale_price, p.main_image, c.name as category_name')
+        $items = $this->db->select('p.id, p.title, p.slug, p.sku, p.price, p.sale_price, p.main_image, c.name as category_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->where('p.status', 'published')
@@ -403,11 +495,15 @@ class product_model extends CI_Model {
                         ->limit($limit)
                         ->get()
                         ->result_array();
+        foreach ($items as &$item) {
+            $this->apply_tax_pricing($item);
+        }
+        return $items;
     }
 
     public function get_frequently_bought_together($product_id, $category_id, $limit = 2)
     {
-        return $this->db->select('p.*, c.name as category_name, b.name as brand_name')
+        $products = $this->db->select('p.*, c.name as category_name, b.name as brand_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->join('brands b', 'b.id = p.brand_id', 'left')
@@ -419,5 +515,9 @@ class product_model extends CI_Model {
                         ->limit($limit)
                         ->get()
                         ->result_array();
+        foreach ($products as &$p) {
+            $this->apply_tax_pricing($p);
+        }
+        return $products;
     }
 }

@@ -1,5 +1,5 @@
         <!-- Breadcrumbs -->
-        <section class="py-3 bg-light border-bottom">
+        <section class="py-3 bg-light border-bottom d-none d-md-block">
             <div class="container">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 small">
@@ -13,7 +13,7 @@
         </section>
 
         <!-- Main Payment View -->
-        <section class="py-4 py-md-5 bg-light min-vh-100">
+        <section class="py-3 py-md-5 bg-light min-vh-100">
             <div class="container">
                 <?php
                     $currency_symbol = $this->store_settings['currency_symbol'] ?? '₹';
@@ -30,36 +30,146 @@
                     $item_count = $cart_summary['item_count'] ?? count($cart_items);
                 ?>
 
-                <!-- Top Horizontal Stepper (Black Color) -->
-                <div class="card border rounded-2 shadow-sm bg-white mb-3 py-2 py-md-3 px-2 px-md-4">
-                    <div class="d-flex align-items-center justify-content-center gap-1 gap-sm-3 gap-md-5">
-                        <!-- Step 1: Address (Completed) -->
-                        <div class="d-flex align-items-center gap-1 gap-sm-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-1" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
-                                <i class="fa-solid fa-check"></i>
-                            </span>
-                            <span class="small fw-semibold text-dark" id="top-stepper-text-1" style="font-size: 12px;">Address</span>
-                        </div>
-                        <div style="height: 2px; min-width: 12px; max-width: 45px; flex: 1; background-color: #000;"></div>
+        <style>
+        /* Flipkart Exact Stepper */
+        .fk-checkout-stepper-container {
+            background: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            padding: 14px 12px 12px 12px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+        }
+        @media (min-width: 768px) {
+            .fk-checkout-stepper-container {
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
+                padding: 16px 24px 14px 24px;
+                margin-bottom: 20px;
+            }
+        }
+        .fk-stepper-track {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            max-width: 440px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .fk-step-item {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        /* Connecting line between steps */
+        .fk-step-item:not(:first-child)::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            right: 50%;
+            width: 100%;
+            height: 1px;
+            background-color: #e0e0e0;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+        .fk-step-badge-wrap {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 0 8px;
+        }
+        .fk-step-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            line-height: 1;
+            box-sizing: border-box;
+        }
+        .fk-step-item.is-completed .fk-step-badge {
+            border: 1.5px solid #2874f0;
+            background-color: #ffffff;
+            color: #2874f0;
+        }
+        .fk-step-item.is-completed .fk-step-badge i {
+            font-size: 11px;
+        }
+        .fk-step-item.is-completed .fk-step-title {
+            color: #475569;
+            font-weight: 500;
+        }
+        .fk-step-item.is-active .fk-step-badge {
+            border: none;
+            background-color: #2874f0;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        .fk-step-item.is-active .fk-step-title {
+            color: #111827;
+            font-weight: 700;
+        }
+        .fk-step-item.is-pending .fk-step-badge {
+            border: 1px solid #d1d5db;
+            background-color: #ffffff;
+            color: #94a3b8;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        .fk-step-item.is-pending .fk-step-title {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+        .fk-step-title {
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.2;
+            letter-spacing: -0.1px;
+        }
+        </style>
 
-                        <!-- Step 2: Order Summary (Completed) -->
-                        <div class="d-flex align-items-center gap-1 gap-sm-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-2" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
-                                <i class="fa-solid fa-check"></i>
-                            </span>
-                            <span class="small fw-bold text-dark" id="top-stepper-text-2" style="font-size: 12px;">Order Summary</span>
-                        </div>
-                        <div style="height: 2px; min-width: 12px; max-width: 45px; flex: 1; background-color: #000;"></div>
-
-                        <!-- Step 3: Payment (Active) -->
-                        <div class="d-flex align-items-center gap-1 gap-sm-2">
-                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold" id="top-stepper-3" style="width: 24px; height: 24px; font-size: 12px; background-color: #000 !important;">
-                                3
-                            </span>
-                            <span class="small fw-bold text-dark" id="top-stepper-text-3" style="font-size: 12px;">Payment</span>
+        <!-- Top Horizontal Stepper (Step 3: Payment active) -->
+        <div class="fk-checkout-stepper-container">
+            <div class="fk-stepper-track">
+                <!-- Step 1: Address (Completed) -->
+                <div class="fk-step-item is-completed">
+                    <div class="fk-step-badge-wrap">
+                        <div class="fk-step-badge">
+                            <i class="fa-solid fa-check"></i>
                         </div>
                     </div>
+                    <span class="fk-step-title">Address</span>
                 </div>
+
+                <!-- Step 2: Confirm details (Completed) -->
+                <div class="fk-step-item is-completed">
+                    <div class="fk-step-badge-wrap">
+                        <div class="fk-step-badge">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                    </div>
+                    <span class="fk-step-title">Confirm details</span>
+                </div>
+
+                <!-- Step 3: Payment (Active) -->
+                <div class="fk-step-item is-active">
+                    <div class="fk-step-badge-wrap">
+                        <div class="fk-step-badge">3</div>
+                    </div>
+                    <span class="fk-step-title">Payment</span>
+                </div>
+            </div>
+        </div>
 
                 <div class="row g-4">
                     <!-- Left Column: Order Summary + Payment Options -->
@@ -243,19 +353,35 @@
                                     <span class="text-success fw-bold" id="side-coupon-val">− <?= $currency_symbol . number_format($cart_summary['discount'] ?? 0, 2); ?></span>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="text-dark">Delivery Charges</span>
-                                    <span id="side-delivery-charge">
-                                        <?php if ($cart_summary['shipping'] == 0): ?>
-                                            <span class="text-success fw-bold">FREE</span> <del class="text-muted small"><?= $currency_symbol; ?>40</del>
-                                        <?php else: ?>
-                                            <span class="text-dark fw-medium"><?= $currency_symbol . number_format($cart_summary['shipping'], 2); ?></span>
-                                        <?php endif; ?>
-                                    </span>
-                                </div>
+                                <?php if (!empty($cart_summary['shipping_charges']) && is_array($cart_summary['shipping_charges'])): ?>
+                                    <?php foreach ($cart_summary['shipping_charges'] as $s_charge): ?>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span class="text-dark"><?= html_escape($s_charge['name']); ?></span>
+                                            <span>
+                                                <?php if ((float)$s_charge['value'] <= 0): ?>
+                                                    <span class="text-success fw-bold">FREE</span>
+                                                <?php else: ?>
+                                                    <span class="text-dark fw-medium"><?= $currency_symbol . number_format($s_charge['value'], 2); ?></span>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="text-dark">Delivery Charges</span>
+                                        <span id="side-delivery-charge">
+                                            <?php if ($cart_summary['shipping'] == 0): ?>
+                                                <span class="text-success fw-bold">FREE</span>
+                                            <?php else: ?>
+                                                <span class="text-dark fw-medium"><?= $currency_symbol . number_format($cart_summary['shipping'], 2); ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
 
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="text-dark">Secured Packaging Fee</span>
+                                <?php $show_pay_tax = (empty($cart_summary['tax_inclusive']) && !empty($cart_summary['tax_enabled']) && !empty($cart_summary['tax']) && $cart_summary['tax'] > 0); ?>
+                                <div class="d-flex justify-content-between align-items-center mb-3 <?= $show_pay_tax ? '' : 'd-none'; ?>" id="side-tax-row">
+                                    <span class="text-dark">Tax (<?= (float)($cart_summary['tax_rate_percent'] ?? 0); ?>%)</span>
                                     <span class="text-dark fw-medium" id="side-tax-fee"><?= $currency_symbol . number_format($cart_summary['tax'], 2); ?></span>
                                 </div>
 

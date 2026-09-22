@@ -303,7 +303,7 @@ if (!empty($initial_variant)) {
     height: 36px;
     border-radius: 50%;
     background: #ffffff;
-    border: 1px solid rgba(0,0,0,0.08);
+    border: 1px solid #d1d5db;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -315,12 +315,21 @@ if (!empty($initial_variant)) {
 .grid-action-btn:hover {
     background: #181818;
     color: #ffffff;
+    border-color: #181818;
     transform: translateY(-2px);
 }
 .grid-action-btn.active {
     background: #dc3545;
     color: #ffffff;
     border-color: #dc3545;
+}
+
+/* 1px border for desktop Add to cart button */
+.btn-add-to-cart, #main-btn-atc {
+    border: 1px solid #181818 !important;
+}
+.btn-add-to-cart:hover, #main-btn-atc:hover {
+    border-color: var(--primary, #000) !important;
 }
 
 /* +N Overlay on 4th Image */
@@ -762,7 +771,7 @@ if (!empty($initial_variant)) {
         height: 40px;
         border-radius: 50%;
         background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid #d1d5db;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
         display: flex;
         align-items: center;
@@ -846,6 +855,48 @@ if (!empty($initial_variant)) {
     .tf-product-info-heading .name {
         font-size: 20px !important;
         line-height: 1.35 !important;
+    }
+
+    /* Product Highlights & Specifications Grid Layout */
+    .specs-grid-layout {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        column-gap: 20px !important;
+        row-gap: 8px !important;
+    }
+    .spec-grid-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 6px;
+        min-width: 0;
+    }
+    .spec-grid-item.spec-full-width {
+        grid-column: 1 / -1 !important;
+    }
+    .spec-item-key {
+        font-size: 13px;
+        color: #717478;
+        margin-bottom: 2px;
+        font-weight: 400;
+        word-break: break-word;
+    }
+    .spec-item-val {
+        font-size: 14px;
+        color: #212121;
+        font-weight: 500;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+    #btn-see-more-specs,
+    #btn-see-more-specs:hover,
+    #btn-see-more-specs:focus,
+    #btn-see-more-specs:active {
+        background-color: #ffffff !important;
+        color: #374151 !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: none !important;
+        transform: none !important;
+        outline: none !important;
+        transition: none !important;
     }
 
     /* Color badge section */
@@ -942,7 +993,7 @@ if (!empty($initial_variant)) {
     }
     .btn-mobile-atc {
         background: #ffffff;
-        border: 1.5px solid #d1d5db;
+        border: 1px solid #d1d5db;
         color: #1e2022;
     }
     .btn-mobile-buy {
@@ -1304,15 +1355,21 @@ if (!empty($initial_variant)) {
                                         <div class="tf-product-info-name">
                                             
                                             <!-- Brand Store Link (as in varient_products.PNG) -->
-                                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                                <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '')); ?>" class="brand-store-link fw-semibold">
-                                                    Visit the <?= html_escape($product['brand_name'] ?: 'VTEXX'); ?> Store
-                                                </a>
-                                                <?php if (!empty($product['category_name'])): ?>
-                                                    <span class="text-secondary" style="font-size: 11px;">•</span>
-                                                    <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
-                                                <?php endif; ?>
-                                            </div>
+                                            <?php if (!empty($product['brand_name']) || !empty($product['category_name'])): ?>
+                                                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                    <?php if (!empty($product['brand_name'])): ?>
+                                                        <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '')); ?>" class="brand-store-link fw-semibold">
+                                                            Visit the <?= html_escape($product['brand_name']); ?> Store
+                                                        </a>
+                                                        <?php if (!empty($product['category_name'])): ?>
+                                                            <span class="text-secondary" style="font-size: 11px;">&bull;</span>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($product['category_name'])): ?>
+                                                        <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
 
                                             <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title']); ?></h3>
 
@@ -1358,7 +1415,11 @@ if (!empty($initial_variant)) {
                                                 </span>
                                             </div>
                                             
-                                            <div class="product-tax-note">Inclusive of all taxes</div>
+                                             <?php if (!empty($store_settings['tax_inclusive'])): ?>
+                                                 <div class="product-tax-note">Inclusive of all taxes</div>
+                                             <?php elseif (!empty($store_settings['tax_enabled'])): ?>
+                                                 <div class="product-tax-note text-secondary" style="font-size: 12px;">Exclusive of taxes (calculated at checkout)</div>
+                                             <?php endif; ?>
 
                                             <?php if (!empty($product['short_description'])): ?>
                                                 <p class="text-secondary mb-2"><?= nl2br(html_escape($product['short_description'])); ?></p>
@@ -1439,10 +1500,39 @@ if (!empty($initial_variant)) {
                                             }
                                         }
 
+                                        // Variant custom specifications (if variable product)
+                                        if (!empty($initial_variant['specifications'])) {
+                                            $v_specs = is_array($initial_variant['specifications']) ? $initial_variant['specifications'] : (json_decode($initial_variant['specifications'], true) ?: []);
+                                            foreach ($v_specs as $vsp) {
+                                                $vn = trim($vsp['name'] ?? $vsp['spec_name'] ?? $vsp['spec_key'] ?? '');
+                                                $vv = trim($vsp['value'] ?? $vsp['spec_value'] ?? '');
+                                                $vkey = strtolower($vn);
+                                                if ($vn !== '' && $vv !== '' && !isset($seen_spec_keys[$vkey])) {
+                                                    $seen_spec_keys[$vkey] = true;
+                                                    $merged_specs[] = ['name' => $vn, 'value' => $vv];
+                                                }
+                                            }
+                                        }
+
                                         // Highlights
                                         $product_highlights = !empty($product['highlights_decoded']) ? $product['highlights_decoded'] : [];
                                         if (empty($product_highlights) && !empty($product['highlights'])) {
                                             $product_highlights = json_decode($product['highlights'], true) ?: [];
+                                        }
+                                        if (!empty($initial_variant['highlights'])) {
+                                            $v_hl = is_array($initial_variant['highlights']) ? $initial_variant['highlights'] : (json_decode($initial_variant['highlights'], true) ?: []);
+                                            if (!empty($v_hl)) {
+                                                $product_highlights = $v_hl;
+                                            }
+                                        }
+
+                                        // Helper to check if spec is higher than half column (long text length)
+                                        if (!function_exists('is_spec_full_width_check')) {
+                                            function is_spec_full_width_check($name, $val) {
+                                                $v_len = mb_strlen(trim($val ?? ''));
+                                                $n_len = mb_strlen(trim($name ?? ''));
+                                                return ($v_len > 35 || $n_len > 28 || ($v_len + $n_len) > 45);
+                                            }
                                         }
                                         ?>
 
@@ -1464,11 +1554,13 @@ if (!empty($initial_variant)) {
                                                 <div id="product-highlights-collapse" class="pt-2" style="display: block;">
                                                     <div class="specs-grid-layout" id="highlights-grid-container" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
                                                         <?php foreach ($product_highlights as $hl): 
-                                                            $hl_k = trim($hl['key'] ?? '');
+                                                            $hl_k = trim($hl['key'] ?? $hl['name'] ?? '');
                                                             $hl_v = trim($hl['value'] ?? '');
                                                             if ($hl_k === '' && $hl_v === '') continue;
+                                                            $hl_is_full = is_spec_full_width_check($hl_k, $hl_v);
                                                         ?>
-                                                            <div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+                                                            <div class="spec-grid-item <?= $hl_is_full ? 'spec-full-width' : ''; ?>" 
+                                                                 style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $hl_is_full ? 'grid-column: 1 / -1;' : ''; ?>">
                                                                 <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
                                                                 <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
                                                             </div>
@@ -1499,9 +1591,10 @@ if (!empty($initial_variant)) {
                                                         foreach ($merged_specs as $sp): 
                                                             $s_idx++;
                                                             $is_extra = ($s_idx > 14);
+                                                            $is_full_width = is_spec_full_width_check($sp['name'], $sp['value']);
                                                         ?>
-                                                            <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?>" 
-                                                                 style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_extra ? 'display: none;' : ''; ?>">
+                                                            <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?> <?= $is_full_width ? 'spec-full-width' : ''; ?>" 
+                                                                 style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_full_width ? 'grid-column: 1 / -1;' : ''; ?> <?= $is_extra ? 'display: none;' : ''; ?>">
                                                                 <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
                                                                 <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
                                                             </div>
@@ -1510,10 +1603,10 @@ if (!empty($initial_variant)) {
 
                                                     <div class="text-center mt-2 pt-2" id="specs-see-more-wrap" style="<?= (count($merged_specs) > 14) ? 'display: block;' : 'display: none;'; ?>">
                                                         <button type="button" 
-                                                                class="btn btn-sm btn-outline-secondary px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
+                                                                class="btn btn-sm px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" 
                                                                 id="btn-see-more-specs" 
                                                                 onclick="toggleSeeMoreSpecs(event)" 
-                                                                style="font-size: 13px; border-radius: 20px; border-color: #d1d5db; color: #374151;">
+                                                                style="font-size: 13px; border-radius: 20px; border: 1px solid #d1d5db; color: #374151; background: #ffffff;">
                                                             <span id="btn-see-more-text">See More</span>
                                                             <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
                                                         </button>
@@ -1558,10 +1651,12 @@ if (!empty($initial_variant)) {
                                                 <p class="text-caption-1 mb-0 text-secondary">SKU:</p>
                                                 <p class="text-caption-1 mb-0 fw-semibold" id="display-sku"><?= html_escape($initial_sku); ?></p>
                                             </li>
-                                            <li class="d-flex gap-2 py-1">
-                                                <p class="text-caption-1 mb-0 text-secondary">Brand:</p>
-                                                <p class="text-caption-1 mb-0 fw-semibold"><?= html_escape($product['brand_name'] ?: ($site_name ?? ($store_settings['site_name'] ?? 'Store'))); ?></p>
-                                            </li>
+                                            <?php if (!empty($product['brand_name'])): ?>
+                                                <li class="d-flex gap-2 py-1">
+                                                    <p class="text-caption-1 mb-0 text-secondary">Brand:</p>
+                                                    <p class="text-caption-1 mb-0 fw-semibold"><?= html_escape($product['brand_name']); ?></p>
+                                                </li>
+                                            <?php endif; ?>
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Availability:</p>
                                                 <p class="text-caption-1 mb-0 fw-bold text-success" id="display-stock-status">In Stock</p>
@@ -2589,6 +2684,54 @@ if (!empty($initial_variant)) {
         }
     };
 
+    // Helper to determine if a specification text length exceeds half column and should span full width
+    function isSpecFullWidth(name, value, containerWidth) {
+        var valStr = String(value || '').trim();
+        var nameStr = String(name || '').trim();
+        if (valStr.length > 35 || nameStr.length > 28 || (valStr.length + nameStr.length) > 45) {
+            return true;
+        }
+        try {
+            var gridEl = document.getElementById('specs-grid-container') || document.getElementById('highlights-grid-container');
+            var gridW = containerWidth || (gridEl ? gridEl.clientWidth : 0);
+            if (gridW > 0) {
+                var halfCol = (gridW - 20) / 2;
+                var canvas = isSpecFullWidth.canvas || (isSpecFullWidth.canvas = document.createElement("canvas"));
+                var ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.font = "500 14px sans-serif";
+                    if (ctx.measureText(valStr).width > (halfCol - 15)) return true;
+                    ctx.font = "400 13px sans-serif";
+                    if (ctx.measureText(nameStr).width > (halfCol - 15)) return true;
+                }
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    window.evaluateSpecsGridFullWidth = function() {
+        var containers = document.querySelectorAll('#specs-grid-container, #highlights-grid-container');
+        containers.forEach(function(grid) {
+            if (!grid || grid.offsetParent === null) return;
+            var gridW = grid.clientWidth;
+            if (!gridW) return;
+            var items = grid.querySelectorAll('.spec-grid-item');
+            items.forEach(function(item) {
+                var keyEl = item.querySelector('.spec-item-key');
+                var valEl = item.querySelector('.spec-item-val');
+                var keyText = keyEl ? keyEl.textContent.trim() : '';
+                var valText = valEl ? valEl.textContent.trim() : '';
+                if (isSpecFullWidth(keyText, valText, gridW)) {
+                    item.classList.add('spec-full-width');
+                    item.style.gridColumn = '1 / -1';
+                } else {
+                    item.classList.remove('spec-full-width');
+                    item.style.gridColumn = '';
+                }
+            });
+        });
+    };
+
     // 3. UPDATE VARIANT HIGHLIGHTS & SPECIFICATIONS
     function updateVariantHighlights(variantData) {
         var container = document.getElementById('highlights-grid-container');
@@ -2619,8 +2762,12 @@ if (!empty($initial_variant)) {
 
         block.style.display = 'block';
         var html = '';
+        var hlGridW = container.clientWidth || 0;
         validHl.forEach(function(item) {
-            html += '<div class="spec-grid-item" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">' +
+            var isFullWidth = isSpecFullWidth(item.key, item.value, hlGridW);
+            var fullWidthClass = isFullWidth ? ' spec-full-width' : '';
+            var fullWidthStyle = isFullWidth ? 'grid-column: 1 / -1;' : '';
+            html += '<div class="spec-grid-item' + fullWidthClass + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + fullWidthStyle + '">' +
                     '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.key) + '</div>' +
                     '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
                     '</div>';
@@ -2700,11 +2847,16 @@ if (!empty($initial_variant)) {
             var gridHtml = '';
             var count = mergedSpecs.length;
             var isExpanded = window.areSpecsExpanded || false;
+            var specsGridW = specsGrid.clientWidth || 0;
 
             mergedSpecs.forEach(function(item, idx) {
                 var isExtra = (idx >= 14);
                 var displayStyle = (isExtra && !isExpanded) ? 'display: none;' : '';
-                gridHtml += '<div class="spec-grid-item ' + (isExtra ? 'spec-overflow-item' : '') + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + displayStyle + '">' +
+                var isFullWidth = isSpecFullWidth(item.name, item.value, specsGridW);
+                var fullWidthClass = isFullWidth ? ' spec-full-width' : '';
+                var fullWidthStyle = isFullWidth ? 'grid-column: 1 / -1;' : '';
+
+                gridHtml += '<div class="spec-grid-item ' + (isExtra ? 'spec-overflow-item' : '') + fullWidthClass + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + fullWidthStyle + ' ' + displayStyle + '">' +
                             '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.name) + '</div>' +
                             '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
                             '</div>';
@@ -3262,6 +3414,22 @@ if (!empty($initial_variant)) {
         });
     }
 
+    window.addEventListener('resize', function() {
+        updateColorSliderArrows();
+        updateMobileSliderIndicator();
+        clearTimeout(window._specResizeTimer);
+        window._specResizeTimer = setTimeout(function() {
+            if (typeof evaluateSpecsGridFullWidth === 'function') {
+                evaluateSpecsGridFullWidth();
+            }
+        }, 150);
+    });
+
+    // Run evaluateSpecsGridFullWidth on DOM load
+    if (typeof evaluateSpecsGridFullWidth === 'function') {
+        setTimeout(evaluateSpecsGridFullWidth, 100);
+    }
+
 })();
 
 // Product Highlights & Specifications Accordions
@@ -3272,6 +3440,9 @@ window.toggleProductHighlights = function() {
     if (body.style.display === 'none') {
         body.style.display = 'block';
         if (icon) icon.className = 'fa-solid fa-chevron-up';
+        if (typeof evaluateSpecsGridFullWidth === 'function') {
+            setTimeout(evaluateSpecsGridFullWidth, 50);
+        }
     } else {
         body.style.display = 'none';
         if (icon) icon.className = 'fa-solid fa-chevron-down';
@@ -3285,6 +3456,9 @@ window.toggleProductSpecifications = function() {
     if (body.style.display === 'none') {
         body.style.display = 'block';
         if (icon) icon.className = 'fa-solid fa-chevron-up';
+        if (typeof evaluateSpecsGridFullWidth === 'function') {
+            setTimeout(evaluateSpecsGridFullWidth, 50);
+        }
     } else {
         body.style.display = 'none';
         if (icon) icon.className = 'fa-solid fa-chevron-down';
@@ -3306,6 +3480,9 @@ window.toggleSeeMoreSpecs = function(e) {
     if (window.areSpecsExpanded) {
         if (btnText) btnText.textContent = 'See Less';
         if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-up ms-1';
+        if (typeof evaluateSpecsGridFullWidth === 'function') {
+            setTimeout(evaluateSpecsGridFullWidth, 50);
+        }
     } else {
         if (btnText) btnText.textContent = 'See More';
         if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-down ms-1';

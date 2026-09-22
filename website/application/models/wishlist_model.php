@@ -10,15 +10,21 @@ class wishlist_model extends CI_Model {
 
     public function get_by_user($user_id)
     {
-        return $this->db->select('w.id as wishlist_id, w.created_at as wishlisted_at, p.*, c.name as category_name, c.slug as category_slug')
-                        ->from('wishlists w')
-                        ->join('products p', 'p.id = w.product_id')
-                        ->join('categories c', 'c.id = p.category_id', 'left')
-                        ->where('w.user_id', (int) $user_id)
-                        ->where('p.status', 'published')
-                        ->order_by('w.id', 'DESC')
-                        ->get()
-                        ->result_array();
+        $products = $this->db->select('w.id as wishlist_id, w.created_at as wishlisted_at, p.*, c.name as category_name, c.slug as category_slug')
+                             ->from('wishlists w')
+                             ->join('products p', 'p.id = w.product_id')
+                             ->join('categories c', 'c.id = p.category_id', 'left')
+                             ->where('w.user_id', (int) $user_id)
+                             ->where('p.status', 'published')
+                             ->order_by('w.id', 'DESC')
+                             ->get()
+                             ->result_array();
+
+        $this->load->model('product_model');
+        foreach ($products as &$p) {
+            $this->product_model->apply_tax_pricing($p);
+        }
+        return $products;
     }
 
     public function is_wishlisted($user_id, $product_id)

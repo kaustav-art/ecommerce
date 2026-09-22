@@ -136,9 +136,42 @@ class settings extends MY_Controller {
                 }
             }
 
+            // Dynamic shipping charges handling
+            if ($submitted_group === 'shipping') {
+                $names  = $this->input->post('shipping_charge_names');
+                $values = $this->input->post('shipping_charge_values');
+                $charges = [];
+                $total_shipping = 0.00;
+                if (is_array($names) && is_array($values)) {
+                    for ($i = 0; $i < count($names); $i++) {
+                        $c_name = trim($names[$i] ?? '');
+                        $c_val  = (float) ($values[$i] ?? 0);
+                        if ($c_name !== '') {
+                            $charges[] = [
+                                'name'  => $c_name,
+                                'value' => $c_val
+                            ];
+                            $total_shipping += $c_val;
+                        }
+                    }
+                }
+                $this->setting_model->set('shipping_charges', json_encode($charges), 'shipping');
+                $this->setting_model->set('shipping_flat_rate', number_format($total_shipping, 2, '.', ''), 'shipping');
+
+                unset($post_data['shipping_charge_names']);
+                unset($post_data['shipping_charge_values']);
+            }
+
+            // Ensure tax settings synchronization
+            if ($submitted_group === 'tax') {
+                if (isset($post_data['tax_rate'])) {
+                    $this->setting_model->set('tax_rate_percent', $post_data['tax_rate'], 'tax');
+                }
+            }
+
             // Save text settings
             foreach ($post_data as $key => $val) {
-                if ($key !== 'setting_group') {
+                if ($key !== 'setting_group' && !is_array($val)) {
                     $this->setting_model->set($key, $val, $submitted_group);
                 }
             }

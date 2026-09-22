@@ -34,6 +34,11 @@
     </div>
   <?php endif; ?>
 
+  <?php
+    $current_currency = $settings['currency_code'] ?? ($settings['currency'] ?? 'USD');
+    $current_symbol   = $settings['currency_symbol'] ?? '$';
+  ?>
+
   <div class="row">
     <div class="col-12">
       <!-- 1. General Settings -->
@@ -197,32 +202,92 @@
 
       <!-- 2. Shipping Settings -->
       <?php if ($active_tab === 'shipping'): ?>
+        <?php
+          $shipping_charges = [];
+          if (!empty($settings['shipping_charges'])) {
+              $decoded = json_decode($settings['shipping_charges'], true);
+              if (is_array($decoded)) {
+                  $shipping_charges = $decoded;
+              }
+          }
+          if (empty($shipping_charges)) {
+              $default_val = isset($settings['shipping_flat_rate']) ? (float)$settings['shipping_flat_rate'] : 50.00;
+              $shipping_charges = [
+                  ['name' => 'Courier Charges', 'value' => $default_val]
+              ];
+          }
+        ?>
         <div class="card">
-          <div class="card-header border-bottom">
-            <h5 class="card-title mb-0"><i class="fa-solid fa-truck-fast me-2 text-primary"></i>Shipping Rates & Delivery Rules</h5>
+          <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0"><i class="fa-solid fa-truck-fast me-2 text-primary"></i>Shipping Rates & Delivery Rules</h5>
+              <small class="text-muted">Configure dynamic shipping fees and dispatch notice for single vendor store.</small>
+            </div>
+            <span class="badge bg-label-primary px-3 py-2 fs-tiny fw-bold">Dynamic Shipping Charges</span>
           </div>
           <div class="card-body pt-4">
-            <form action="<?= site_url('settings/shipping'); ?>" method="POST">
+            <form action="<?= site_url('settings/shipping'); ?>" method="POST" id="shipping-settings-form">
               <input type="hidden" name="setting_group" value="shipping">
               
-              <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label class="form-label fw-semibold">Standard Flat Rate Delivery Fee ($) <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" class="form-control" name="shipping_flat_rate" value="<?= html_escape($settings['shipping_flat_rate'] ?? '15.00'); ?>" required>
-                  <small class="text-muted">Default shipping fee charged on standard orders.</small>
+              <!-- Dynamic Shipping Charges Repeater -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <h6 class="fw-bold mb-1 text-heading">
+                      <i class="fa-solid fa-layer-group me-2 text-primary"></i>Shipping Charges Configuration
+                    </h6>
+                    <small class="text-muted">Define custom charges (e.g. Courier Charges, Handling Fee). Currency (<strong><?= html_escape($current_symbol); ?></strong>) is dynamically loaded from General Settings.</small>
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-shipping-charge">
+                    <i class="fa-solid fa-plus me-1"></i> Add More Option
+                  </button>
                 </div>
-                <div class="col-md-4 mb-3">
-                  <label class="form-label fw-semibold">Express Priority Rate ($) <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" class="form-control" name="shipping_express_rate" value="<?= html_escape($settings['shipping_express_rate'] ?? '25.00'); ?>" required>
-                  <small class="text-muted">Charge for expedited 24-48h courier delivery.</small>
+
+                <div class="table-responsive border rounded-3 bg-white mb-2">
+                  <table class="table table-hover align-middle mb-0" id="shipping-charges-table">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="min-width: 250px;">Charge Name <span class="text-danger">*</span></th>
+                        <th style="min-width: 200px; width: 260px;">Charge Value (<?= html_escape($current_symbol); ?>) <span class="text-danger">*</span></th>
+                        <th style="width: 80px; text-align: center;">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="shipping-charges-tbody">
+                      <?php foreach ($shipping_charges as $charge): ?>
+                        <tr class="shipping-charge-row">
+                          <td>
+                            <input type="text" class="form-control form-control-sm charge-name-input" name="shipping_charge_names[]" value="<?= html_escape($charge['name'] ?? ''); ?>" placeholder="e.g. Courier Charges, Handling Fee" required>
+                          </td>
+                          <td>
+                            <div class="input-group input-group-sm">
+                              <span class="input-group-text fw-bold bg-light"><?= html_escape($current_symbol); ?></span>
+                              <input type="number" step="0.01" min="0" class="form-control charge-value-input" name="shipping_charge_values[]" value="<?= html_escape($charge['value'] ?? '0.00'); ?>" placeholder="50.00" required>
+                            </div>
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-remove-charge" title="Remove this charge">
+                              <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                    <tfoot class="table-light">
+                      <tr>
+                        <td class="fw-bold text-end">Total Shipping Fee:</td>
+                        <td colspan="2">
+                          <span class="badge bg-label-primary fs-6 fw-bold" id="total-shipping-preview">
+                            <?= html_escape($current_symbol); ?> 0.00
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-                <div class="col-md-4 mb-3">
-                  <label class="form-label fw-semibold">Free Shipping Threshold ($) <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" class="form-control" name="shipping_free_threshold" value="<?= html_escape($settings['shipping_free_threshold'] ?? '150.00'); ?>" required>
-                  <small class="text-muted">Orders at or above this amount qualify for free standard shipping.</small>
-                </div>
+                <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> These individual charges will be itemized and displayed as a breakdown under "Price Details" on the cart page.</small>
               </div>
 
+              <!-- Estimated Delivery & Dispatch Notice (Unchanged) -->
               <div class="mb-3">
                 <label class="form-label fw-semibold">Estimated Delivery & Dispatch Notice</label>
                 <input type="text" class="form-control" name="shipping_dispatch_note" value="<?= html_escape($settings['shipping_dispatch_note'] ?? 'Dispatched within 24-48 hours with courier tracking.'); ?>" placeholder="e.g. Dispatched within 24-48 hours with courier tracking.">
@@ -237,6 +302,90 @@
             </form>
           </div>
         </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const currencySymbol = <?= json_encode($current_symbol); ?>;
+          const tbody = document.getElementById('shipping-charges-tbody');
+          const btnAdd = document.getElementById('btn-add-shipping-charge');
+          const totalPreview = document.getElementById('total-shipping-preview');
+
+          function calculateShippingTotal() {
+            if (!tbody || !totalPreview) return;
+            let sum = 0;
+            tbody.querySelectorAll('.charge-value-input').forEach(function(input) {
+              const val = parseFloat(input.value) || 0;
+              sum += val;
+            });
+            totalPreview.textContent = currencySymbol + ' ' + sum.toFixed(2);
+          }
+
+          function createRow(name, value) {
+            name = name || '';
+            value = value || '0.00';
+            const tr = document.createElement('tr');
+            tr.className = 'shipping-charge-row';
+            tr.innerHTML = `
+              <td>
+                <input type="text" class="form-control form-control-sm charge-name-input" name="shipping_charge_names[]" value="${escapeHtml(name)}" placeholder="e.g. Courier Charges, Handling Fee" required>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text fw-bold bg-light">${escapeHtml(currencySymbol)}</span>
+                  <input type="number" step="0.01" min="0" class="form-control charge-value-input" name="shipping_charge_values[]" value="${escapeHtml(value)}" placeholder="50.00" required>
+                </div>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-remove-charge" title="Remove this charge">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+            bindRowEvents(tr);
+            calculateShippingTotal();
+          }
+
+          function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+          }
+
+          function bindRowEvents(tr) {
+            const btnRemove = tr.querySelector('.btn-remove-charge');
+            if (btnRemove) {
+              btnRemove.addEventListener('click', function() {
+                const allRows = tbody.querySelectorAll('.shipping-charge-row');
+                if (allRows.length <= 1) {
+                  tr.querySelector('.charge-name-input').value = '';
+                  tr.querySelector('.charge-value-input').value = '0.00';
+                  calculateShippingTotal();
+                  return;
+                }
+                tr.remove();
+                calculateShippingTotal();
+              });
+            }
+
+            const valInput = tr.querySelector('.charge-value-input');
+            if (valInput) {
+              valInput.addEventListener('input', calculateShippingTotal);
+            }
+          }
+
+          if (tbody) {
+            tbody.querySelectorAll('.shipping-charge-row').forEach(bindRowEvents);
+            calculateShippingTotal();
+          }
+
+          if (btnAdd) {
+            btnAdd.addEventListener('click', function() {
+              createRow('', '0.00');
+            });
+          }
+        });
+        </script>
       <?php endif; ?>
 
       <!-- 3. Tax Settings -->
@@ -271,6 +420,7 @@
                   <option value="0" <?= (($settings['tax_inclusive'] ?? '0') == '0') ? 'selected' : ''; ?>>Prices are Exclusive of Tax (Tax calculated & added at checkout)</option>
                   <option value="1" <?= (($settings['tax_inclusive'] ?? '') == '1') ? 'selected' : ''; ?>>Prices are Inclusive of Tax (Tax already included in product price)</option>
                 </select>
+                <small class="text-muted">When <strong>Inclusive</strong>: product prices on the storefront and cart include tax (e.g. a ₹100 product displays as ₹110 with 10% tax), and MRP displays "MRP (incl. of all taxes)". When <strong>Exclusive</strong>: product prices display the base price (₹100), and tax (₹10) is added as a separate breakdown line under Price Details on the cart page.</small>
               </div>
 
               <div class="pt-2 border-top mt-3">

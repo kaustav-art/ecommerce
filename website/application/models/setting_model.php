@@ -3,6 +3,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class setting_model extends CI_Model {
 
+    private $settings_cache = null;
+
     public function __construct()
     {
         parent::__construct();
@@ -10,18 +12,30 @@ class setting_model extends CI_Model {
 
     public function get_all()
     {
+        if ($this->settings_cache !== null) {
+            return $this->settings_cache;
+        }
         $rows = $this->db->get('settings')->result_array();
         $settings = [];
         foreach ($rows as $r) {
             $settings[$r['setting_key']] = $r['setting_value'];
         }
+        $this->settings_cache = $settings;
         return $settings;
+    }
+
+    public function refresh_cache()
+    {
+        $this->settings_cache = null;
+        return $this->get_all();
     }
 
     public function get($key, $default = NULL)
     {
-        $row = $this->db->where('setting_key', $key)->get('settings')->row_array();
-        return $row ? $row['setting_value'] : $default;
+        if ($this->settings_cache === null) {
+            $this->get_all();
+        }
+        return isset($this->settings_cache[$key]) ? $this->settings_cache[$key] : $default;
     }
 
     public function get_active_gateways()

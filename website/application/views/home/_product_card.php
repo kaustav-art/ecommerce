@@ -33,20 +33,12 @@ $hover_img = !empty($p['gallery_images_decoded'][0]) ? $p['gallery_images_decode
                 <i class="fa-regular fa-heart"></i>
                 <span class="tooltip">Wishlist</span>
             </a>
-            <a href="<?= site_url('compare/add/' . $p['id']); ?>" class="box-icon compare btn-icon-action" title="Compare">
-                <i class="fa-solid fa-code-compare"></i>
-                <span class="tooltip">Compare</span>
-            </a>
-            <a href="<?= site_url('product/' . $p['slug']); ?>" class="box-icon quickview tf-btn-loading" title="Quick View">
-                <i class="fa-regular fa-eye"></i>
-                <span class="tooltip">View</span>
-            </a>
         </div>
         <div class="list-btn-main">
             <form action="<?= site_url('cart/add'); ?>" method="POST" class="d-inline w-100">
                 <input type="hidden" name="product_id" value="<?= $p['id']; ?>">
                 <input type="hidden" name="quantity" value="1">
-                <button type="submit" class="btn-main-product border-0 w-100">Add To cart</button>
+                <button type="submit" class="btn-main-product w-100">Add To cart</button>
             </form>
         </div> 
     </div>

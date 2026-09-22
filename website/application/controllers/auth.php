@@ -42,6 +42,9 @@ class auth extends MY_Controller {
                         'user_logged_in'  => TRUE
                     ]);
 
+                    // Sync guest cart to database and restore cross-device cart
+                    $this->cart_model->sync_session_to_db($user['id']);
+
                     $this->session->set_flashdata('success', 'Welcome back, ' . $user['first_name'] . '!');
 
                     // Redirect to home after login
@@ -104,6 +107,9 @@ class auth extends MY_Controller {
                     'user_logged_in'  => TRUE
                 ]);
 
+                // Sync guest cart to database and restore cross-device cart
+                $this->cart_model->sync_session_to_db($user_id);
+
                 $this->session->set_flashdata('success', 'Registration successful! Welcome to ' . $this->site_name . '.');
 
                 // Redirect to home page as requested
@@ -132,6 +138,8 @@ class auth extends MY_Controller {
             'user_avatar',
             'user_logged_in'
         ]);
+        $this->session->unset_userdata('cart');
+        $this->session->unset_userdata('applied_coupon');
         redirect('');
     }
 
@@ -244,6 +252,9 @@ class auth extends MY_Controller {
                 'user_avatar'     => $user['avatar'] ?? null,
                 'user_logged_in'  => TRUE
             ]);
+
+            // Sync guest cart to database and restore cross-device cart
+            $this->cart_model->sync_session_to_db($user['id']);
 
             $this->json_response([
                 'success'  => true,
@@ -361,6 +372,9 @@ class auth extends MY_Controller {
             'user_avatar'     => null,
             'user_logged_in'  => TRUE
         ]);
+
+        // Sync guest cart to database and restore cross-device cart
+        $this->cart_model->sync_session_to_db($user['id']);
 
         $this->json_response([
             'success'  => true,

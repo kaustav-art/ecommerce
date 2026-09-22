@@ -205,26 +205,6 @@
                         <span class="icon-close icon-close-popup" data-bs-dismiss="modal" title="Close"></span>
                     </div>
                     <div class="wrap">
-                        <div class="tf-mini-cart-threshold">
-                            <?php 
-                                $free_shipping_min = (float) ($store_settings['free_shipping_min'] ?? 150.00);
-                                $progress_pct = ($free_shipping_min > 0) ? min(100, round(($cart_total / $free_shipping_min) * 100)) : 100;
-                                $away_amount = max(0, $free_shipping_min - $cart_total);
-                            ?>
-                            <div class="tf-progress-bar">
-                                <div class="value" id="side-cart-progress-bar" style="width: <?= $progress_pct; ?>%;" data-progress="<?= $progress_pct; ?>">
-                                    <i class="fa-solid fa-truck-fast icon"></i>
-                                </div>
-                            </div>
-                            <div class="text-caption-1" id="side-cart-threshold-msg">
-                                <?php if ($away_amount <= 0): ?>
-                                    <i class="fa-solid fa-circle-check text-success me-1"></i> Congratulations! You've got free shipping!
-                                <?php else: ?>
-                                    Add <strong id="side-cart-away-amount"><?= $currency_symbol . number_format($away_amount, 2); ?></strong> more to get <strong>Free Shipping</strong>!
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
                         <div class="tf-mini-cart-wrap">
                             <div class="tf-mini-cart-main">
                                 <div class="tf-mini-cart-sroll">
@@ -808,7 +788,7 @@
     .modal-shopping-cart .tf-mini-cart-item .tf-mini-cart-image img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
     }
     .modal-shopping-cart .tf-progress-bar .icon {
         font-size: 13px !important;
@@ -821,10 +801,7 @@
         var bottomBar = document.getElementById('side-cart-bottom-bar');
         var subtotalEl = document.getElementById('side-cart-subtotal');
         var countBadges = document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count');
-        var progressBar = document.getElementById('side-cart-progress-bar');
-        var thresholdMsg = document.getElementById('side-cart-threshold-msg');
         var currency = '<?= $currency_symbol; ?>';
-        var freeMin = <?= (float)($store_settings['free_shipping_min'] ?? 150.00); ?>;
 
         var items = Array.isArray(cartItems) ? cartItems : Object.values(cartItems || {});
         var totalCount = (cartSummary && typeof cartSummary.item_count !== 'undefined') 
@@ -842,21 +819,6 @@
         // Update subtotal
         if (subtotalEl) {
             subtotalEl.textContent = currency + subtotal.toFixed(2);
-        }
-
-        // Update free shipping threshold
-        var pct = (freeMin > 0) ? Math.min(100, Math.round((subtotal / freeMin) * 100)) : 100;
-        var away = Math.max(0, freeMin - subtotal);
-        if (progressBar) {
-            progressBar.style.width = pct + '%';
-            progressBar.setAttribute('data-progress', pct);
-        }
-        if (thresholdMsg) {
-            if (away <= 0) {
-                thresholdMsg.innerHTML = '<i class="fa-solid fa-circle-check text-success me-1"></i> Congratulations! You\'ve got free shipping!';
-            } else {
-                thresholdMsg.innerHTML = 'Add <strong>' + currency + away.toFixed(2) + '</strong> more to get <strong>Free Shipping</strong>!';
-            }
         }
 
         // Render items or empty message

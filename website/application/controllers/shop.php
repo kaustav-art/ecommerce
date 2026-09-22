@@ -113,8 +113,9 @@ class shop extends MY_Controller {
             $price_query->where_in('p.category_id', $category_ids);
         }
         $price_row = $price_query->get()->row_array();
-        $min_catalog_price = !empty($price_row['min_p']) ? (int) floor($price_row['min_p']) : 0;
-        $max_catalog_price = !empty($price_row['max_p']) ? (int) ceil($price_row['max_p']) : 500;
+        $tax_mult = $this->product_model->get_tax_multiplier();
+        $min_catalog_price = !empty($price_row['min_p']) ? (int) floor($price_row['min_p'] * $tax_mult) : 0;
+        $max_catalog_price = !empty($price_row['max_p']) ? (int) ceil($price_row['max_p'] * $tax_mult) : 500;
         if ($min_catalog_price >= $max_catalog_price) {
             $min_catalog_price = 0;
             $max_catalog_price = max(100, $max_catalog_price);
