@@ -65,30 +65,46 @@
         .fk-stepper-track {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             position: relative;
-            max-width: 440px;
-            margin: 0 auto;
             width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .fk-stepper-track {
+                max-width: 720px;
+            }
+        }
+        @media (min-width: 992px) {
+            .fk-stepper-track {
+                max-width: 860px;
+            }
+        }
+        /* Connecting line between steps running behind badges */
+        .fk-stepper-track::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 36px;
+            right: 36px;
+            height: 1px;
+            background-color: #e0e0e0;
+            z-index: 1;
         }
         .fk-step-item {
-            flex: 1;
+            flex: 0 0 72px;
+            width: 72px;
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
+            z-index: 2;
         }
-        /* Connecting line between steps */
-        .fk-step-item:not(:first-child)::before {
-            content: '';
-            position: absolute;
-            top: 12px;
-            right: 50%;
-            width: 100%;
-            height: 1px;
-            background-color: #e0e0e0;
-            z-index: 1;
-            transform: translateY(-50%);
+        .fk-step-item:nth-child(2) {
+            flex: 0 0 96px;
+            width: 96px;
         }
         .fk-step-badge-wrap {
             position: relative;
@@ -155,6 +171,7 @@
             font-size: 12px;
             line-height: 1.2;
             letter-spacing: -0.1px;
+            white-space: nowrap;
         }
         </style>
 
