@@ -23,6 +23,53 @@ class shop extends MY_Controller {
             $selected_category = $this->category_model->get_by_slug($raw_category_slug);
         }
 
+        // Parse brand filter
+        $brand_param = $this->input->get('brand');
+        $selected_brands = [];
+        if (!empty($brand_param)) {
+            if (is_array($brand_param)) {
+                $selected_brands = array_values(array_filter($brand_param));
+            } else {
+                $selected_brands = [trim($brand_param)];
+            }
+        }
+
+        // Check if single brand store mode
+        $is_brand_store = FALSE;
+        $brand_info = NULL;
+        if (!empty($selected_brands) && count($selected_brands) === 1) {
+            $brand_info = $this->brand_model->get_by_slug($selected_brands[0]);
+            if ($brand_info && empty($raw_category_slug)) {
+                $is_brand_store = TRUE;
+            }
+        }
+
+        // If no explicit category was specified, resolve brand's root category so filters match the brand's industry/department
+        if (empty($selected_category) && !empty($selected_brands)) {
+            $brand_cats = $this->db->select('DISTINCT p.category_id', FALSE)
+                                   ->from('products p')
+                                   ->join('brands b', 'b.id = p.brand_id')
+                                   ->where_in('b.slug', $selected_brands)
+                                   ->where('p.status', 'published')
+                                   ->get()->result_array();
+
+            if (!empty($brand_cats)) {
+                $brand_cat_ids = array_map('intval', array_column($brand_cats, 'category_id'));
+                $root_cat = NULL;
+                foreach ($brand_cat_ids as $bc_id) {
+                    $trail = $this->category_model->get_breadcrumbs($bc_id);
+                    if (!empty($trail[0])) {
+                        $root_cat = $trail[0];
+                        break;
+                    }
+                }
+
+                if ($root_cat) {
+                    $selected_category = $root_cat;
+                }
+            }
+        }
+
         if ($selected_category) {
             $breadcrumbs = $this->category_model->get_breadcrumbs($selected_category['id']);
 
@@ -40,17 +87,6 @@ class shop extends MY_Controller {
             $category_ids = $this->category_model->get_all_category_ids_including_descendants($selected_category['id']);
         } else {
             $top_subcategories = $this->category_model->get_root_categories();
-        }
-
-        // Parse brand filter
-        $brand_param = $this->input->get('brand');
-        $selected_brands = [];
-        if (!empty($brand_param)) {
-            if (is_array($brand_param)) {
-                $selected_brands = array_values(array_filter($brand_param));
-            } else {
-                $selected_brands = [trim($brand_param)];
-            }
         }
 
         // Parse attribute value filters
@@ -181,7 +217,12 @@ class shop extends MY_Controller {
             }
         }
 
-        $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
+        if ($is_brand_store && $brand_info) {
+            $page_heading = $brand_info['name'] . ' Store';
+            $breadcrumbs[] = ['name' => $brand_info['name'] . ' Store', 'slug' => ''];
+        } else {
+            $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
+        }
 
         $is_append = ($this->input->get('append') == '1' || ($offset > 0 && !$this->input->get('page')));
 
@@ -207,6 +248,8 @@ class shop extends MY_Controller {
             'breadcrumbs'        => $breadcrumbs,
             'top_subcategories'  => $top_subcategories,
             'page_heading'       => $page_heading,
+            'is_brand_store'     => $is_brand_store,
+            'brand_info'         => $brand_info,
             'current_page'       => $page,
             'total_pages'        => $total_pages,
             'per_page'           => $per_page

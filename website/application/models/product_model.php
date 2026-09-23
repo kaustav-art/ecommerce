@@ -310,7 +310,7 @@ class product_model extends CI_Model {
         return $products;
     }
 
-    public function get_related($category_id, $exclude_id, $limit = 4)
+    public function get_related($category_id, $exclude_id, $limit = 8)
     {
         $products = $this->db->select('p.*, c.name as category_name, b.name as brand_name')
                         ->from('products p')
@@ -323,6 +323,7 @@ class product_model extends CI_Model {
                         ->get()
                         ->result_array();
         foreach ($products as &$prod) {
+            $prod['gallery_images_decoded'] = !empty($prod['gallery_images']) ? (json_decode($prod['gallery_images'], true) ?: []) : [];
             $this->apply_tax_pricing($prod);
         }
         return $products;

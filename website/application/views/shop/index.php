@@ -3,6 +3,11 @@
             <div class="container-full">
                 <div class="row">
                     <div class="col-12 text-center">
+                        <?php if (!empty($is_brand_store) && !empty($brand_info['logo'])): ?>
+                            <div class="mb-2">
+                                <img src="<?= base_url('assets/images/' . $brand_info['logo']); ?>" alt="<?= html_escape($brand_info['name']); ?>" style="width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12);" onerror="this.style.display='none'">
+                            </div>
+                        <?php endif; ?>
                         <h3 class="heading"><?= html_escape($page_heading); ?></h3>
                         <ul class="breadcrumbs d-flex align-items-center justify-content-center flex-wrap">
                             <li><a class="link" href="<?= site_url('home'); ?>">Homepage</a></li>

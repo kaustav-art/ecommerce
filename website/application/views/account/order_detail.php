@@ -299,6 +299,7 @@
                                             </span>
                                         </div>
                                     </div>
+                                </div>
                             </div>
                         </div>
 
@@ -316,10 +317,6 @@
                                         <div class="text-muted small" style="font-size: 11px;">Dispatched via third-party courier service</div>
                                     </div>
                                 </div>
-
-                                <a href="<?= html_escape($active_url ?: 'https://www.dtdc.in/tracking.asp'); ?>" target="_blank" id="courier-track-link-btn" class="btn btn-primary btn-sm px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2 rounded-1 <?= !empty($active_url) ? '' : 'd-none'; ?>" style="background-color: #2874f0; border-color: #2874f0; font-size: 12px;">
-                                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i> Track on <span id="courier-btn-name"><?= !empty($active_courier) ? html_escape($active_courier) : 'Courier'; ?></span> Website
-                                </a>
                             </div>
 
                             <!-- AWB Box -->
@@ -336,8 +333,8 @@
                                 </div>
 
                                 <div id="courier-portal-container" class="<?= !empty($active_url) ? '' : 'd-none'; ?>">
-                                    <a href="<?= html_escape($active_url ?: 'https://www.dtdc.in/tracking.asp'); ?>" id="courier-portal-link" target="_blank" class="btn btn-outline-primary btn-sm rounded-1 fw-semibold" style="color: #2874f0; border-color: #2874f0; font-size: 12px;">
-                                        Open <span id="courier-portal-name"><?= !empty($active_courier) ? html_escape($active_courier) : 'Courier'; ?></span> Portal <i class="fa-solid fa-chevron-right ms-1" style="font-size: 10px;"></i>
+                                    <a href="<?= html_escape($active_url ?: 'https://www.dtdc.in/tracking.asp'); ?>" target="_blank" id="courier-track-link-btn" class="btn btn-primary btn-sm px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2 rounded-1 <?= !empty($active_url) ? '' : 'd-none'; ?>" style="background-color: #2874f0; border-color: #2874f0; font-size: 12px;">
+                                        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i> Track on <span id="courier-btn-name"><?= !empty($active_courier) ? html_escape($active_courier) : 'Courier'; ?></span> Website
                                     </a>
                                 </div>
                             </div>

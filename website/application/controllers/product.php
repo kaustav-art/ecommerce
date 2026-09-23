@@ -16,7 +16,7 @@ class product extends MY_Controller {
             show_404();
         }
 
-        $related_products = $this->product_model->get_related($product['category_id'], $product['id'], 4);
+        $related_products = $this->product_model->get_related($product['category_id'], $product['id'], 8);
         $frequently_bought_together = $this->product_model->get_frequently_bought_together($product['id'], $product['category_id'], 2);
 
         // Recently viewed tracking (Session based)
@@ -31,7 +31,7 @@ class product extends MY_Controller {
 
         // Fetch other recently viewed products to show on page (exclude current)
         $display_viewed_ids = array_values(array_diff($recently_viewed_ids, [$product['id']]));
-        $display_viewed_ids = array_slice($display_viewed_ids, 0, 4);
+        $display_viewed_ids = array_slice($display_viewed_ids, 0, 8);
         $recently_viewed_products = !empty($display_viewed_ids) ? $this->product_model->get_by_ids($display_viewed_ids) : [];
 
         // Wishlist & Compare status

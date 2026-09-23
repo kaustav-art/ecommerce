@@ -26,6 +26,21 @@ $discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular
     ? round((($regular_price - $sale_price) / $regular_price) * 100)
     : 0;
 
+// Dynamic Reviews & Rating Calculation (from database, strictly dynamic, no static fallback)
+$actual_reviews = !empty($product['reviews']) ? $product['reviews'] : [];
+$total_review_count = count($actual_reviews);
+$rating_counts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+$sum_rating = 0;
+foreach ($actual_reviews as $r) {
+    $r_score = (int)($r['rating'] ?? 0);
+    if ($r_score >= 1 && $r_score <= 5) {
+        $rating_counts[$r_score]++;
+        $sum_rating += $r_score;
+    }
+}
+$computed_avg = $total_review_count > 0 ? round($sum_rating / $total_review_count, 1) : 0.0;
+$display_review_count = $total_review_count;
+
 // Variant configuration
 $has_variants = !empty($product['variants']);
 $has_color = !empty($product['attributes']['color']);
@@ -1200,13 +1215,15 @@ if (!empty($initial_variant)) {
                                         </button>
                                     </div>
 
-                                    <!-- Mobile Floating Rating Badge (4 ★ | 683 in product_deatils_mobile.jpeg) -->
+                                    <!-- Mobile Floating Rating Badge (Dynamic - shown only when reviews exist) -->
+                                    <?php if ($total_review_count > 0): ?>
                                     <div class="mobile-gallery-rating-badge d-md-none" onclick="activateReviewTab()">
-                                        <span class="rating-score"><?= number_format($product['rating'] ?: 4.0, 1); ?></span>
+                                        <span class="rating-score"><?= number_format($computed_avg, 1); ?></span>
                                         <i class="fa-solid fa-star rating-star"></i>
                                         <span class="rating-divider">|</span>
-                                        <span class="rating-count"><?= number_format($product['reviews_count'] ?: 683); ?></span>
+                                        <span class="rating-count"><?= number_format($total_review_count); ?></span>
                                     </div>
+                                    <?php endif; ?>
 
                                     <div class="product-grid-gallery" id="product-grid-gallery" onscroll="updateMobileSliderIndicator()">
                                         <?php
@@ -1373,28 +1390,41 @@ if (!empty($initial_variant)) {
 
                                             <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title']); ?></h3>
 
-                                            <!-- Rating & Review Count -->
+                                            <!-- Rating & Review Count (Completely Dynamic - No Static Ratings) -->
                                             <div class="sub d-flex align-items-center gap-2 mt-1">
-                                                <div class="tf-product-info-rate d-flex align-items-center gap-1">
-                                                    <span class="fw-bold me-1"><?= number_format($product['rating'], 1); ?></span>
-                                                    <div class="list-star text-warning">
-                                                        <?php
-                                                        $r_score = round($product['rating'] * 2) / 2;
-                                                        for ($s = 1; $s <= 5; $s++):
-                                                            if ($s <= $r_score): ?>
-                                                                <i class="fa-solid fa-star"></i>
-                                                            <?php elseif ($s - 0.5 == $r_score): ?>
-                                                                <i class="fa-solid fa-star-half-stroke"></i>
-                                                            <?php else: ?>
-                                                                <i class="fa-regular fa-star"></i>
-                                                            <?php endif;
-                                                        endfor;
-                                                        ?>
+                                                <?php if ($total_review_count > 0): ?>
+                                                    <div class="tf-product-info-rate d-flex align-items-center gap-1">
+                                                        <span class="fw-bold me-1"><?= number_format($computed_avg, 1); ?></span>
+                                                        <div class="list-star text-warning">
+                                                            <?php
+                                                            $r_score = round($computed_avg * 2) / 2;
+                                                            for ($s = 1; $s <= 5; $s++):
+                                                                if ($s <= $r_score): ?>
+                                                                    <i class="fa-solid fa-star"></i>
+                                                                <?php elseif ($s - 0.5 == $r_score): ?>
+                                                                    <i class="fa-solid fa-star-half-stroke"></i>
+                                                                <?php else: ?>
+                                                                    <i class="fa-regular fa-star"></i>
+                                                                <?php endif;
+                                                            endfor;
+                                                            ?>
+                                                        </div>
+                                                        <div class="text text-caption-1 text-secondary ms-1">(<?= number_format($total_review_count); ?> <?= ($total_review_count == 1) ? 'rating' : 'ratings'; ?>)</div>
                                                     </div>
-                                                    <div class="text text-caption-1 text-secondary ms-1">(<?= number_format($product['reviews_count'] ?: 128); ?> ratings)</div>
-                                                </div>
-                                                <span class="text-secondary">|</span>
-                                                <a href="#tab-customer-reviews" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">Search this page</a>
+                                                    <span class="text-secondary">|</span>
+                                                    <a href="#tab-customer-reviews" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">See reviews</a>
+                                                <?php else: ?>
+                                                    <div class="tf-product-info-rate d-flex align-items-center gap-1">
+                                                        <div class="list-star text-muted" style="font-size: 13px;">
+                                                            <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                                <i class="fa-regular fa-star text-secondary" style="opacity: 0.35;"></i>
+                                                            <?php endfor; ?>
+                                                        </div>
+                                                        <div class="text text-caption-1 text-secondary ms-1">(No reviews yet)</div>
+                                                    </div>
+                                                    <span class="text-secondary">|</span>
+                                                    <a href="#tab-customer-reviews" class="text-primary small text-decoration-none fw-semibold" onclick="activateReviewTab()">Write a review</a>
+                                                <?php endif; ?>
                                             </div>
 
                                         </div>
@@ -1425,11 +1455,7 @@ if (!empty($initial_variant)) {
                                                 <p class="text-secondary mb-2"><?= nl2br(html_escape($product['short_description'])); ?></p>
                                             <?php endif; ?>
 
-                                            <!-- Live view note -->
-                                            <div class="tf-product-info-liveview d-flex align-items-center gap-2">
-                                                <i class="icon icon-eye"></i>
-                                                <p class="text-caption-1 mb-0"><span class="liveview-count fw-bold text-dark">28</span> people are viewing this right now</p>
-                                            </div>
+
                                         </div>
                                     </div>
 
@@ -1837,22 +1863,6 @@ if (!empty($initial_variant)) {
                                 </div>
                                 <div class="widget-content-inner">
                                     <div class="tab-reviews write-cancel-review-wrap">
-                                        <?php
-                                        $actual_reviews = !empty($product['reviews']) ? $product['reviews'] : [];
-                                        $total_review_count = count($actual_reviews);
-
-                                        $rating_counts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-                                        $sum_rating = 0;
-                                        foreach ($actual_reviews as $r) {
-                                            $r_score = (int)($r['rating'] ?? 5);
-                                            if ($r_score >= 1 && $r_score <= 5) {
-                                                $rating_counts[$r_score]++;
-                                                $sum_rating += $r_score;
-                                            }
-                                        }
-                                        $computed_avg = $total_review_count > 0 ? round($sum_rating / $total_review_count, 1) : (!empty($product['rating']) ? (float)$product['rating'] : 5.0);
-                                        $display_review_count = $total_review_count > 0 ? $total_review_count : (!empty($product['reviews_count']) ? (int)$product['reviews_count'] : 0);
-                                        ?>
                                         <div class="tab-reviews-heading">
                                             <div class="top">
                                                 <div class="text-center">
@@ -1861,16 +1871,16 @@ if (!empty($initial_variant)) {
                                                         <?php
                                                         $avg_round = round($computed_avg * 2) / 2;
                                                         for ($s = 1; $s <= 5; $s++):
-                                                            if ($s <= $avg_round): ?>
+                                                            if ($computed_avg > 0 && $s <= $avg_round): ?>
                                                                 <i class="icon icon-star"></i>
-                                                            <?php elseif ($s - 0.5 == $avg_round): ?>
+                                                            <?php elseif ($computed_avg > 0 && $s - 0.5 == $avg_round): ?>
                                                                 <i class="icon icon-star"></i>
                                                             <?php else: ?>
                                                                 <i class="icon icon-star" style="opacity: 0.25;"></i>
                                                             <?php endif;
                                                         endfor; ?>
                                                     </div>
-                                                    <p>(<?= number_format($display_review_count); ?> Ratings)</p>
+                                                    <p>(<?= number_format($total_review_count); ?> <?= ($total_review_count == 1) ? 'Rating' : 'Ratings'; ?>)</p>
                                                 </div>
                                                 <div class="rating-score">
                                                     <?php for ($star = 5; $star >= 1; $star--): 
@@ -1894,28 +1904,8 @@ if (!empty($initial_variant)) {
                                             </div>
                                         </div>
                                         <div class="reply-comment style-1 cancel-review-wrap">
-                                            <div class="d-flex mb_24 gap-20 align-items-center justify-content-between flex-wrap">
-                                                <h4 class=""><?= sprintf('%02d', $display_review_count); ?> Comments</h4>
-                                                <div class="d-flex align-items-center gap-12">
-                                                    <div class="text-caption-1">Sort by:</div>
-                                                    <div class="tf-dropdown-sort" data-bs-toggle="dropdown">
-                                                        <div class="btn-select">
-                                                            <span class="text-sort-value">Most Recent</span>
-                                                            <span class="icon icon-arrow-down"></span>
-                                                        </div>
-                                                        <div class="dropdown-menu">
-                                                            <div class="select-item active">
-                                                                <span class="text-value-item">Most Recent</span>
-                                                            </div>
-                                                            <div class="select-item">
-                                                                <span class="text-value-item">Oldest</span>
-                                                            </div>
-                                                            <div class="select-item">
-                                                                <span class="text-value-item">Most Popular</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                            <div class="mb_24">
+                                                <h4 class=""><?= sprintf('%02d', $total_review_count); ?> <?= ($total_review_count == 1) ? 'Review' : 'Reviews'; ?></h4>
                                             </div>
                                             <div class="reply-comment-wrap">
                                                 <?php if (!empty($product['reviews'])): ?>
@@ -1960,47 +1950,8 @@ if (!empty($initial_variant)) {
                                                         </div>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
-                                                    <div class="reply-comment-item">
-                                                        <div class="user">
-                                                            <div class="image">
-                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
-                                                            </div>
-                                                            <div>
-                                                                <h6>
-                                                                    <a href="javascript:void(0);" class="link">Superb quality apparel that exceeds expectations</a>
-                                                                </h6>
-                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
-                                                            </div>
-                                                        </div>
-                                                        <p class="text-secondary">Great theme - we were looking for a theme with lots of built in features and flexibility and this was perfect. We expected to need to employ a developer to add a few finishing touches. But we actually managed to do everything ourselves. We did have one small query and the support given was swift and helpful.</p>
-                                                    </div>
-                                                    <div class="reply-comment-item type-reply">
-                                                        <div class="user">
-                                                            <div class="image">
-                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
-                                                            </div>
-                                                            <div>
-                                                                <h6>
-                                                                    <a href="javascript:void(0);" class="link">Reply from <?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?></a>
-                                                                </h6>
-                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
-                                                            </div>
-                                                        </div>
-                                                        <p class="text-secondary">We love to hear it! Thank you so much for your feedback and support for our store! Thank you for this fantastic review!</p>
-                                                    </div>
-                                                    <div class="reply-comment-item">
-                                                        <div class="user">
-                                                            <div class="image">
-                                                                <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="">
-                                                            </div>
-                                                            <div>
-                                                                <h6>
-                                                                    <a href="javascript:void(0);" class="link">Superb quality apparel that exceeds expectations</a>
-                                                                </h6>
-                                                                <div class="day text-secondary-2 text-caption-1">1 days ago  &nbsp;&nbsp;&nbsp;-</div>
-                                                            </div>
-                                                        </div>
-                                                        <p class="text-secondary">Great theme - we were looking for a theme with lots of built in features and flexibility and this was perfect. We expected to need to employ a developer to add a few finishing touches. But we actually managed to do everything ourselves. We did have one small query and the support given was swift and helpful.</p>
+                                                    <div class="text-center py-4 text-secondary">
+                                                        <p class="mb-0">No reviews yet. Be the first to write a review for this product!</p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -2194,53 +2145,46 @@ if (!empty($initial_variant)) {
                     <div class="tab-content">
                         <?php if (!empty($related_products)): ?>
                             <div class="tab-pane active show" id="relatedProductsTab" role="tabpanel">
-                                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
-                                    <?php foreach ($related_products as $rp): 
-                                        $rp_price = !empty($rp['sale_price']) ? (float) $rp['sale_price'] : (float) $rp['price'];
-                                    ?>
-                                        <div class="col">
-                                            <div class="card-product h-100 border rounded p-2">
-                                                <div class="card-product-wrapper position-relative overflow-hidden rounded mb-2">
-                                                    <a href="<?= site_url('product/' . $rp['slug']); ?>" class="product-img d-block" style="aspect-ratio: 3/4;">
-                                                        <img src="<?= base_url('assets/images/' . $rp['main_image']); ?>" alt="<?= html_escape($rp['title']); ?>" class="w-100 h-100 object-fit-cover" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                                    </a>
-                                                    <div class="list-product-btn position-absolute top-0 end-0 m-2 d-flex flex-column gap-2">
-                                                        <a href="javascript:void(0);" class="box-icon wishlist btn-icon-action" onclick="toggleWishlist(<?= $rp['id']; ?>, this)">
-                                                            <span class="icon icon-heart"></span>
-                                                        </a>
-                                                    </div>
+                                <div class="position-relative">
+                                    <div dir="ltr" class="swiper tf-sw-latest" data-preview="4" data-tablet="3" data-mobile="2" data-space-lg="30" data-space-md="30" data-space="15" data-pagination="1" data-pagination-md="1" data-pagination-lg="1">
+                                        <div class="swiper-wrapper">
+                                            <?php foreach ($related_products as $rp): ?>
+                                                <div class="swiper-slide">
+                                                    <?php $this->load->view('home/_product_card', ['p' => $rp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
                                                 </div>
-                                                <div class="card-product-info">
-                                                    <a href="<?= site_url('product/' . $rp['slug']); ?>" class="title link fw-semibold text-truncate d-block mb-1"><?= html_escape($rp['title']); ?></a>
-                                                    <div class="price fw-bold text-primary"><?= $currency_symbol . number_format($rp_price, 2); ?></div>
-                                                </div>
-                                            </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php endforeach; ?>
+                                        <div class="sw-pagination-latest sw-dots type-circle justify-content-center mt-4"></div>
+                                    </div>
+                                    <div class="nav-next-latest nav-sw nav-sw-left d-none d-md-flex position-absolute top-50 start-0 translate-middle-y shadow-sm" style="z-index: 5; margin-left: -16px; cursor: pointer;" title="Previous">
+                                        <i class="fa-solid fa-chevron-left" style="font-size: 13px;"></i>
+                                    </div>
+                                    <div class="nav-prev-latest nav-sw nav-sw-right d-none d-md-flex position-absolute top-50 end-0 translate-middle-y shadow-sm" style="z-index: 5; margin-right: -16px; cursor: pointer;" title="Next">
+                                        <i class="fa-solid fa-chevron-right" style="font-size: 13px;"></i>
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
 
                         <?php if (!empty($recently_viewed_products)): ?>
                             <div class="tab-pane <?= empty($related_products) ? 'active show' : ''; ?>" id="recentlyViewedTab" role="tabpanel">
-                                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
-                                    <?php foreach ($recently_viewed_products as $rvp): 
-                                        $rvp_price = !empty($rvp['sale_price']) ? (float) $rvp['sale_price'] : (float) $rvp['price'];
-                                    ?>
-                                        <div class="col">
-                                            <div class="card-product h-100 border rounded p-2">
-                                                <div class="card-product-wrapper position-relative overflow-hidden rounded mb-2">
-                                                    <a href="<?= site_url('product/' . $rvp['slug']); ?>" class="product-img d-block" style="aspect-ratio: 3/4;">
-                                                        <img src="<?= base_url('assets/images/' . $rvp['main_image']); ?>" alt="<?= html_escape($rvp['title']); ?>" class="w-100 h-100 object-fit-cover" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                                    </a>
+                                <div class="position-relative">
+                                    <div dir="ltr" class="swiper tf-sw-recent" data-preview="4" data-tablet="3" data-mobile="2" data-space-lg="30" data-space-md="30" data-space="15" data-pagination="1" data-pagination-md="1" data-pagination-lg="1">
+                                        <div class="swiper-wrapper">
+                                            <?php foreach ($recently_viewed_products as $rvp): ?>
+                                                <div class="swiper-slide">
+                                                    <?php $this->load->view('home/_product_card', ['p' => $rvp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
                                                 </div>
-                                                <div class="card-product-info">
-                                                    <a href="<?= site_url('product/' . $rvp['slug']); ?>" class="title link fw-semibold text-truncate d-block mb-1"><?= html_escape($rvp['title']); ?></a>
-                                                    <div class="price fw-bold text-primary"><?= $currency_symbol . number_format($rvp_price, 2); ?></div>
-                                                </div>
-                                            </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php endforeach; ?>
+                                        <div class="sw-pagination-recent sw-dots type-circle justify-content-center mt-4"></div>
+                                    </div>
+                                    <div class="nav-next-recent nav-sw nav-sw-left d-none d-md-flex position-absolute top-50 start-0 translate-middle-y shadow-sm" style="z-index: 5; margin-left: -16px; cursor: pointer;" title="Previous">
+                                        <i class="fa-solid fa-chevron-left" style="font-size: 13px;"></i>
+                                    </div>
+                                    <div class="nav-prev-recent nav-sw nav-sw-right d-none d-md-flex position-absolute top-50 end-0 translate-middle-y shadow-sm" style="z-index: 5; margin-right: -16px; cursor: pointer;" title="Next">
+                                        <i class="fa-solid fa-chevron-right" style="font-size: 13px;"></i>
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -3507,4 +3451,17 @@ window.toggleSeeMoreSpecs = function(e) {
         if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-down ms-1';
     }
 };
+
+// Update Swiper sliders when switching tabs
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof jQuery !== 'undefined') {
+        jQuery('a[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
+            document.querySelectorAll('.tf-sw-latest, .tf-sw-recent').forEach(function(el) {
+                if (el.swiper) {
+                    el.swiper.update();
+                }
+            });
+        });
+    }
+});
 </script>

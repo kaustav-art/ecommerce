@@ -190,7 +190,7 @@ class account extends MY_Controller {
                 }
 
                 if (!empty($_FILES['review_images']['name'][0])) {
-                    $upload_path = FCPATH . 'website/assets/images/reviews/';
+                    $upload_path = FCPATH . 'assets/images/reviews/';
                     if (!is_dir($upload_path)) {
                         mkdir($upload_path, 0777, true);
                     }
