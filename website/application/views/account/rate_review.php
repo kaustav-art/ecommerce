@@ -89,19 +89,22 @@
 
                                 <!-- Rate this product -->
                                 <div class="mb-4">
-                                    <h6 class="fw-bold text-dark mb-3" style="font-size: 14px;">Rate this product</h6>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="fk-star-row d-inline-flex gap-1" id="star-rating-row" style="font-size: 26px;">
-                                            <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                <i class="fa-solid fa-star star-clickable" data-star="<?= $s; ?>" style="cursor: pointer; color: <?= ($s <= $prefill_rating) ? '#ff9f00' : '#d1d5db'; ?>; transition: color 0.15s ease-in-out;"></i>
+                                    <h6 class="fw-bold text-dark mb-4" style="font-size: 14px;">Rate this product</h6>
+                                    <div class="position-relative d-inline-block" style="padding-top: 26px;">
+                                        <!-- Tooltip Box directly matching rateing_review.png -->
+                                        <div id="star-tooltip-badge" class="position-absolute" style="top: 0; transform: translateX(-50%); background-color: #212121; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 3px; pointer-events: none; white-space: nowrap; z-index: 10; transition: left 0.15s ease-in-out;">
+                                            <span id="star-tooltip-text">Excellent</span>
+                                            <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #212121;"></div>
+                                        </div>
+
+                                        <div class="fk-star-row d-inline-flex gap-2" id="star-rating-row" style="font-size: 26px;">
+                                            <?php 
+                                            $labels = [1 => 'Very Bad', 2 => 'Bad', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
+                                            for ($s = 1; $s <= 5; $s++): 
+                                            ?>
+                                                <i class="fa-solid fa-star star-clickable" data-star="<?= $s; ?>" title="<?= $labels[$s]; ?>" style="cursor: pointer; color: <?= ($s <= $prefill_rating) ? '#ff9f00' : '#d1d5db'; ?>; transition: color 0.15s ease-in-out;"></i>
                                             <?php endfor; ?>
                                         </div>
-                                        <span class="fw-bold ms-2" id="star-label-text" style="font-size: 14px; color: #388e3c;">
-                                            <?php
-                                                $labels = [1 => 'Very Bad', 2 => 'Bad', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
-                                                echo $labels[$prefill_rating] ?? 'Excellent';
-                                            ?>
-                                        </span>
                                         <input type="hidden" name="rating" id="hidden-rating-input" value="<?= $prefill_rating; ?>">
                                     </div>
                                 </div>
@@ -185,15 +188,27 @@
         document.addEventListener('DOMContentLoaded', function() {
             var stars = document.querySelectorAll('.star-clickable');
             var ratingInput = document.getElementById('hidden-rating-input');
-            var labelText = document.getElementById('star-label-text');
+            var tooltipBadge = document.getElementById('star-tooltip-badge');
+            var tooltipText = document.getElementById('star-tooltip-text');
 
             var labelMap = {
-                1: { text: 'Very Bad', color: '#ff6161' },
-                2: { text: 'Bad', color: '#ff9f00' },
-                3: { text: 'Good', color: '#ff9f00' },
-                4: { text: 'Very Good', color: '#388e3c' },
-                5: { text: 'Excellent', color: '#388e3c' }
+                1: 'Very Bad',
+                2: 'Bad',
+                3: 'Good',
+                4: 'Very Good',
+                5: 'Excellent'
             };
+
+            function positionTooltip(val) {
+                var targetStar = document.querySelector('.star-clickable[data-star="' + val + '"]');
+                if (targetStar && tooltipBadge) {
+                    var offsetCenter = targetStar.offsetLeft + (targetStar.offsetWidth / 2);
+                    tooltipBadge.style.left = offsetCenter + 'px';
+                    if (tooltipText && labelMap[val]) {
+                        tooltipText.textContent = labelMap[val];
+                    }
+                }
+            }
 
             function highlightStars(val) {
                 stars.forEach(function(st) {
@@ -204,10 +219,7 @@
                         st.style.color = '#d1d5db';
                     }
                 });
-                if (labelMap[val]) {
-                    labelText.textContent = labelMap[val].text;
-                    labelText.style.color = labelMap[val].color;
-                }
+                positionTooltip(val);
             }
 
             stars.forEach(function(star) {
@@ -230,6 +242,12 @@
                     highlightStars(current);
                 });
             }
+
+            // Initial position based on prefill rating
+            setTimeout(function() {
+                var initialRating = parseInt(ratingInput.value, 10) || 5;
+                highlightStars(initialRating);
+            }, 50);
         });
 
         function handleImageSelection(input) {

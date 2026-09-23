@@ -1837,60 +1837,55 @@ if (!empty($initial_variant)) {
                                 </div>
                                 <div class="widget-content-inner">
                                     <div class="tab-reviews write-cancel-review-wrap">
+                                        <?php
+                                        $actual_reviews = !empty($product['reviews']) ? $product['reviews'] : [];
+                                        $total_review_count = count($actual_reviews);
+
+                                        $rating_counts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+                                        $sum_rating = 0;
+                                        foreach ($actual_reviews as $r) {
+                                            $r_score = (int)($r['rating'] ?? 5);
+                                            if ($r_score >= 1 && $r_score <= 5) {
+                                                $rating_counts[$r_score]++;
+                                                $sum_rating += $r_score;
+                                            }
+                                        }
+                                        $computed_avg = $total_review_count > 0 ? round($sum_rating / $total_review_count, 1) : (!empty($product['rating']) ? (float)$product['rating'] : 5.0);
+                                        $display_review_count = $total_review_count > 0 ? $total_review_count : (!empty($product['reviews_count']) ? (int)$product['reviews_count'] : 0);
+                                        ?>
                                         <div class="tab-reviews-heading">
                                             <div class="top">
                                                 <div class="text-center">
-                                                    <div class="number title-display"><?= number_format($product['rating'] ?? 5.0, 1); ?></div>
-                                                    <div class="list-star">
-                                                        <i class="icon icon-star"></i>
-                                                        <i class="icon icon-star"></i>
-                                                        <i class="icon icon-star"></i>
-                                                        <i class="icon icon-star"></i>
-                                                        <i class="icon icon-star"></i>
+                                                    <div class="number title-display"><?= number_format($computed_avg, 1); ?></div>
+                                                    <div class="list-star text-warning">
+                                                        <?php
+                                                        $avg_round = round($computed_avg * 2) / 2;
+                                                        for ($s = 1; $s <= 5; $s++):
+                                                            if ($s <= $avg_round): ?>
+                                                                <i class="icon icon-star"></i>
+                                                            <?php elseif ($s - 0.5 == $avg_round): ?>
+                                                                <i class="icon icon-star"></i>
+                                                            <?php else: ?>
+                                                                <i class="icon icon-star" style="opacity: 0.25;"></i>
+                                                            <?php endif;
+                                                        endfor; ?>
                                                     </div>
-                                                    <p>(<?= number_format($product['reviews_count'] ?: (!empty($product['reviews']) ? count($product['reviews']) : 168)); ?> Ratings)</p>
+                                                    <p>(<?= number_format($display_review_count); ?> Ratings)</p>
                                                 </div>
                                                 <div class="rating-score">
-                                                    <div class="item">
-                                                        <div class="number-1 text-caption-1">5</div>
-                                                        <i class="icon icon-star"></i>
-                                                        <div class="line-bg">
-                                                            <div style="width: 94.67%;"></div>
+                                                    <?php for ($star = 5; $star >= 1; $star--): 
+                                                        $s_cnt = $rating_counts[$star];
+                                                        $s_pct = $total_review_count > 0 ? round(($s_cnt / $total_review_count) * 100, 1) : 0;
+                                                    ?>
+                                                        <div class="item">
+                                                            <div class="number-1 text-caption-1"><?= $star; ?></div>
+                                                            <i class="icon icon-star"></i>
+                                                            <div class="line-bg">
+                                                                <div style="width: <?= $s_pct; ?>%;"></div>
+                                                            </div>
+                                                            <div class="number-2 text-caption-1"><?= $s_cnt; ?></div>
                                                         </div>
-                                                        <div class="number-2 text-caption-1">59</div>
-                                                    </div>
-                                                    <div class="item">
-                                                        <div class="number-1 text-caption-1">4</div>
-                                                        <i class="icon icon-star"></i>
-                                                        <div class="line-bg">
-                                                            <div style="width: 60%;"></div>
-                                                        </div>
-                                                        <div class="number-2 text-caption-1">46</div>
-                                                    </div>
-                                                    <div class="item">
-                                                        <div class="number-1 text-caption-1">3</div>
-                                                        <i class="icon icon-star"></i>
-                                                        <div class="line-bg">
-                                                            <div style="width: 0%;"></div>
-                                                        </div>
-                                                        <div class="number-2 text-caption-1">0</div>
-                                                    </div>
-                                                    <div class="item">
-                                                        <div class="number-1 text-caption-1">2</div>
-                                                        <i class="icon icon-star"></i>
-                                                        <div class="line-bg">
-                                                            <div style="width: 0%;"></div>
-                                                        </div>
-                                                        <div class="number-2 text-caption-1">0</div>
-                                                    </div>
-                                                    <div class="item">
-                                                        <div class="number-1 text-caption-1">1</div>
-                                                        <i class="icon icon-star"></i>
-                                                        <div class="line-bg">
-                                                            <div style="width: 0%;"></div>
-                                                        </div>
-                                                        <div class="number-2 text-caption-1">0</div>
-                                                    </div>
+                                                    <?php endfor; ?>
                                                 </div>
                                             </div>
                                             <div>
@@ -1900,7 +1895,7 @@ if (!empty($initial_variant)) {
                                         </div>
                                         <div class="reply-comment style-1 cancel-review-wrap">
                                             <div class="d-flex mb_24 gap-20 align-items-center justify-content-between flex-wrap">
-                                                <h4 class=""><?= sprintf('%02d', !empty($product['reviews']) ? count($product['reviews']) : 3); ?> Comments</h4>
+                                                <h4 class=""><?= sprintf('%02d', $display_review_count); ?> Comments</h4>
                                                 <div class="d-flex align-items-center gap-12">
                                                     <div class="text-caption-1">Sort by:</div>
                                                     <div class="tf-dropdown-sort" data-bs-toggle="dropdown">
@@ -1934,10 +1929,34 @@ if (!empty($initial_variant)) {
                                                                     <h6>
                                                                         <a href="javascript:void(0);" class="link"><?= html_escape($rev['customer_name']); ?></a>
                                                                     </h6>
-                                                                    <div class="day text-secondary-2 text-caption-1"><?= date('j \d\a\y\s \a\g\o', strtotime($rev['created_at'])); ?>  &nbsp;&nbsp;&nbsp;-</div>
+                                                                    <div class="day text-secondary-2 text-caption-1"><?= date('j M, Y', strtotime($rev['created_at'])); ?></div>
                                                                 </div>
                                                             </div>
+                                                            <!-- Rating stars and title -->
+                                                            <div class="d-flex align-items-center gap-2 my-2">
+                                                                <div class="list-star" style="color: #ff9f00; font-size: 13px;">
+                                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                                        <i class="<?= ($rev['rating'] >= $s) ? 'fa-solid' : 'fa-regular'; ?> fa-star"></i>
+                                                                    <?php endfor; ?>
+                                                                </div>
+                                                                <?php if (!empty($rev['title'])): ?>
+                                                                    <strong class="text-dark small"><?= html_escape($rev['title']); ?></strong>
+                                                                <?php endif; ?>
+                                                            </div>
                                                             <p class="text-secondary"><?= nl2br(html_escape($rev['review'])); ?></p>
+                                                            <?php 
+                                                            if (!empty($rev['images'])):
+                                                                $r_images = json_decode($rev['images'], true) ?: [];
+                                                                if (!empty($r_images)):
+                                                            ?>
+                                                                <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                                                                    <?php foreach ($r_images as $img_rel): ?>
+                                                                        <a href="<?= base_url('website/assets/images/' . $img_rel); ?>" target="_blank">
+                                                                            <img src="<?= base_url('website/assets/images/' . $img_rel); ?>" class="border rounded" style="width: 60px; height: 60px; object-fit: cover;" onerror="this.src='<?= base_url('assets/images/' . $img_rel); ?>'">
+                                                                        </a>
+                                                                    <?php endforeach; ?>
+                                                                </div>
+                                                            <?php endif; endif; ?>
                                                         </div>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>

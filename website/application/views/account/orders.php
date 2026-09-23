@@ -169,7 +169,8 @@
                             ?>
                                         <!-- Individual Order Item Card (Matching order_page.png) -->
                                         <div class="card border rounded-1 mb-3 bg-white shadow-none fk-order-card" 
-                                             style="border-color: #e0e0e0 !important; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s;" 
+                                             onclick="window.location.href='<?= $it_track_url; ?>'"
+                                             style="border-color: #e0e0e0 !important; overflow: hidden; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s;" 
                                              data-search-text="<?= html_escape($item_search_keywords); ?>"
                                              data-status-group="<?= html_escape($status_group); ?>"
                                              data-year="<?= $order_year; ?>"
@@ -179,18 +180,18 @@
                                                 <div class="row align-items-center g-3">
                                                     <!-- Left Column: Product Thumbnail + Title + Variant + Order # & Placed on -->
                                                     <div class="col-12 col-md-6 d-flex align-items-start gap-3">
-                                                        <a href="<?= $it_track_url; ?>" class="flex-shrink-0">
+                                                        <a href="<?= $it_track_url; ?>" class="flex-shrink-0" onclick="event.stopPropagation();">
                                                             <img src="<?= $img_src; ?>" alt="<?= html_escape($item['product_title']); ?>" class="border rounded-1" style="width: 70px; height: 70px; object-fit: contain; background-color: #fafafa;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                                                         </a>
                                                         <div class="flex-grow-1" style="min-width: 0;">
-                                                            <a href="<?= $it_track_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title text-line-clamp-2" style="font-size: 14px; line-height: 1.4;">
+                                                            <a href="<?= $it_track_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title text-line-clamp-2" style="font-size: 14px; line-height: 1.4;" onclick="event.stopPropagation();">
                                                                 <?= html_escape($item['product_title']); ?>
                                                             </a>
                                                             <?php if (!empty($variant_str)): ?>
                                                                 <div class="text-muted small mb-1" style="font-size: 12px; color: #878787 !important;"><?= html_escape($variant_str); ?></div>
                                                             <?php endif; ?>
                                                             <div class="text-secondary small" style="font-size: 12px; color: #878787 !important;">
-                                                                Order <a href="<?= $it_track_url; ?>" class="text-secondary text-decoration-none fw-semibold">#<?= html_escape($ord['order_number']); ?></a> | Placed on <?= $order_date_placed; ?>
+                                                                Order <a href="<?= $it_track_url; ?>" class="text-secondary text-decoration-none fw-semibold" onclick="event.stopPropagation();">#<?= html_escape($ord['order_number']); ?></a> | Placed on <?= $order_date_placed; ?>
                                                             </div>
                                                             <?php if ((int)($item['quantity'] ?? 1) > 1): ?>
                                                                 <div class="text-muted small mt-1" style="font-size: 11px;">Qty: <?= (int)$item['quantity']; ?></div>
@@ -209,7 +210,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <!-- Right Column: Status & Courier & Action Button -->
+                                                    <!-- Right Column: Status & Courier & Rate/Review Button -->
                                                     <div class="col-12 col-md-4 text-start pt-2 pt-md-0 border-top border-top-md-0 border-light">
                                                         <?php if ($it_status === 'cancelled'): ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
@@ -225,7 +226,7 @@
                                                             <div class="text-muted small mb-1" style="font-size: 12px;">Your item has been delivered</div>
                                                             <!-- After delivered: Track Item button is NOT shown, ONLY Rate & Review -->
                                                             <div class="mt-2">
-                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" class="fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0 !important; font-size: 13px;">
+                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" onclick="event.stopPropagation();" class="fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0 !important; font-size: 13px;">
                                                                     <i class="fa-solid fa-star" style="color: #2874f0;"></i> Rate & Review Product
                                                                 </a>
                                                             </div>
@@ -241,22 +242,12 @@
                                                                     <i class="fa-solid fa-truck-fast text-danger me-1"></i>Dispatched via courier partner
                                                                 <?php endif; ?>
                                                             </div>
-                                                            <div class="mt-2">
-                                                                <a href="<?= $it_track_url; ?>" class="btn btn-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1 text-white shadow-none" style="background-color: #2874f0; border-color: #2874f0; font-size: 13px;">
-                                                                    <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Item
-                                                                </a>
-                                                            </div>
                                                         <?php else: ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
                                                                 <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #ff9800;"></span>
                                                                 <span class="fw-bold text-dark" style="font-size: 14px;">Order Placed, <?= date('d M', strtotime($ord['created_at'])); ?></span>
                                                             </div>
                                                             <div class="text-muted small" style="font-size: 12px;">Preparing for packaging & courier dispatch</div>
-                                                            <div class="mt-2">
-                                                                <a href="<?= $it_track_url; ?>" class="btn btn-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1 text-white shadow-none" style="background-color: #2874f0; border-color: #2874f0; font-size: 13px;">
-                                                                    <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Item
-                                                                </a>
-                                                            </div>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>

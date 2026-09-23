@@ -299,15 +299,6 @@
                                             </span>
                                         </div>
                                     </div>
-                                </div>
-
-                                <?php if ($active_is_delivered): ?>
-                                    <div class="flex-shrink-0 ms-auto">
-                                        <a href="<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $cur_pid); ?>" class="btn btn-outline-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1" style="color: #2874f0; border-color: #2874f0; font-size: 12px;">
-                                            <i class="fa-solid fa-star"></i> Rate & Review Product
-                                        </a>
-                                    </div>
-                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -517,155 +508,163 @@
                             </div>
                         </div>
 
-                        <!-- 4. Items in this Order Card (Shows other products with same order id, excluding the current product) -->
-                        <?php if (!empty($other_items)): ?>
-                        <div class="card border rounded-1 bg-white shadow-none mb-3 p-3 p-md-4" style="border-color: #e0e0e0 !important;">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-bold text-dark mb-0" style="font-size: 15px;">
-                                    <i class="fa-solid fa-boxes-packing text-primary me-2"></i> Items in this Order (<?= count($other_items); ?>)
-                                </h6>
-                            </div>
-
-                            <?php foreach ($other_items as $idx => $it): 
-                                $it_id = (int)$it['id'];
-                                $it_info = $items_tracking_map[$it_id] ?? [];
-                                $it_st = $it_info['status'] ?? 'pending';
-                                $it_img = !empty($it['product_image']) ? base_url('assets/images/' . $it['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
-                                $it_pid = (int) ($it['product_id'] ?? 0);
-
-                                $it_variant = '';
-                                if (!empty($it['variant_title'])) {
-                                    $vt = trim($it['variant_title']);
-                                    if (strpos($vt, '/') !== false) {
-                                        $parts = explode('/', $vt);
-                                        $color_part = trim($parts[0]);
-                                        $size_part = trim($parts[1] ?? '');
-                                        $it_variant = 'Color: ' . $color_part . (!empty($size_part) ? ' Size: ' . $size_part : '');
-                                    } else {
-                                        $it_variant = $vt;
-                                    }
-                                }
-
-                                $badge_class = 'bg-warning text-dark';
-                                $it_status_label = 'Order Placed';
-                                if ($it_st === 'shipped') {
-                                    $badge_class = 'bg-primary text-white';
-                                    $it_status_label = 'Packaging & Courier Dispatch';
-                                } elseif (in_array($it_st, ['delivered', 'completed'])) {
-                                    $badge_class = 'bg-success text-white';
-                                    $it_status_label = 'Delivered';
-                                } elseif ($it_st === 'cancelled') {
-                                    $badge_class = 'bg-danger text-white';
-                                    $it_status_label = 'Cancelled';
-                                }
-
-                                $oit_track_url = site_url('account/order/' . $order['order_number'] . '?item_id=' . $it_id);
-                            ?>
-                                <?php if ($idx > 0): ?>
-                                    <hr class="my-3" style="border-color: #f0f0f0;">
-                                <?php endif; ?>
-
-                                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap flex-md-nowrap">
-                                    <div class="d-flex gap-3">
-                                        <a href="<?= $oit_track_url; ?>">
-                                            <img src="<?= $it_img; ?>" alt="<?= html_escape($it['product_title']); ?>" class="border rounded-1 flex-shrink-0" style="width: 80px; height: 80px; object-fit: contain; background-color: #fafafa;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                        </a>
-                                        <div>
-                                            <a href="<?= $oit_track_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1" style="font-size: 15px; line-height: 1.4;">
-                                                <?= html_escape($it['product_title']); ?>
-                                            </a>
-                                            <?php if (!empty($it_variant)): ?>
-                                                <div class="text-secondary small mb-1" style="font-size: 12px; color: #878787 !important;"><?= html_escape($it_variant); ?></div>
-                                            <?php endif; ?>
-                                            <div class="text-muted small mb-1" style="font-size: 12px; color: #878787 !important;">
-                                                Seller: <?= $seller_name; ?>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                <span class="fw-bold text-dark" style="font-size: 16px;">
-                                                    <?= $currency_symbol . number_format($it['price'], 0); ?>
-                                                </span>
-                                                <?php if ((int)($it['quantity'] ?? 1) > 1): ?>
-                                                    <span class="text-muted small">(Qty: <?= (int)$it['quantity']; ?>)</span>
-                                                <?php endif; ?>
-                                                <span class="badge <?= $badge_class; ?> px-2 py-0.5" style="font-size: 11px;">
-                                                    <?= $it_status_label; ?>
-                                                </span>
-                                            </div>
-
-                                            <?php if (!empty($it_info['courier']) || !empty($it_info['tracking_number'])): ?>
-                                                <div class="mt-2 small text-secondary">
-                                                    <i class="fa-solid fa-truck-fast text-danger me-1"></i>
-                                                    <strong><?= html_escape($it_info['courier'] ?: 'Courier'); ?></strong>
-                                                    <?php if (!empty($it_info['tracking_number'])): ?>
-                                                        <span class="font-monospace ms-1">AWB: <?= html_escape($it_info['tracking_number']); ?></span>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($it_info['tracking_url'])): ?>
-                                                        <a href="<?= html_escape($it_info['tracking_url']); ?>" target="_blank" class="ms-2 text-decoration-none fw-semibold" style="color: #2874f0; font-size: 12px;">
-                                                            Track Link <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex flex-column align-items-end gap-2 flex-shrink-0 ms-auto">
-                                        <a href="<?= $oit_track_url; ?>" class="btn btn-outline-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1" style="color: #2874f0; border-color: #2874f0; font-size: 12px;">
-                                            <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Item
-                                        </a>
-
-                                        <?php if (in_array($it_st, ['delivered', 'completed'])): ?>
-                                            <a href="<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $it_pid); ?>" class="btn btn-success btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1 text-white" style="font-size: 12px;">
-                                                <i class="fa-solid fa-star" style="font-size: 11px;"></i> Rate & Review
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php endif; ?>
-
-                        <!-- 4. "Rate your experience" Card (Shown if any item is delivered) -->
-                        <?php if ($is_any_delivered): ?>
-                            <!-- Rate your experience Card (Shown if any item is delivered) -->
+                        <!-- 4. Rate your experience Card (Shown if current item is delivered, Matching quick_rating.png) -->
+                        <?php if ($active_is_delivered): 
+                            $cur_review = $user_reviews[$cur_pid] ?? null;
+                            $cur_rating = !empty($cur_review['rating']) ? (int)$cur_review['rating'] : 0;
+                            $rating_labels = [
+                                1 => 'Very Bad',
+                                2 => 'Bad',
+                                3 => 'Good',
+                                4 => 'Very Good',
+                                5 => 'Excellent'
+                            ];
+                        ?>
                             <div class="card border rounded-1 p-4 mb-3 bg-white shadow-none" style="border-color: #e0e0e0 !important;">
                                 <h6 class="fw-bold text-dark mb-3" style="font-size: 15px;">Rate your experience</h6>
 
-                                <?php foreach ($items as $idx => $ritem): ?>
-                                    <?php
-                                    $r_pid = (int) ($ritem['product_id'] ?? 0);
-                                    $r_img = !empty($ritem['product_image']) ? base_url('assets/images/' . $ritem['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
-                                    $r_existing = $user_reviews[$r_pid] ?? null;
-                                    $r_rating = !empty($r_existing['rating']) ? (int)$r_existing['rating'] : 0;
-                                    ?>
-                                    <div class="card border rounded-2 p-3 bg-light mb-2 d-flex flex-row align-items-center justify-content-between flex-wrap gap-2" style="border-color: #e0e0e0 !important; background-color: #fafafa !important;">
+                                <div class="p-3 rounded-2" style="background-color: #fafafa; border: 1px solid #f0f0f0;">
+                                    <div class="d-flex align-items-center gap-2 mb-3 text-secondary" style="font-size: 13px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <polyline points="9 11 12 14 22 4"></polyline>
+                                        </svg>
+                                        <span class="text-dark fw-medium">Write a product review</span>
+                                    </div>
+
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <!-- Left: Star Rating Only with Tooltip -->
                                         <div class="d-flex align-items-center gap-2">
-                                            <img src="<?= $r_img; ?>" class="border rounded-1 flex-shrink-0" style="width: 36px; height: 36px; object-fit: contain; background: #fff;">
-                                            <div>
-                                                <div class="fw-semibold text-dark text-truncate" style="font-size: 13px; max-width: 300px;" title="<?= html_escape($ritem['product_title']); ?>">
-                                                    <?= html_escape($ritem['product_title']); ?>
+                                            <div class="fk-order-stars d-inline-flex align-items-center gap-1" id="quick-stars-wrapper" onmouseleave="resetQuickStars(<?= $cur_rating; ?>)">
+                                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                    <i class="<?= ($cur_rating >= $s) ? 'fa-solid' : 'fa-regular'; ?> fa-star quick-star-item" 
+                                                       id="quick-star-<?= $s; ?>"
+                                                       data-star="<?= $s; ?>"
+                                                       data-bs-toggle="tooltip"
+                                                       data-bs-placement="top"
+                                                       title="<?= $rating_labels[$s]; ?>"
+                                                       style="cursor: pointer; font-size: 20px; color: <?= ($cur_rating >= $s) ? '#26a541' : '#b0b8c1'; ?>; transition: color 0.15s, transform 0.15s;"
+                                                       onmouseenter="hoverQuickStars(<?= $s; ?>)"
+                                                       onclick="submitQuickRating(<?= $s; ?>, <?= $cur_pid; ?>, '<?= html_escape($order['order_number']); ?>')"></i>
+                                                <?php endfor; ?>
+                                            </div>
+                                            <span id="quick-rate-saved-alert" class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 ms-2 d-none" style="font-size: 11px;">Saved!</span>
+                                        </div>
+
+                                        <!-- Right: Write Review Button -->
+                                        <a href="<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $cur_pid . ($cur_rating > 0 ? '?rating=' . $cur_rating : '')); ?>" 
+                                           id="quick-write-review-btn" 
+                                           class="btn btn-outline-primary btn-sm rounded-2 fw-semibold px-3 py-1 d-inline-flex align-items-center gap-2" 
+                                           style="color: #2874f0; border-color: #2874f0; font-size: 13px; background-color: #fff; height: 35px;">
+                                            <i class="fa-solid fa-pen" style="font-size: 11px;"></i> Write review
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- 5. Items in this Order Card (Shows other products with same order id, excluding the current product, COMES LAST) -->
+                        <?php if (!empty($other_items)): ?>
+                        <div class="card border rounded-1 bg-white shadow-none mb-3 p-3 p-md-4" style="border-color: #e0e0e0 !important;">
+                            <h6 class="fw-bold text-dark mb-3" style="font-size: 15px;">
+                                Items in this Order (<?= count($other_items); ?>)
+                            </h6>
+
+                            <div class="d-flex flex-column gap-2">
+                                <?php foreach ($other_items as $idx => $it): 
+                                    $it_id = (int)$it['id'];
+                                    $it_info = $items_tracking_map[$it_id] ?? [];
+                                    $it_st = $it_info['status'] ?? 'pending';
+                                    $it_img = !empty($it['product_image']) ? base_url('assets/images/' . $it['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
+                                    $it_pid = (int) ($it['product_id'] ?? 0);
+
+                                    $it_variant = '';
+                                    if (!empty($it['variant_title'])) {
+                                        $vt = trim($it['variant_title']);
+                                        if (strpos($vt, '/') !== false) {
+                                            $parts = explode('/', $vt);
+                                            $color_part = trim($parts[0]);
+                                            $size_part = trim($parts[1] ?? '');
+                                            $it_variant = 'Color: ' . $color_part . (!empty($size_part) ? ' Size: ' . $size_part : '');
+                                        } else {
+                                            $it_variant = $vt;
+                                        }
+                                    }
+
+                                    $dot_color = '#f39c12';
+                                    $it_status_label = 'Order Placed';
+                                    if ($it_st === 'shipped') {
+                                        $dot_color = '#2874f0';
+                                        $it_status_label = 'Packaging & Courier Dispatch';
+                                    } elseif (in_array($it_st, ['delivered', 'completed'])) {
+                                        $dot_color = '#26a541';
+                                        $it_status_label = 'Delivered';
+                                    } elseif ($it_st === 'cancelled') {
+                                        $dot_color = '#e53935';
+                                        $it_status_label = 'Cancelled';
+                                    }
+
+                                    $oit_track_url = site_url('account/order/' . $order['order_number'] . '?item_id=' . $it_id);
+                                ?>
+                                    <div class="other-order-item-card p-3 rounded-2 border d-flex align-items-center justify-content-between gap-3 bg-white"
+                                         onclick="window.location.href='<?= $oit_track_url; ?>'"
+                                         style="border-color: #eceff1 !important; cursor: pointer; transition: all 0.2s ease;">
+                                        
+                                        <!-- Left Side: Thumbnail + Product Info -->
+                                        <div class="d-flex align-items-center gap-3" style="min-width: 0; flex: 1;">
+                                            <img src="<?= $it_img; ?>" 
+                                                 alt="<?= html_escape($it['product_title']); ?>" 
+                                                 class="border rounded-2 flex-shrink-0" 
+                                                 style="width: 58px; height: 58px; object-fit: contain; background-color: #fafafa; border-color: #eceff1 !important;" 
+                                                 onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
+                                            
+                                            <div style="min-width: 0; flex: 1;">
+                                                <div class="text-dark fw-semibold text-truncate other-item-title mb-1" 
+                                                     style="font-size: 13px; line-height: 1.3;" 
+                                                     title="<?= html_escape($it['product_title']); ?>">
+                                                    <?= html_escape($it['product_title']); ?>
                                                 </div>
-                                                <div class="text-muted" style="font-size: 11px;">Rate the product</div>
+
+                                                <?php if (!empty($it_variant)): ?>
+                                                    <div class="text-muted small text-truncate mb-1" style="font-size: 12px; color: #878787 !important;">
+                                                        <?= html_escape($it_variant); ?>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="fw-bold text-dark" style="font-size: 14px;">
+                                                        <?= $currency_symbol . number_format($it['price'], 0); ?>
+                                                    </span>
+                                                    <?php if ((int)($it['quantity'] ?? 1) > 1): ?>
+                                                        <span class="text-muted small" style="font-size: 12px;">(Qty: <?= (int)$it['quantity']; ?>)</span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <!-- 5 Interactive Stars -->
-                                        <div class="fk-order-stars d-inline-flex align-items-center gap-2">
-                                            <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                <i class="<?= ($r_rating >= $s) ? 'fa-solid text-warning' : 'fa-regular text-secondary'; ?> fa-star order-star-btn" 
-                                                   style="cursor: pointer; font-size: 20px; color: <?= ($r_rating >= $s) ? '#ff9f00' : '#878787'; ?>;"
-                                                   onclick="handleStarClick(<?= $s; ?>, <?= $r_pid; ?>)"></i>
-                                            <?php endfor; ?>
+                                        <!-- Right Side: Status with colored dot + Arrow -->
+                                        <div class="d-flex align-items-center gap-3 flex-shrink-0 text-end">
+                                            <div>
+                                                <div class="d-inline-flex align-items-center gap-2">
+                                                    <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 8px; height: 8px; background-color: <?= $dot_color; ?>;"></span>
+                                                    <span class="fw-semibold text-dark" style="font-size: 13px;"><?= $it_status_label; ?></span>
+                                                </div>
+                                                <?php if (!empty($it_info['courier']) || !empty($it_info['tracking_number'])): ?>
+                                                    <div class="text-secondary small mt-0.5" style="font-size: 11px;">
+                                                        <i class="fa-solid fa-truck-fast text-danger me-1"></i><?= html_escape($it_info['courier'] ?: 'Courier'); ?><?= !empty($it_info['tracking_number']) ? ' (AWB: ' . html_escape($it_info['tracking_number']) . ')' : ''; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
 
-                                            <?php if ($r_rating > 0): ?>
-                                                <a href="<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $r_pid); ?>" class="fw-semibold small ms-2 text-decoration-none" style="color: #2874f0 !important; font-size: 12px;">
-                                                    Edit Review
-                                                </a>
-                                            <?php endif; ?>
+                                            <div class="text-muted ps-1">
+                                                <i class="fa-solid fa-chevron-right text-muted other-item-chevron" style="font-size: 12px; transition: transform 0.15s ease;"></i>
+                                            </div>
                                         </div>
+
                                     </div>
                                 <?php endforeach; ?>
                             </div>
+                        </div>
                         <?php endif; ?>
 
                         <!-- Order ID Footer Bar with Copy Button -->
@@ -834,8 +833,21 @@
                 max-width: 100% !important;
             }
         }
-        .order-star-btn:hover {
+        .order-star-btn:hover,
+        .quick-star-item:hover {
             transform: scale(1.15);
+        }
+        .other-order-item-card:hover {
+            border-color: #2874f0 !important;
+            background-color: #fbfdff !important;
+            box-shadow: 0 2px 8px rgba(40, 116, 240, 0.08);
+        }
+        .other-order-item-card:hover .other-item-title {
+            color: #2874f0 !important;
+        }
+        .other-order-item-card:hover .other-item-chevron {
+            transform: translateX(3px);
+            color: #2874f0 !important;
         }
         </style>
 
@@ -1014,8 +1026,65 @@
             });
         }
 
-        function handleStarClick(rating, productId) {
-            var orderNumber = '<?= html_escape($order['order_number']); ?>';
+        var currentQuickRating = <?= !empty($cur_rating) ? (int)$cur_rating : 0; ?>;
+        var ratingLabels = {
+            1: 'Very Bad',
+            2: 'Bad',
+            3: 'Good',
+            4: 'Very Good',
+            5: 'Excellent'
+        };
+
+        function hoverQuickStars(rating) {
+            var labelEl = document.getElementById('quick-rating-label');
+            if (labelEl && ratingLabels[rating]) {
+                labelEl.innerText = ratingLabels[rating];
+            }
+            for (var s = 1; s <= 5; s++) {
+                var starEl = document.getElementById('quick-star-' + s);
+                if (starEl) {
+                    if (s <= rating) {
+                        starEl.className = 'fa-solid fa-star quick-star-item';
+                        starEl.style.color = '#26a541';
+                    } else {
+                        starEl.className = 'fa-regular fa-star quick-star-item';
+                        starEl.style.color = '#b0b8c1';
+                    }
+                }
+            }
+        }
+
+        function resetQuickStars(savedRating) {
+            var activeRating = currentQuickRating > 0 ? currentQuickRating : savedRating;
+            var labelEl = document.getElementById('quick-rating-label');
+            if (labelEl) {
+                labelEl.innerText = activeRating > 0 ? (ratingLabels[activeRating] || 'Great') : 'Rate';
+            }
+            for (var s = 1; s <= 5; s++) {
+                var starEl = document.getElementById('quick-star-' + s);
+                if (starEl) {
+                    if (s <= activeRating) {
+                        starEl.className = 'fa-solid fa-star quick-star-item';
+                        starEl.style.color = '#26a541';
+                    } else {
+                        starEl.className = 'fa-regular fa-star quick-star-item';
+                        starEl.style.color = '#b0b8c1';
+                    }
+                }
+            }
+        }
+
+        function submitQuickRating(rating, productId, orderNumber) {
+            currentQuickRating = rating;
+            resetQuickStars(rating);
+
+            // Update write review button href
+            var btn = document.getElementById('quick-write-review-btn');
+            if (btn) {
+                var baseHref = '<?= site_url('account/rate_review/' . $order['order_number'] . '/' . $cur_pid); ?>';
+                btn.href = baseHref + '?rating=' + rating;
+            }
+
             var csrfName = '<?= $csrf_name; ?>';
             var csrfHash = '<?= $csrf_hash; ?>';
 
@@ -1032,14 +1101,26 @@
             }).then(function(res) {
                 return res.json();
             }).then(function(data) {
-                // Navigate to rate and review form with selected rating
-                window.location.href = '<?= site_url('account/rate_review/' . $order['order_number']); ?>/' + productId + '?rating=' + rating;
+                var alertEl = document.getElementById('quick-rate-saved-alert');
+                if (alertEl) {
+                    alertEl.classList.remove('d-none');
+                    setTimeout(function() {
+                        alertEl.classList.add('d-none');
+                    }, 2500);
+                }
             }).catch(function(err) {
-                window.location.href = '<?= site_url('account/rate_review/' . $order['order_number']); ?>/' + productId + '?rating=' + rating;
+                console.error('Rating error:', err);
             });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+
             ['deliveryDetailsBody', 'priceDetailsBody'].forEach(function(id) {
                 var el = document.getElementById(id);
                 if (el) {
