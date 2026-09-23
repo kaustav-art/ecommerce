@@ -112,13 +112,6 @@
               </a>
             </li>
 
-            <!-- Processing Orders -->
-            <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'processing') ? 'active' : ''; ?>">
-              <a href="<?= site_url('orders?status=processing'); ?>" class="menu-link">
-                <i class="menu-icon icon-base ri ri-loader-2-line"></i>
-                <div data-i18n="Processing Orders">Processing Orders</div>
-              </a>
-            </li>
 
             <!-- Shipped Orders -->
             <li class="menu-item <?= ($is_orders_page && $order_status_filter === 'shipped') ? 'active' : ''; ?>">

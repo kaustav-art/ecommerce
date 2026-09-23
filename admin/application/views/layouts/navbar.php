@@ -79,8 +79,18 @@
 
           <!-- Content wrapper -->
           <div class="content-wrapper">
-            <!-- Flash Message Banner (Settings pages render this directly under their title) -->
-            <?php if (($active_menu ?? '') !== 'settings' && ($this->router->fetch_class() ?? '') !== 'settings'): ?>
+            <!-- Flash Message Banner (Excluded on pages that render their own flash messages like settings, orders/view, variants) -->
+            <?php 
+              $current_class  = strtolower($this->router->fetch_class() ?? '');
+              $current_method = strtolower($this->router->fetch_method() ?? '');
+              $skip_navbar_flash = (
+                ($active_menu ?? '') === 'settings' || 
+                $current_class === 'settings' ||
+                ($current_class === 'orders' && $current_method === 'view') ||
+                $current_class === 'variants'
+              );
+              if (!$skip_navbar_flash): 
+            ?>
             <div class="container-xxl mt-3">
               <?php if ($this->session->flashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">

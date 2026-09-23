@@ -56,24 +56,48 @@
                                             </div>
                                         </div>
 
-                                        <!-- Progress Bar Steps -->
+                                        <!-- 3-Step Tracking Timeline -->
                                         <div class="py-3">
-                                            <div class="progress mb-2" style="height: 8px;">
+                                            <?php 
+                                                $t_status = strtolower($order['order_status']);
+                                                $t_placed_date = date('M d', strtotime($order['created_at']));
+                                                $t_delivered_date = !empty($order['delivered_at']) ? date('M d', strtotime($order['delivered_at'])) : date('M d', strtotime($order['updated_at'] ?? $order['created_at']));
+                                                $t_cancelled_date = date('M d', strtotime($order['updated_at'] ?? $order['created_at']));
+
+                                                $is_cancelled = ($t_status === 'cancelled');
+                                                $is_shipped = in_array($t_status, ['shipped', 'delivered', 'completed']);
+                                                $is_delivered = in_array($t_status, ['delivered', 'completed']);
+                                            ?>
+
+                                            <?php if ($is_cancelled): ?>
+                                                <div class="progress mb-2" style="height: 8px;">
+                                                    <div class="progress-bar bg-danger" role="progressbar" style="width: 100%"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between small text-muted">
+                                                    <span class="text-success fw-bold"><i class="fa-solid fa-check me-1"></i>Order Placed, <?= $t_placed_date; ?></span>
+                                                    <span class="text-danger fw-bold"><i class="fa-solid fa-xmark me-1"></i>Cancelled, <?= $t_cancelled_date; ?></span>
+                                                </div>
+                                            <?php else: ?>
                                                 <?php
-                                                    $pct = 25;
-                                                    if ($order['order_status'] === 'processing') $pct = 50;
-                                                    elseif ($order['order_status'] === 'shipped') $pct = 75;
-                                                    elseif (in_array($order['order_status'], ['delivered', 'completed'])) $pct = 100;
-                                                    elseif ($order['order_status'] === 'cancelled') $pct = 0;
+                                                    $pct = 33;
+                                                    if ($is_delivered) $pct = 100;
+                                                    elseif ($is_shipped) $pct = 66;
                                                 ?>
-                                                <div class="progress-bar <?= ($order['order_status'] === 'cancelled') ? 'bg-danger' : 'bg-success'; ?>" role="progressbar" style="width: <?= $pct; ?>%"></div>
-                                            </div>
-                                            <div class="d-flex justify-content-between small text-muted">
-                                                <span class="<?= ($pct >= 25) ? 'text-success fw-bold' : ''; ?>">Ordered</span>
-                                                <span class="<?= ($pct >= 50) ? 'text-success fw-bold' : ''; ?>">Processing</span>
-                                                <span class="<?= ($pct >= 75) ? 'text-success fw-bold' : ''; ?>">Shipped</span>
-                                                <span class="<?= ($pct >= 100) ? 'text-success fw-bold' : ''; ?>">Delivered</span>
-                                            </div>
+                                                <div class="progress mb-2" style="height: 8px;">
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: <?= $pct; ?>%"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between small text-muted flex-wrap gap-2">
+                                                    <span class="text-success fw-bold">
+                                                        <i class="fa-solid fa-check me-1"></i>Order Placed, <?= $t_placed_date; ?>
+                                                    </span>
+                                                    <span class="<?= ($pct >= 66) ? 'text-success fw-bold' : ''; ?>">
+                                                        <i class="fa-solid <?= ($pct >= 66) ? 'fa-check' : 'fa-clock'; ?> me-1"></i>Packaging &amp; Courier Dispatch
+                                                    </span>
+                                                    <span class="<?= ($pct >= 100) ? 'text-success fw-bold' : ''; ?>">
+                                                        <i class="fa-solid <?= ($pct >= 100) ? 'fa-check' : 'fa-house-circle-check'; ?> me-1"></i><?= $is_delivered ? 'Delivered, ' . $t_delivered_date : 'Delivery'; ?>
+                                                    </span>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
 
                                         <!-- Third-Party Courier & AWB Tracking -->
@@ -144,12 +168,20 @@
                                         <!-- Items in this shipment -->
                                         <?php if (!empty($order['items'])): ?>
                                             <div class="mt-4 pt-3 border-top">
-                                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-boxes-packing me-1 text-primary"></i> Items in this Order (Shipped Together):</h6>
+                                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-boxes-packing me-1 text-primary"></i> Items in this Order:</h6>
                                                 <div class="d-flex flex-column gap-2">
                                                     <?php foreach ($order['items'] as $it): 
                                                         $img = !empty($it['product_image']) ? base_url('assets/images/' . $it['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
+                                                        $it_st = !empty($it['item_status']) ? strtolower($it['item_status']) : $order['order_status'];
+                                                        $it_c = !empty($it['courier_name']) ? $it['courier_name'] : $courier_name;
+                                                        $it_trk = !empty($it['tracking_number']) ? $it['tracking_number'] : $tracking_number;
+
+                                                        $badge_class = 'bg-warning text-dark';
+                                                        if ($it_st === 'shipped') $badge_class = 'bg-primary text-white';
+                                                        elseif (in_array($it_st, ['delivered', 'completed'])) $badge_class = 'bg-success text-white';
+                                                        elseif ($it_st === 'cancelled') $badge_class = 'bg-danger text-white';
                                                     ?>
-                                                        <div class="d-flex align-items-center gap-3 p-2 border rounded bg-white">
+                                                        <div class="d-flex align-items-center gap-3 p-2 border rounded bg-white flex-wrap flex-sm-nowrap">
                                                             <img src="<?= $img; ?>" alt="<?= html_escape($it['product_title']); ?>" style="width: 50px; height: 50px; object-fit: contain;" class="border rounded bg-light" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                                                             <div class="flex-grow-1">
                                                                 <div class="fw-bold text-dark small"><?= html_escape($it['product_title']); ?></div>
@@ -157,9 +189,17 @@
                                                                     <div class="text-muted small" style="font-size: 11px;"><?= html_escape($it['variant_title']); ?></div>
                                                                 <?php endif; ?>
                                                                 <div class="text-secondary small">Qty: <?= (int) $it['quantity']; ?> &times; <?= $currency_symbol . number_format($it['price'], 2); ?></div>
+                                                                <?php if (!empty($it_c) || !empty($it_trk)): ?>
+                                                                    <div class="text-muted small" style="font-size: 11px;">
+                                                                        <i class="fa-solid fa-truck-fast text-primary me-1"></i><?= html_escape($it_c ?: 'Courier'); ?><?= !empty($it_trk) ? ' (AWB: ' . html_escape($it_trk) . ')' : ''; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
-                                                            <div class="fw-bold text-dark small">
-                                                                <?= $currency_symbol . number_format($it['total'], 2); ?>
+                                                            <div class="text-end">
+                                                                <span class="badge <?= $badge_class; ?> mb-1"><?= ($it_st === 'shipped') ? 'Shipped' : ucfirst($it_st); ?></span>
+                                                                <div class="fw-bold text-dark small">
+                                                                    <?= $currency_symbol . number_format($it['total'], 2); ?>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     <?php endforeach; ?>

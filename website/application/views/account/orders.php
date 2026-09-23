@@ -101,205 +101,173 @@
                             </div>
                         </div>
 
-                        <!-- Orders Items List -->
+                                <!-- Orders Items List -->
                         <div class="order-items-list" id="order-items-container">
                             <?php
-                            $has_orders = false;
+                            $has_items = false;
                             if (!empty($orders)):
                                 foreach ($orders as $ord):
-                                    $has_orders = true;
                                     $status = strtolower($ord['order_status']);
                                     $items = $ord['items'] ?? [];
                                     if (empty($items)) {
                                         $items = [[
+                                            'id'            => 0,
                                             'product_id'    => 0,
                                             'product_title' => 'Order #' . $ord['order_number'],
                                             'product_image' => 'products/womens/women-1.jpg',
                                             'variant_title' => '',
                                             'price'         => $ord['total_amount'],
                                             'quantity'      => 1,
-                                            'total'         => $ord['total_amount']
+                                            'total'         => $ord['total_amount'],
+                                            'item_status'   => $status
                                         ]];
-                                    }
-
-                                    // Determine status category for filter
-                                    $status_group = 'on_the_way';
-                                    if ($status === 'cancelled') {
-                                        $status_group = 'cancelled';
-                                    } elseif (in_array($status, ['delivered', 'completed'])) {
-                                        $status_group = 'delivered';
-                                    } elseif ($status === 'returned') {
-                                        $status_group = 'returned';
                                     }
 
                                     $order_year = date('Y', strtotime($ord['created_at']));
                                     $order_ts = strtotime($ord['created_at']);
-                                    $order_url = site_url('account/order/' . $ord['order_number']);
+                                    $order_date_placed = date('d M, Y', strtotime($ord['created_at']));
 
-                                    // Status display dates (shared for the entire shipment)
-                                    $date_cancelled = date('M d', strtotime($ord['updated_at'] ?? $ord['created_at']));
-                                    $date_delivered = date('M d', strtotime($ord['updated_at'] ?? $ord['created_at']));
-                                    $date_expected  = date('M d', strtotime($ord['created_at'] . ' + 4 days'));
+                                    foreach ($items as $item):
+                                        $has_items = true;
+                                        $img_src = !empty($item['product_image']) ? base_url('assets/images/' . $item['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
+                                        $pid = (int) ($item['product_id'] ?? 0);
+                                        $it_id = (int) ($item['id'] ?? 0);
 
-                                    // Build searchable keywords of all products in this order
-                                    $order_search_keywords = $ord['order_number'];
-                                    foreach ($items as $it) {
-                                        $order_search_keywords .= ' ' . ($it['product_title'] ?? '') . ' ' . ($it['variant_title'] ?? '');
-                                    }
-                                    $order_search_keywords = strtolower(trim($order_search_keywords));
+                                        // Individual Item Status & Courier Details
+                                        $it_status = !empty($item['item_status']) ? strtolower($item['item_status']) : $status;
+                                        $it_courier = !empty($item['courier_name']) ? trim($item['courier_name']) : (!empty($ord['courier_name']) ? trim($ord['courier_name']) : '');
+                                        $it_tracking = !empty($item['tracking_number']) ? trim($item['tracking_number']) : (!empty($ord['tracking_number']) ? trim($ord['tracking_number']) : '');
+                                        $it_delivered_at = !empty($item['delivered_at']) ? $item['delivered_at'] : (!empty($ord['delivered_at']) ? $ord['delivered_at'] : ($ord['updated_at'] ?? $ord['created_at']));
+                                        $it_track_url = site_url('account/order/' . $ord['order_number'] . ($it_id > 0 ? '?item_id=' . $it_id : ''));
+
+                                        // Determine status group for sidebar checkbox filtering
+                                        $status_group = 'on_the_way';
+                                        if ($it_status === 'cancelled') {
+                                            $status_group = 'cancelled';
+                                        } elseif (in_array($it_status, ['delivered', 'completed'])) {
+                                            $status_group = 'delivered';
+                                        } elseif ($it_status === 'returned') {
+                                            $status_group = 'returned';
+                                        }
+
+                                        // Format color & size variant line nicely
+                                        $variant_str = '';
+                                        if (!empty($item['variant_title'])) {
+                                            $vt = trim($item['variant_title']);
+                                            if (strpos($vt, '/') !== false) {
+                                                $parts = explode('/', $vt);
+                                                $color_part = trim($parts[0]);
+                                                $size_part = trim($parts[1] ?? '');
+                                                $variant_str = 'Color: ' . $color_part . (!empty($size_part) ? ' Size: ' . $size_part : '');
+                                            } else {
+                                                $variant_str = $vt;
+                                            }
+                                        }
+
+                                        // Search keywords for this item
+                                        $item_search_keywords = strtolower($ord['order_number'] . ' ' . ($item['product_title'] ?? '') . ' ' . ($item['variant_title'] ?? ''));
                             ?>
-                                    <!-- Single-Vendor Unified Order Card (Items shipped together) -->
-                                    <div class="card border rounded-1 mb-3 bg-white shadow-none fk-order-card" 
-                                         style="border-color: #e0e0e0 !important; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s;" 
-                                         data-search-text="<?= html_escape($order_search_keywords); ?>"
-                                         data-status-group="<?= $status_group; ?>"
-                                         data-year="<?= $order_year; ?>"
-                                         data-created-ts="<?= $order_ts; ?>">
+                                        <!-- Individual Order Item Card (Matching order_page.png) -->
+                                        <div class="card border rounded-1 mb-3 bg-white shadow-none fk-order-card" 
+                                             style="border-color: #e0e0e0 !important; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s;" 
+                                             data-search-text="<?= html_escape($item_search_keywords); ?>"
+                                             data-status-group="<?= html_escape($status_group); ?>"
+                                             data-year="<?= $order_year; ?>"
+                                             data-created-ts="<?= $order_ts; ?>">
 
-                                        <!-- Order Top Bar -->
-                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 px-3 py-2 border-bottom" style="background-color: #fafafa; font-size: 13px;">
-                                            <div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap">
-                                                <span class="fw-bold text-dark">
-                                                    Order <a href="<?= $order_url; ?>" class="text-decoration-none" style="color: #2874f0;">#<?= html_escape($ord['order_number']); ?></a>
-                                                </span>
-                                                <span class="text-muted d-none d-sm-inline">|</span>
-                                                <span class="text-secondary small">
-                                                    Placed on <?= date('d M, Y', strtotime($ord['created_at'])); ?>
-                                                </span>
-                                                <span class="text-muted d-none d-sm-inline">|</span>
-                                                <span class="fw-bold text-dark small">
-                                                    Total: <?= $currency_symbol . number_format($ord['total_amount'], 0); ?>
-                                                </span>
-                                                <?php if (count($items) > 1): ?>
-                                                    <span class="badge bg-white text-secondary border fw-normal py-1 px-2" style="font-size: 11px;">
-                                                        <i class="fa-solid fa-boxes-packing me-1 text-primary"></i> <?= count($items); ?> items shipped together
-                                                    </span>
-                                                <?php endif; ?>
-                                                <?php if (!empty($ord['courier_name']) || !empty($ord['tracking_number'])): ?>
-                                                    <span class="badge bg-white text-secondary border fw-normal py-1 px-2" style="font-size: 11px;">
-                                                        <i class="fa-solid fa-truck-fast me-1 text-primary"></i> <?= html_escape($ord['courier_name'] ?: 'Courier'); ?><?= !empty($ord['tracking_number']) ? ': ' . html_escape($ord['tracking_number']) : ''; ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-
-                                            <div>
-                                                <a href="<?= $order_url; ?>" class="fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0; font-size: 13px;">
-                                                    <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Order
-                                                </a>
-                                            </div>
-                                        </div>
-
-                                        <!-- Items List inside this Shipment -->
-                                        <div class="p-3">
-                                            <?php
-                                            foreach ($items as $idx => $item):
-                                                $img_src = !empty($item['product_image']) ? base_url('assets/images/' . $item['product_image']) : base_url('assets/images/products/womens/women-1.jpg');
-                                                $pid = (int) ($item['product_id'] ?? 0);
-
-                                                // Format color & size variant line nicely like new_order_page.PNG
-                                                $variant_str = '';
-                                                if (!empty($item['variant_title'])) {
-                                                    $vt = trim($item['variant_title']);
-                                                    if (stripos($vt, 'color') === false && stripos($vt, 'size') === false && strpos($vt, '/') !== false) {
-                                                        $parts = explode('/', $vt);
-                                                        $variant_str = 'Color: ' . trim($parts[0]) . '  Size: ' . trim($parts[1] ?? '');
-                                                    } else {
-                                                        $variant_str = $vt;
-                                                    }
-                                                }
-                                            ?>
-                                                <?php if ($idx > 0): ?>
-                                                    <hr class="my-3" style="border-color: #f0f0f0;">
-                                                <?php endif; ?>
-
+                                            <div class="p-3 px-md-4">
                                                 <div class="row align-items-center g-3">
-                                                    <!-- Product Thumbnail + Info (Side-by-side on mobile, 2 cols on desktop) -->
+                                                    <!-- Left Column: Product Thumbnail + Title + Variant + Order # & Placed on -->
                                                     <div class="col-12 col-md-6 d-flex align-items-start gap-3">
-                                                        <a href="<?= $order_url; ?>" class="flex-shrink-0">
+                                                        <a href="<?= $it_track_url; ?>" class="flex-shrink-0">
                                                             <img src="<?= $img_src; ?>" alt="<?= html_escape($item['product_title']); ?>" class="border rounded-1" style="width: 70px; height: 70px; object-fit: contain; background-color: #fafafa;" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
                                                         </a>
                                                         <div class="flex-grow-1" style="min-width: 0;">
-                                                            <a href="<?= $order_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title text-line-clamp-2" style="font-size: 14px; line-height: 1.4;">
+                                                            <a href="<?= $it_track_url; ?>" class="text-decoration-none text-dark fw-bold d-block mb-1 fk-item-title text-line-clamp-2" style="font-size: 14px; line-height: 1.4;">
                                                                 <?= html_escape($item['product_title']); ?>
                                                             </a>
                                                             <?php if (!empty($variant_str)): ?>
-                                                                <div class="text-muted small" style="font-size: 12px; color: #878787 !important;"><?= html_escape($variant_str); ?></div>
+                                                                <div class="text-muted small mb-1" style="font-size: 12px; color: #878787 !important;"><?= html_escape($variant_str); ?></div>
                                                             <?php endif; ?>
+                                                            <div class="text-secondary small" style="font-size: 12px; color: #878787 !important;">
+                                                                Order <a href="<?= $it_track_url; ?>" class="text-secondary text-decoration-none fw-semibold">#<?= html_escape($ord['order_number']); ?></a> | Placed on <?= $order_date_placed; ?>
+                                                            </div>
                                                             <?php if ((int)($item['quantity'] ?? 1) > 1): ?>
-                                                                <div class="text-muted small">Qty: <?= (int)$item['quantity']; ?></div>
+                                                                <div class="text-muted small mt-1" style="font-size: 11px;">Qty: <?= (int)$item['quantity']; ?></div>
                                                             <?php endif; ?>
-                                                            <!-- Price shown under title on mobile only -->
+                                                            <!-- Mobile Price -->
                                                             <div class="fw-bold text-dark d-md-none mt-1" style="font-size: 14px;">
                                                                 <?= $currency_symbol . number_format($item['price'], 0); ?>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <!-- Desktop Price (Col 2) -->
+                                                    <!-- Middle Column: Desktop Price -->
                                                     <div class="col-md-2 d-none d-md-block text-center">
-                                                        <div class="fw-bold text-dark" style="font-size: 14px;">
+                                                        <div class="fw-bold text-dark" style="font-size: 15px;">
                                                             <?= $currency_symbol . number_format($item['price'], 0); ?>
                                                         </div>
                                                     </div>
 
-                                                    <!-- Shared Shipment Delivery Status & Per-Product Review (Col 3) -->
+                                                    <!-- Right Column: Status & Courier & Action Button -->
                                                     <div class="col-12 col-md-4 text-start pt-2 pt-md-0 border-top border-top-md-0 border-light">
-                                                        <?php if ($status === 'cancelled'): ?>
+                                                        <?php if ($it_status === 'cancelled'): ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
                                                                 <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #e53935;"></span>
-                                                                <span class="fw-bold text-dark" style="font-size: 14px;">
-                                                                    Cancelled on <?= $date_cancelled; ?>
-                                                                </span>
+                                                                <span class="fw-bold text-dark" style="font-size: 14px;">Cancelled</span>
                                                             </div>
-                                                            <div class="text-muted" style="font-size: 12px;">
-                                                                Your order was cancelled as per your request.
-                                                            </div>
-                                                        <?php elseif ($status_group === 'delivered'): ?>
+                                                            <div class="text-muted small" style="font-size: 12px;">This item was cancelled</div>
+                                                        <?php elseif (in_array($it_status, ['delivered', 'completed'])): ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
                                                                 <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #26a541;"></span>
-                                                                <span class="fw-bold text-dark" style="font-size: 14px;">
-                                                                    Delivered on <?= $date_delivered; ?>
-                                                                </span>
+                                                                <span class="fw-bold text-dark" style="font-size: 14px;">Delivered on <?= date('d M, Y', strtotime($it_delivered_at)); ?></span>
                                                             </div>
-                                                            <div class="text-muted" style="font-size: 12px;">
-                                                                Your item has been delivered
-                                                            </div>
+                                                            <div class="text-muted small mb-1" style="font-size: 12px;">Your item has been delivered</div>
+                                                            <!-- After delivered: Track Item button is NOT shown, ONLY Rate & Review -->
                                                             <div class="mt-2">
-                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" class="fw-semibold small text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0 !important; font-size: 13px;">
+                                                                <a href="<?= site_url('account/rate_review/' . $ord['order_number'] . '/' . $pid); ?>" class="fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="color: #2874f0 !important; font-size: 13px;">
                                                                     <i class="fa-solid fa-star" style="color: #2874f0;"></i> Rate & Review Product
                                                                 </a>
                                                             </div>
-                                                        <?php elseif ($status === 'returned'): ?>
+                                                        <?php elseif ($it_status === 'shipped'): ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #ff9f00;"></span>
-                                                                <span class="fw-bold text-dark" style="font-size: 14px;">
-                                                                    Returned
-                                                                </span>
+                                                                <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #2874f0;"></span>
+                                                                <span class="fw-bold text-dark" style="font-size: 14px;">Packaging & Courier Dispatch</span>
                                                             </div>
-                                                            <div class="text-muted" style="font-size: 12px;">
-                                                                Refund processed
+                                                            <div class="text-secondary small" style="font-size: 12px;">
+                                                                <?php if (!empty($it_courier)): ?>
+                                                                    <i class="fa-solid fa-truck-fast text-danger me-1"></i><?= html_escape($it_courier); ?><?= !empty($it_tracking) ? ' (AWB: ' . html_escape($it_tracking) . ')' : ''; ?>
+                                                                <?php else: ?>
+                                                                    <i class="fa-solid fa-truck-fast text-danger me-1"></i>Dispatched via courier partner
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <a href="<?= $it_track_url; ?>" class="btn btn-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1 text-white shadow-none" style="background-color: #2874f0; border-color: #2874f0; font-size: 13px;">
+                                                                    <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Item
+                                                                </a>
                                                             </div>
                                                         <?php else: ?>
                                                             <div class="d-flex align-items-center gap-2 mb-1">
-                                                                <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #26a541;"></span>
-                                                                <span class="fw-bold text-dark" style="font-size: 14px;">
-                                                                    Delivery expected by <?= $date_expected; ?>
-                                                                </span>
+                                                                <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: #ff9800;"></span>
+                                                                <span class="fw-bold text-dark" style="font-size: 14px;">Order Placed, <?= date('d M', strtotime($ord['created_at'])); ?></span>
                                                             </div>
-                                                            <div class="text-muted" style="font-size: 12px;">
-                                                                Your package is on the way
+                                                            <div class="text-muted small" style="font-size: 12px;">Preparing for packaging & courier dispatch</div>
+                                                            <div class="mt-2">
+                                                                <a href="<?= $it_track_url; ?>" class="btn btn-primary btn-sm rounded-1 fw-semibold py-1 px-3 d-inline-flex align-items-center gap-1 text-white shadow-none" style="background-color: #2874f0; border-color: #2874f0; font-size: 13px;">
+                                                                    <i class="fa-solid fa-location-dot" style="font-size: 11px;"></i> Track Item
+                                                                </a>
                                                             </div>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
-                                    </div>
                             <?php
+                                    endforeach;
                                 endforeach;
                             endif;
 
-                            if (!$has_orders):
+                            if (!$has_items):
                             ?>
                                 <div class="card border rounded-1 p-5 bg-white text-center shadow-none" style="border-color: #e0e0e0 !important;">
                                     <div class="mb-3 text-muted">
@@ -391,7 +359,9 @@
                 var matchQuery = (!query || cardText.indexOf(query) !== -1);
 
                 // Check status
-                var matchStatus = (checkedStatuses.length === 0 || checkedStatuses.indexOf(cardStatus) !== -1);
+                var matchStatus = (checkedStatuses.length === 0 || checkedStatuses.some(function(s) {
+                    return cardStatus.indexOf(s) !== -1;
+                }));
 
                 // Check time
                 var matchTime = true;

@@ -146,13 +146,6 @@ class account extends MY_Controller {
             show_404();
         }
 
-        $status = strtolower($order['order_status']);
-        if (!in_array($status, ['delivered', 'completed'])) {
-            $this->session->set_flashdata('error', 'You can only rate and review a product after it has been delivered.');
-            redirect('account/order/' . $order_number);
-            return;
-        }
-
         // Find matching item
         $items = $order['items'] ?? [];
         if (empty($items)) {
@@ -299,12 +292,6 @@ class account extends MY_Controller {
         $order = $this->order_model->get_by_order_number($order_number);
         if (!$order || $order['user_id'] != $this->current_user['id']) {
             echo json_encode(['success' => false, 'message' => 'Order not found']);
-            return;
-        }
-
-        $status = strtolower($order['order_status']);
-        if (!in_array($status, ['delivered', 'completed'])) {
-            echo json_encode(['success' => false, 'message' => 'Ratings are only allowed after product delivery']);
             return;
         }
 

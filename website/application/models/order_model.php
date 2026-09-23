@@ -111,9 +111,7 @@ class order_model extends CI_Model {
     public function update_payment($order_number, $payment_status, $transaction_id = NULL, $payment_details = NULL)
     {
         $update = ['payment_status' => $payment_status];
-        if ($payment_status === 'paid') {
-            $update['order_status'] = 'processing';
-        }
+
         if ($transaction_id) {
             $update['payment_transaction_id'] = $transaction_id;
         }

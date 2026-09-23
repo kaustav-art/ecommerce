@@ -10,11 +10,14 @@ class order_model extends CI_Model {
 
     public function get_all($limit = NULL, $offset = NULL, $status = NULL)
     {
-        $this->db->select('*')->from('orders');
+        $this->db->select("orders.*, 
+            (SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id AND (order_items.item_status IN ('shipped', 'delivered') OR order_items.shipped_at IS NOT NULL)) AS shipped_items_count,
+            (SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id) AS total_items_count
+        ")->from('orders');
         if (!empty($status)) {
-            $this->db->where('order_status', $status);
+            $this->db->where('orders.order_status', $status);
         }
-        $this->db->order_by('id', 'DESC');
+        $this->db->order_by('orders.id', 'DESC');
         if ($limit !== NULL) {
             $this->db->limit($limit, $offset);
         }

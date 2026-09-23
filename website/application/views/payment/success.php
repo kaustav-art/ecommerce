@@ -402,7 +402,7 @@ $display_address = !empty($clean_lines) ? implode(', ', $clean_lines) : '';
 
         <!-- 5. App-like Action Buttons -->
         <div class="app-actions-card">
-            <a href="<?= site_url('order/track?order_number=' . $order['order_number'] . '&email=' . urlencode($order['customer_email'])); ?>" class="app-btn-primary">
+            <a href="<?= site_url('account/order/' . $order['order_number']); ?>" class="app-btn-primary">
                 <i class="fa-solid fa-truck-fast"></i> Track Order
             </a>
             <a href="<?= site_url('shop'); ?>" class="app-btn-secondary">
