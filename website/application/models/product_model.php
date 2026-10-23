@@ -11,6 +11,12 @@ class product_model extends CI_Model {
         $this->load->model('setting_model');
     }
 
+    private function tid()
+    {
+        $CI =& get_instance();
+        return isset($CI->tenant_id) ? (int) $CI->tenant_id : 1;
+    }
+
     public function refresh_tax_multiplier()
     {
         $this->tax_multiplier = null;
@@ -39,6 +45,15 @@ class product_model extends CI_Model {
         if (empty($prod) || !is_array($prod)) {
             return;
         }
+        if (!isset($prod['name']) && isset($prod['title'])) {
+            $prod['name'] = $prod['title'];
+        }
+        if (!isset($prod['primary_image']) && isset($prod['main_image'])) {
+            $prod['primary_image'] = $prod['main_image'];
+        }
+        if (!isset($prod['image']) && isset($prod['main_image'])) {
+            $prod['image'] = $prod['main_image'];
+        }
         if (isset($prod['base_price'])) {
             return;
         }
@@ -47,6 +62,9 @@ class product_model extends CI_Model {
             $prod['base_price'] = (float) $prod['price'];
             if ($mult > 1.0) {
                 $prod['price'] = round($prod['base_price'] * $mult, 2);
+            }
+            if (!isset($prod['regular_price'])) {
+                $prod['regular_price'] = (float) $prod['price'];
             }
         }
         if (isset($prod['sale_price']) && is_numeric($prod['sale_price']) && (float)$prod['sale_price'] > 0) {
@@ -82,10 +100,12 @@ class product_model extends CI_Model {
 
     public function get_products($filters = [], $limit = 12, $offset = 0)
     {
+        $tid = $this->tid();
         $this->db->select('p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name')
                  ->from('products p')
                  ->join('categories c', 'c.id = p.category_id', 'left')
                  ->join('brands b', 'b.id = p.brand_id', 'left')
+                 ->where('p.tenant_id', $tid)
                  ->where('p.status', 'published');
 
         if (!empty($filters['category_ids']) && is_array($filters['category_ids'])) {
@@ -179,9 +199,11 @@ class product_model extends CI_Model {
 
     public function count_products($filters = [])
     {
+        $tid = $this->tid();
         $this->db->from('products p')
                  ->join('categories c', 'c.id = p.category_id', 'left')
                  ->join('brands b', 'b.id = p.brand_id', 'left')
+                 ->where('p.tenant_id', $tid)
                  ->where('p.status', 'published');
 
         if (!empty($filters['category_ids']) && is_array($filters['category_ids'])) {
@@ -245,10 +267,12 @@ class product_model extends CI_Model {
 
     public function get_by_slug($slug)
     {
+        $tid = $this->tid();
         $product = $this->db->select('p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name, b.slug as brand_slug')
                             ->from('products p')
                             ->join('categories c', 'c.id = p.category_id', 'left')
                             ->join('brands b', 'b.id = p.brand_id', 'left')
+                            ->where('p.tenant_id', $tid)
                             ->where('p.slug', $slug)
                             ->where('p.status', 'published')
                             ->get()
@@ -268,10 +292,12 @@ class product_model extends CI_Model {
 
     public function get_by_id($id)
     {
+        $tid = $this->tid();
         $product = $this->db->select('p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name')
                             ->from('products p')
                             ->join('categories c', 'c.id = p.category_id', 'left')
                             ->join('brands b', 'b.id = p.brand_id', 'left')
+                            ->where('p.tenant_id', $tid)
                             ->where('p.id', (int) $id)
                             ->where('p.status', 'published')
                             ->get()
@@ -295,10 +321,12 @@ class product_model extends CI_Model {
 
     public function get_trending($limit = 8)
     {
+        $tid = $this->tid();
         $this->db->select('p.*, c.name as category_name, c.slug as category_slug, b.name as brand_name')
                  ->from('products p')
                  ->join('categories c', 'c.id = p.category_id', 'left')
                  ->join('brands b', 'b.id = p.brand_id', 'left')
+                 ->where('p.tenant_id', $tid)
                  ->where('p.status', 'published')
                  ->where('p.is_trending', 1)
                  ->order_by('p.id', 'DESC')
@@ -312,10 +340,12 @@ class product_model extends CI_Model {
 
     public function get_related($category_id, $exclude_id, $limit = 8)
     {
+        $tid = $this->tid();
         $products = $this->db->select('p.*, c.name as category_name, b.name as brand_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->join('brands b', 'b.id = p.brand_id', 'left')
+                        ->where('p.tenant_id', $tid)
                         ->where('p.category_id', (int) $category_id)
                         ->where('p.id !=', (int) $exclude_id)
                         ->where('p.status', 'published')
@@ -331,7 +361,8 @@ class product_model extends CI_Model {
 
     public function get_product_reviews($product_id)
     {
-        return $this->db->where('product_id', (int) $product_id)
+        return $this->db->where('tenant_id', $this->tid())
+                        ->where('product_id', (int) $product_id)
                         ->where('status', 'approved')
                         ->order_by('id', 'DESC')
                         ->get('reviews')
@@ -340,20 +371,23 @@ class product_model extends CI_Model {
 
     public function add_review($data)
     {
+        $tid = $this->tid();
+        $data['tenant_id'] = $tid;
         $this->db->insert('reviews', $data);
         $review_id = $this->db->insert_id();
 
         // Recalculate rating and reviews_count
         $stats = $this->db->select_avg('rating', 'avg_rating')
                           ->select_max('id', 'count')
+                          ->where('tenant_id', $tid)
                           ->where('product_id', $data['product_id'])
                           ->where('status', 'approved')
                           ->get('reviews')
                           ->row_array();
 
-        $count = $this->db->where('product_id', $data['product_id'])->where('status', 'approved')->count_all_results('reviews');
+        $count = $this->db->where('tenant_id', $tid)->where('product_id', $data['product_id'])->where('status', 'approved')->count_all_results('reviews');
 
-        $this->db->where('id', $data['product_id'])->update('products', [
+        $this->db->where('tenant_id', $tid)->where('id', $data['product_id'])->update('products', [
             'rating'        => $stats['avg_rating'] ?: 5.0,
             'reviews_count' => $count
         ]);
@@ -363,7 +397,8 @@ class product_model extends CI_Model {
 
     public function get_variants($product_id)
     {
-        $variants = $this->db->where('product_id', (int) $product_id)
+        $variants = $this->db->where('tenant_id', $this->tid())
+                             ->where('product_id', (int) $product_id)
                              ->order_by('id', 'ASC')
                              ->get('product_variants')
                              ->result_array();
@@ -439,7 +474,7 @@ class product_model extends CI_Model {
 
     public function get_variant_by_id($variant_id)
     {
-        $v = $this->db->where('id', (int) $variant_id)->get('product_variants')->row_array();
+        $v = $this->db->where('tenant_id', $this->tid())->where('id', (int) $variant_id)->get('product_variants')->row_array();
         if ($v) {
             $this->apply_variant_tax_pricing($v);
             $v['values'] = $this->db->select('pvv.*, a.name as attribute_name, a.slug as attribute_slug, av.value as attribute_value, av.color_code')
@@ -469,6 +504,7 @@ class product_model extends CI_Model {
                              ->from('products p')
                              ->join('categories c', 'c.id = p.category_id', 'left')
                              ->join('brands b', 'b.id = p.brand_id', 'left')
+                             ->where('p.tenant_id', $this->tid())
                              ->where_in('p.id', $clean_ids)
                              ->where('p.status', 'published')
                              ->get()
@@ -488,6 +524,7 @@ class product_model extends CI_Model {
         $items = $this->db->select('p.id, p.title, p.slug, p.sku, p.price, p.sale_price, p.main_image, c.name as category_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
+                        ->where('p.tenant_id', $this->tid())
                         ->where('p.status', 'published')
                         ->group_start()
                             ->like('p.title', $query)
@@ -508,6 +545,7 @@ class product_model extends CI_Model {
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->join('brands b', 'b.id = p.brand_id', 'left')
+                        ->where('p.tenant_id', $this->tid())
                         ->where('p.category_id', (int) $category_id)
                         ->where('p.id !=', (int) $product_id)
                         ->where('p.status', 'published')

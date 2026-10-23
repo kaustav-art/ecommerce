@@ -3,17 +3,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * MY_Controller
- * Base Controller for Admin Panel with RBAC security & layout rendering
+ * Base Controller for Multi-Tenant Admin Panel with RBAC security, Subscription Enforcement & layout rendering
  */
 class MY_Controller extends CI_Controller {
 
     public $current_admin = NULL;
+    public $tenant_id     = 1;
+    public $tenant        = [];
+    public $tenant_plan   = [];
 
     public function __construct()
     {
         parent::__construct();
         $this->load->helper(['url', 'html', 'form', 'text', 'security']);
         $this->load->library(['session', 'form_validation']);
+
+        // Resolve tenant_id from admin session (default 1)
+        $this->tenant_id = (int) ($this->session->userdata('admin_tenant_id') ?: 1);
 
         // Exclude 'auth' controller from forced login check
         $controller = strtolower($this->router->class);
@@ -23,6 +29,7 @@ class MY_Controller extends CI_Controller {
             }
             $this->current_admin = [
                 'id'          => $this->session->userdata('admin_id'),
+                'tenant_id'   => $this->tenant_id,
                 'name'        => $this->session->userdata('admin_name'),
                 'email'       => $this->session->userdata('admin_email'),
                 'role_id'     => $this->session->userdata('admin_role_id'),
@@ -30,6 +37,40 @@ class MY_Controller extends CI_Controller {
                 'role_slug'   => $this->session->userdata('admin_role_slug'),
                 'permissions' => (array) $this->session->userdata('admin_permissions')
             ];
+
+            // Load current tenant and plan metadata
+            $this->tenant = $this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array() ?: [
+                'id'                  => 1,
+                'business_name'       => 'Codeulas Fashion Store',
+                'slug'                => 'fashion-store',
+                'template'            => 'fashion',
+                'status'              => 'active',
+                'subscription_status' => 'active',
+                'plan_id'             => 3
+            ];
+
+            if (!empty($this->tenant['plan_id'])) {
+                $this->tenant_plan = $this->db->where('id', (int) $this->tenant['plan_id'])->get('saas_plans')->row_array() ?: [];
+            }
+
+            // Enforce Tenant Suspension & Subscription Expiry for non-default tenants
+            if ($this->tenant_id > 1) {
+                $t_status   = strtolower($this->tenant['status'] ?? 'active');
+                $sub_status = strtolower($this->tenant['subscription_status'] ?? 'active');
+                $expires_at = $this->tenant['subscription_expires_at'] ?? NULL;
+                $is_expired = (!empty($expires_at) && strtotime($expires_at) < time());
+
+                if ($t_status === 'suspended' || $sub_status === 'suspended') {
+                    $this->session->unset_userdata('admin_logged_in');
+                    $this->session->set_flashdata('error', 'Your tenant store has been suspended by the platform administrator.');
+                    redirect('auth/login');
+                }
+
+                if (($is_expired || in_array($sub_status, ['expired', 'cancelled', 'pending'], true)) && !in_array($controller, ['subscription', 'profile'], true)) {
+                    $this->session->set_flashdata('error', 'Your SaaS subscription has expired or is inactive. Please renew your plan below to continue managing your store.');
+                    redirect('subscription');
+                }
+            }
         }
     }
 
@@ -43,7 +84,8 @@ class MY_Controller extends CI_Controller {
         if (!$this->is_logged_in()) {
             return false;
         }
-        if ($this->session->userdata('admin_role_slug') === 'super-admin') {
+        $role_slug = (string) $this->session->userdata('admin_role_slug');
+        if (in_array($role_slug, ['super-admin', 'store-owner', 'tenant-owner', 'admin'], true) || (int) $this->session->userdata('admin_role_id') === 1) {
             return true;
         }
         $perms = (array) $this->session->userdata('admin_permissions');
@@ -60,10 +102,13 @@ class MY_Controller extends CI_Controller {
 
     public function render($view, $data = [], $return = FALSE)
     {
-        $data['title']          = isset($data['title']) ? $data['title'] : 'Admin Panel - Modave eCommerce';
+        $data['title']          = isset($data['title']) ? $data['title'] : 'Admin Panel - ' . ($this->tenant['business_name'] ?? 'eCommerce');
         $data['active_menu']    = isset($data['active_menu']) ? $data['active_menu'] : 'dashboard';
         $data['active_submenu'] = isset($data['active_submenu']) ? $data['active_submenu'] : '';
         $data['current_admin']  = $this->current_admin;
+        $data['tenant_id']      = $this->tenant_id;
+        $data['tenant']         = $this->tenant;
+        $data['tenant_plan']    = $this->tenant_plan;
 
         if (!isset($data['store_settings'])) {
             $this->load->model('setting_model');

@@ -53,6 +53,24 @@
  *
  * NOTE: If you change these, also change the error_reporting() code below
  */
+	// Multi-Tenant Storefront Slug Pre-Router (/website/s/<store_slug>/...)
+	if (!empty($_SERVER['REQUEST_URI'])) {
+		if (preg_match('#(/website)/s/([a-zA-Z0-9\-_\.]+)(/.*|\?.*|$)#', $_SERVER['REQUEST_URI'], $m)) {
+			define('SAAS_ROUTE_SLUG', strtolower($m[2]));
+			$tail = $m[3];
+			if ($tail === '' || $tail === '/' || strpos($tail, '?') === 0) {
+				$tail = '/home' . ($tail === '/' ? '' : $tail);
+			}
+			$_SERVER['REQUEST_URI'] = substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '/website')) . '/website' . $tail;
+			if (!empty($_SERVER['PATH_INFO'])) {
+				$_SERVER['PATH_INFO'] = preg_replace('#^/s/[a-zA-Z0-9\-_\.]+#', '', $_SERVER['PATH_INFO']);
+				if ($_SERVER['PATH_INFO'] === '' || $_SERVER['PATH_INFO'] === '/') {
+					$_SERVER['PATH_INFO'] = '/home';
+				}
+			}
+		}
+	}
+
 	define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
 
 /*

@@ -8,6 +8,12 @@ class variant_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_by_product($product_id)
     {
         $variants = $this->db->where('product_id', (int) $product_id)
@@ -44,6 +50,7 @@ class variant_model extends CI_Model {
 
     public function create($data, $attr_val_ids = [])
     {
+        $data['tenant_id'] = $this->tid();
         $this->db->insert('product_variants', $data);
         $variant_id = $this->db->insert_id();
 

@@ -8,11 +8,18 @@ class review_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all($filters = [], $limit = 20, $offset = 0)
     {
         $this->db->select('r.*, p.title as product_title, p.slug as product_slug, p.main_image as product_image')
                  ->from('reviews r')
-                 ->join('products p', 'p.id = r.product_id', 'left');
+                 ->join('products p', 'p.id = r.product_id', 'left')
+                 ->where('r.tenant_id', $this->tid());
 
         if (!empty($filters['status'])) {
             $this->db->where('r.status', $filters['status']);
@@ -37,7 +44,8 @@ class review_model extends CI_Model {
     public function count_all($filters = [])
     {
         $this->db->from('reviews r')
-                 ->join('products p', 'p.id = r.product_id', 'left');
+                 ->join('products p', 'p.id = r.product_id', 'left')
+                 ->where('r.tenant_id', $this->tid());
         if (!empty($filters['status'])) {
             $this->db->where('r.status', $filters['status']);
         }
@@ -46,11 +54,11 @@ class review_model extends CI_Model {
 
     public function update_status($id, $status)
     {
-        return $this->db->where('id', (int) $id)->update('reviews', ['status' => $status]);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('reviews', ['status' => $status]);
     }
 
     public function delete($id)
     {
-        return $this->db->where('id', (int) $id)->delete('reviews');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('reviews');
     }
 }

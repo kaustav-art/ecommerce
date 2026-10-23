@@ -40,21 +40,37 @@ class products extends MY_Controller {
     {
         $this->require_permission('products.manage');
 
+        // Enforce SaaS Plan Product Limit
+        $prod_limit = isset($this->tenant_plan['product_limit']) && $this->tenant_plan['product_limit'] !== null ? (int) $this->tenant_plan['product_limit'] : 0;
+        $current_prod_count = $this->product_model->count_all();
+        if ($prod_limit > 0 && $current_prod_count >= $prod_limit) {
+            $this->session->set_flashdata('error', 'Your current subscription plan (' . ($this->tenant_plan['name'] ?? 'Current Plan') . ') allows up to ' . $prod_limit . ' products. Please upgrade your plan to add more products.');
+            redirect('subscription');
+            return;
+        }
+
         if ($this->input->method() === 'post') {
             $this->form_validation->set_rules('title', 'Product Title', 'required|trim');
-            $this->form_validation->set_rules('sku', 'SKU', 'required|trim|is_unique[products.sku]');
+            $this->form_validation->set_rules('sku', 'SKU', 'required|trim');
             $this->form_validation->set_rules('category_id', 'Category', 'required|numeric');
             $this->form_validation->set_rules('price', 'Base Price', 'required|numeric');
             $this->form_validation->set_rules('stock_quantity', 'Stock Quantity', 'required|numeric');
 
             if ($this->form_validation->run() === TRUE) {
+                $sku_input = strtoupper(trim($this->input->post('sku', TRUE)));
+                if ($this->db->where('tenant_id', $this->tenant_id)->where('sku', $sku_input)->count_all_results('products') > 0) {
+                    $this->session->set_flashdata('error', 'A product with SKU "' . html_escape($sku_input) . '" already exists in your store.');
+                    redirect('products/add');
+                    return;
+                }
+
                 $title = $this->input->post('title', TRUE);
                 $slug  = url_title($title, 'dash', TRUE);
 
                 // Handle unique slug
                 $orig_slug = $slug;
                 $i = 1;
-                while ($this->db->where('slug', $slug)->count_all_results('products') > 0) {
+                while ($this->db->where('tenant_id', $this->tenant_id)->where('slug', $slug)->count_all_results('products') > 0) {
                     $slug = $orig_slug . '-' . $i++;
                 }
 

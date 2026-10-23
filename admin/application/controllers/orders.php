@@ -92,6 +92,7 @@ class orders extends MY_Controller {
 
                             if ($this->db->table_exists('stock_adjustments')) {
                                 $this->db->insert('stock_adjustments', [
+                                    'tenant_id'  => $this->tenant_id,
                                     'product_id' => $item['product_id'],
                                     'variant_id' => !empty($item['variant_id']) ? $item['variant_id'] : NULL,
                                     'type'       => 'in',
@@ -401,6 +402,7 @@ class orders extends MY_Controller {
 
                         if ($this->db->table_exists('stock_adjustments')) {
                             $this->db->insert('stock_adjustments', [
+                                'tenant_id'  => $this->tenant_id,
                                 'product_id' => $item['product_id'],
                                 'variant_id' => !empty($item['variant_id']) ? $item['variant_id'] : NULL,
                                 'type'       => 'in',

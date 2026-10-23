@@ -44,11 +44,14 @@ class shop extends MY_Controller {
             }
         }
 
+        $tid = (int) ($this->tenant_id ?? 1);
+
         // If no explicit category was specified, resolve brand's root category so filters match the brand's industry/department
         if (empty($selected_category) && !empty($selected_brands)) {
             $brand_cats = $this->db->select('DISTINCT p.category_id', FALSE)
                                    ->from('products p')
-                                   ->join('brands b', 'b.id = p.brand_id')
+                                   ->join('brands b', 'b.id = p.brand_id AND b.tenant_id = ' . $tid)
+                                   ->where('p.tenant_id', $tid)
                                    ->where_in('b.slug', $selected_brands)
                                    ->where('p.status', 'published')
                                    ->get()->result_array();
@@ -144,6 +147,7 @@ class shop extends MY_Controller {
         // Price range for current category / catalog
         $price_query = $this->db->select('MIN(COALESCE(p.sale_price, p.price)) as min_p, MAX(COALESCE(p.sale_price, p.price)) as max_p')
                                 ->from('products p')
+                                ->where('p.tenant_id', $tid)
                                 ->where('p.status', 'published');
         if (!empty($category_ids)) {
             $price_query->where_in('p.category_id', $category_ids);
@@ -165,7 +169,7 @@ class shop extends MY_Controller {
                                 ->join('attribute_values av', 'av.attribute_id = a.id')
                                 ->join('product_variant_values pvv', 'pvv.attribute_value_id = av.id')
                                 ->join('product_variants pv', 'pv.id = pvv.variant_id')
-                                ->join('products p', 'p.id = pv.product_id AND p.status = "published"');
+                                ->join('products p', 'p.id = pv.product_id AND p.status = "published" AND p.tenant_id = ' . $tid);
 
         if (!empty($category_ids)) {
             $attr_query->where_in('p.category_id', $category_ids);

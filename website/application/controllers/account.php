@@ -112,12 +112,15 @@ class account extends MY_Controller {
             show_404();
         }
 
+        $tid = (int) ($this->tenant_id ?? 1);
+
         // Fetch existing reviews for products in this order by current user
         $user_reviews = [];
         if (!empty($order['items'])) {
             $pids = array_filter(array_column($order['items'], 'product_id'));
             if (!empty($pids)) {
-                $revs = $this->db->where('user_id', (int)$this->current_user['id'])
+                $revs = $this->db->where('tenant_id', $tid)
+                                 ->where('user_id', (int)$this->current_user['id'])
                                  ->where_in('product_id', $pids)
                                  ->get('reviews')
                                  ->result_array();
@@ -141,6 +144,7 @@ class account extends MY_Controller {
 
     public function rate_review($order_number = '', $product_id = null)
     {
+        $tid = (int) ($this->tenant_id ?? 1);
         $order = $this->order_model->get_by_order_number($order_number);
         if (!$order || $order['user_id'] != $this->current_user['id']) {
             show_404();
@@ -169,7 +173,8 @@ class account extends MY_Controller {
         $product = $this->product_model->get_by_id($selected_item['product_id']);
 
         // Check if existing review
-        $existing_review = $this->db->where('product_id', (int)$selected_item['product_id'])
+        $existing_review = $this->db->where('tenant_id', $tid)
+                                    ->where('product_id', (int)$selected_item['product_id'])
                                     ->where('user_id', (int)$this->current_user['id'])
                                     ->get('reviews')
                                     ->row_array();
@@ -214,6 +219,7 @@ class account extends MY_Controller {
                 }
 
                 $review_data = [
+                    'tenant_id'      => $tid,
                     'product_id'     => $selected_item['product_id'],
                     'user_id'        => $this->current_user['id'],
                     'order_number'   => $order_number,
@@ -222,7 +228,7 @@ class account extends MY_Controller {
                     'rating'         => $rating,
                     'title'          => $title,
                     'review'         => $review_text,
-                    'images'         => !empty($uploaded_images) ? json_encode($uploaded_images) : NULL,
+                    'images'         => !empty($uploaded_images) ? json_decode(json_encode($uploaded_images)) ? json_encode($uploaded_images) : NULL : NULL,
                     'status'         => 'approved',
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
@@ -235,13 +241,14 @@ class account extends MY_Controller {
 
                 // Recalculate rating stats
                 $stats = $this->db->select_avg('rating', 'avg_rating')
+                                  ->where('tenant_id', $tid)
                                   ->where('product_id', $selected_item['product_id'])
                                   ->where('status', 'approved')
                                   ->get('reviews')
                                   ->row_array();
-                $count = $this->db->where('product_id', $selected_item['product_id'])->where('status', 'approved')->count_all_results('reviews');
+                $count = $this->db->where('tenant_id', $tid)->where('product_id', $selected_item['product_id'])->where('status', 'approved')->count_all_results('reviews');
 
-                $this->db->where('id', $selected_item['product_id'])->update('products', [
+                $this->db->where('tenant_id', $tid)->where('id', $selected_item['product_id'])->update('products', [
                     'rating'        => $stats['avg_rating'] ?: 5.0,
                     'reviews_count' => $count
                 ]);
@@ -275,6 +282,7 @@ class account extends MY_Controller {
 
     public function quick_rate()
     {
+        $tid = (int) ($this->tenant_id ?? 1);
         if ($this->input->method() !== 'post') {
             echo json_encode(['success' => false, 'message' => 'Invalid request']);
             return;
@@ -296,7 +304,8 @@ class account extends MY_Controller {
         }
 
         // Check if existing review
-        $existing = $this->db->where('product_id', $product_id)
+        $existing = $this->db->where('tenant_id', $tid)
+                             ->where('product_id', $product_id)
                              ->where('user_id', $this->current_user['id'])
                              ->get('reviews')
                              ->row_array();
@@ -307,6 +316,7 @@ class account extends MY_Controller {
         }
 
         $data = [
+            'tenant_id'      => $tid,
             'product_id'     => $product_id,
             'user_id'        => $this->current_user['id'],
             'order_number'   => $order_number,
@@ -326,12 +336,13 @@ class account extends MY_Controller {
 
         // Recalculate stats
         $stats = $this->db->select_avg('rating', 'avg_rating')
+                          ->where('tenant_id', $tid)
                           ->where('product_id', $product_id)
                           ->where('status', 'approved')
                           ->get('reviews')
                           ->row_array();
-        $count = $this->db->where('product_id', $product_id)->where('status', 'approved')->count_all_results('reviews');
-        $this->db->where('id', $product_id)->update('products', [
+        $count = $this->db->where('tenant_id', $tid)->where('product_id', $product_id)->where('status', 'approved')->count_all_results('reviews');
+        $this->db->where('tenant_id', $tid)->where('id', $product_id)->update('products', [
             'rating'        => $stats['avg_rating'] ?: 5.0,
             'reviews_count' => $count
         ]);

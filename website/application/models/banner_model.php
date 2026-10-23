@@ -10,7 +10,10 @@ class banner_model extends CI_Model {
 
     public function get_active_banners()
     {
-        return $this->db->where('status', 'active')
+        $CI =& get_instance();
+        $tid = isset($CI->tenant_id) ? (int) $CI->tenant_id : 1;
+        return $this->db->where('tenant_id', $tid)
+                        ->where('status', 'active')
                         ->order_by('sort_order', 'ASC')
                         ->order_by('id', 'DESC')
                         ->get('banners')

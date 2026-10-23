@@ -8,11 +8,19 @@ class order_model extends CI_Model {
         parent::__construct();
     }
 
+    private function tid()
+    {
+        $CI =& get_instance();
+        return isset($CI->tenant_id) ? (int) $CI->tenant_id : 1;
+    }
+
     public function create_order($order_data, $items)
     {
+        $tid = $this->tid();
         // Generate unique human-readable order number
         $order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
         $order_data['order_number'] = $order_number;
+        $order_data['tenant_id']    = $tid;
         if (empty($order_data['user_id'])) {
             unset($order_data['user_id']);
         }
@@ -25,6 +33,7 @@ class order_model extends CI_Model {
             foreach ($items as $item) {
                 $variant_id = !empty($item['variant_id']) ? (int) $item['variant_id'] : NULL;
                 $batch[] = [
+                    'tenant_id'     => $tid,
                     'order_id'      => $order_id,
                     'product_id'    => $item['id'],
                     'variant_id'    => $variant_id,
@@ -39,19 +48,21 @@ class order_model extends CI_Model {
 
                 // Deduct main product stock quantity
                 $this->db->set('stock_quantity', 'GREATEST(0, stock_quantity - ' . (int) $item['quantity'] . ')', FALSE)
+                         ->where('tenant_id', $tid)
                          ->where('id', $item['id'])
                          ->update('products');
 
                 // If variable product, also deduct variant stock
                 if ($variant_id) {
                     $this->db->set('stock_quantity', 'GREATEST(0, stock_quantity - ' . (int) $item['quantity'] . ')', FALSE)
+                             ->where('tenant_id', $tid)
                              ->where('id', $variant_id)
                              ->update('product_variants');
 
                     // Check if variant is now out of stock
-                    $v = $this->db->select('stock_quantity')->where('id', $variant_id)->get('product_variants')->row_array();
+                    $v = $this->db->select('stock_quantity')->where('tenant_id', $tid)->where('id', $variant_id)->get('product_variants')->row_array();
                     if ($v && $v['stock_quantity'] <= 0) {
-                        $this->db->where('id', $variant_id)->update('product_variants', ['stock_status' => 'out_of_stock']);
+                        $this->db->where('tenant_id', $tid)->where('id', $variant_id)->update('product_variants', ['stock_status' => 'out_of_stock']);
                     }
                 }
 
@@ -69,6 +80,7 @@ class order_model extends CI_Model {
                     ]);
                 } elseif ($this->db->table_exists('stock_adjustments')) {
                     $this->db->insert('stock_adjustments', [
+                        'tenant_id'  => $tid,
                         'product_id' => $item['id'],
                         'variant_id' => $variant_id,
                         'type'       => 'out',
@@ -85,7 +97,8 @@ class order_model extends CI_Model {
 
     public function get_by_order_number($order_number)
     {
-        $order = $this->db->where('order_number', $order_number)->get('orders')->row_array();
+        $tid = $this->tid();
+        $order = $this->db->where('tenant_id', $tid)->where('order_number', $order_number)->get('orders')->row_array();
         if ($order) {
             $order['items'] = $this->db->where('order_id', $order['id'])->get('order_items')->result_array();
             $order['returns'] = $this->db->table_exists('order_returns') 
@@ -97,7 +110,8 @@ class order_model extends CI_Model {
 
     public function get_by_user_id($user_id)
     {
-        $orders = $this->db->where('user_id', (int) $user_id)->order_by('id', 'DESC')->get('orders')->result_array();
+        $tid = $this->tid();
+        $orders = $this->db->where('tenant_id', $tid)->where('user_id', (int) $user_id)->order_by('id', 'DESC')->get('orders')->result_array();
         foreach ($orders as &$ord) {
             $ord['items_count'] = $this->db->where('order_id', $ord['id'])->count_all_results('order_items');
             $ord['items'] = $this->db->where('order_id', $ord['id'])->get('order_items')->result_array();
@@ -118,12 +132,13 @@ class order_model extends CI_Model {
         if ($payment_details) {
             $update['payment_details'] = is_array($payment_details) ? json_encode($payment_details) : $payment_details;
         }
-        return $this->db->where('order_number', $order_number)->update('orders', $update);
+        return $this->db->where('tenant_id', $this->tid())->where('order_number', $order_number)->update('orders', $update);
     }
 
     public function cancel_order($order_number, $user_id = NULL)
     {
-        $this->db->where('order_number', $order_number);
+        $tid = $this->tid();
+        $this->db->where('tenant_id', $tid)->where('order_number', $order_number);
         if ($user_id !== NULL) {
             $this->db->where('user_id', (int) $user_id);
         }
@@ -144,18 +159,21 @@ class order_model extends CI_Model {
         $items = $this->db->where('order_id', $order['id'])->get('order_items')->result_array();
         foreach ($items as $item) {
             $this->db->set('stock_quantity', 'stock_quantity + ' . (int) $item['quantity'], FALSE)
+                     ->where('tenant_id', $tid)
                      ->where('id', $item['product_id'])
                      ->update('products');
 
             if (!empty($item['variant_id'])) {
                 $this->db->set('stock_quantity', 'stock_quantity + ' . (int) $item['quantity'], FALSE)
                          ->set('stock_status', 'in_stock')
+                         ->where('tenant_id', $tid)
                          ->where('id', $item['variant_id'])
                          ->update('product_variants');
             }
 
             // Adjustment log
             $this->db->insert('stock_adjustments', [
+                'tenant_id'  => $tid,
                 'product_id' => $item['product_id'],
                 'variant_id' => $item['variant_id'] ?: NULL,
                 'type'       => 'in',
@@ -169,14 +187,17 @@ class order_model extends CI_Model {
 
     public function create_return($data)
     {
+        $data['tenant_id'] = $this->tid();
         return $this->db->insert('order_returns', $data);
     }
 
     public function get_returns_by_user($user_id)
     {
+        $tid = $this->tid();
         return $this->db->select('r.*, o.order_number, o.created_at as order_date, o.total_amount')
                         ->from('order_returns r')
-                        ->join('orders o', 'o.id = r.order_id')
+                        ->join('orders o', 'o.id = r.order_id AND o.tenant_id = ' . $tid)
+                        ->where('r.tenant_id', $tid)
                         ->where('r.user_id', (int) $user_id)
                         ->order_by('r.id', 'DESC')
                         ->get()

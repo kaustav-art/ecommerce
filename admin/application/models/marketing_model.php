@@ -8,34 +8,41 @@ class marketing_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     // Coupons
     public function get_coupons()
     {
-        return $this->db->order_by('id', 'DESC')->get('coupons')->result_array();
+        return $this->db->where('tenant_id', $this->tid())->order_by('id', 'DESC')->get('coupons')->result_array();
     }
 
     public function get_coupon($id)
     {
-        return $this->db->where('id', (int) $id)->get('coupons')->row_array();
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->get('coupons')->row_array();
     }
 
     public function save_coupon($data, $id = null)
     {
         if (!empty($id)) {
-            return $this->db->where('id', (int) $id)->update('coupons', $data);
+            return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('coupons', $data);
         }
+        $data['tenant_id'] = $this->tid();
         return $this->db->insert('coupons', $data);
     }
 
     public function delete_coupon($id)
     {
-        return $this->db->where('id', (int) $id)->delete('coupons');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('coupons');
     }
 
     // Flash Sales
     public function get_flash_sales()
     {
-        $sales = $this->db->order_by('id', 'DESC')->get('flash_sales')->result_array();
+        $sales = $this->db->where('tenant_id', $this->tid())->order_by('id', 'DESC')->get('flash_sales')->result_array();
         foreach ($sales as &$s) {
             $s['products_count'] = $this->db->where('flash_sale_id', $s['id'])->count_all_results('flash_sale_products');
         }
@@ -44,7 +51,7 @@ class marketing_model extends CI_Model {
 
     public function get_flash_sale($id)
     {
-        $sale = $this->db->where('id', (int) $id)->get('flash_sales')->row_array();
+        $sale = $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->get('flash_sales')->row_array();
         if ($sale) {
             $sale['products'] = $this->db->select('fsp.*, p.title, p.price, p.main_image, p.sku')
                                          ->from('flash_sale_products fsp')
@@ -59,9 +66,10 @@ class marketing_model extends CI_Model {
     public function save_flash_sale($data, $id = null, $product_ids = [], $sale_prices = [])
     {
         if (!empty($id)) {
-            $this->db->where('id', (int) $id)->update('flash_sales', $data);
+            $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('flash_sales', $data);
             $fs_id = $id;
         } else {
+            $data['tenant_id'] = $this->tid();
             $this->db->insert('flash_sales', $data);
             $fs_id = $this->db->insert_id();
         }
@@ -84,17 +92,17 @@ class marketing_model extends CI_Model {
 
     public function delete_flash_sale($id)
     {
-        return $this->db->where('id', (int) $id)->delete('flash_sales');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('flash_sales');
     }
 
     // Newsletter Subscribers
     public function get_subscribers()
     {
-        return $this->db->order_by('id', 'DESC')->get('newsletter_subscribers')->result_array();
+        return $this->db->where('tenant_id', $this->tid())->order_by('id', 'DESC')->get('newsletter_subscribers')->result_array();
     }
 
     public function delete_subscriber($id)
     {
-        return $this->db->where('id', (int) $id)->delete('newsletter_subscribers');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('newsletter_subscribers');
     }
 }

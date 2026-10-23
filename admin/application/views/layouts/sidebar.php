@@ -403,12 +403,29 @@
             <?php endif; ?>
             <?php endif; ?>
 
-            <!-- Website Shortcut -->
+            <!-- SaaS Plan & Storefront -->
             <li class="menu-header mt-3">
-              <span class="menu-header-text">Storefront</span>
+              <span class="menu-header-text">SaaS Plan & Theme</span>
             </li>
+            <li class="menu-item <?= ($active_menu === 'saas_subscription' && $active_submenu === 'subscription') ? 'active' : ''; ?>">
+              <a href="<?= site_url('subscription'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-vip-crown-2-line"></i>
+                <div data-i18n="Subscription & Billing">Subscription & Billing</div>
+              </a>
+            </li>
+            <li class="menu-item <?= ($active_menu === 'saas_subscription' && $active_submenu === 'template_manager') ? 'active' : ''; ?>">
+              <a href="<?= site_url('template_manager'); ?>" class="menu-link">
+                <i class="menu-icon icon-base ri ri-layout-masonry-line"></i>
+                <div data-i18n="Storefront Templates">Storefront Templates</div>
+              </a>
+            </li>
+            <?php
+              $live_storefront_url = (!empty($tenant) && (int)($tenant['id'] ?? 1) > 1 && !empty($tenant['slug']))
+                ? base_url('../website/s/' . $tenant['slug'])
+                : base_url('../website/home');
+            ?>
             <li class="menu-item">
-              <a href="<?= base_url('../website'); ?>" target="_blank" class="menu-link">
+              <a href="<?= $live_storefront_url; ?>" target="_blank" class="menu-link">
                 <i class="menu-icon icon-base ri ri-external-link-line"></i>
                 <div data-i18n="View Website">View Live Storefront</div>
               </a>

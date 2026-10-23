@@ -41,7 +41,7 @@ if (php_sapi_name() === 'cli' || empty($_SERVER['HTTP_HOST'])) {
 | variable so that it is blank.
 |
 */
-$config['index_page'] = '';
+$config['index_page'] = defined('SAAS_ROUTE_SLUG') ? ('s/' . SAAS_ROUTE_SLUG) : '';
 
 /*
 |--------------------------------------------------------------------------

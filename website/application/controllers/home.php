@@ -18,14 +18,38 @@ class home extends MY_Controller {
         $products       = $this->product_model->get_products([], 16, 0);
         $total_products = $this->product_model->count_products([]);
         $brands         = $this->brand_model->get_all();
+        $categories     = $this->category_model->get_root_categories();
+
+        $deal_products = $this->product_model->get_products(['on_sale' => 1], 8, 0);
+        if (empty($deal_products)) {
+            $deal_products = array_slice($products, 0, 8);
+        }
+
+        $new_products = $this->product_model->get_products(['is_new' => 1], 8, 0);
+        if (empty($new_products)) {
+            $new_products = array_slice($products, 0, 8);
+        }
+
+        $featured_list = $this->product_model->get_featured(4);
+        $featured_product = !empty($featured_list[0]) ? $featured_list[0] : (!empty($products[0]) ? $products[0] : null);
+        if ($featured_product && !empty($featured_product['slug'])) {
+            $full_fp = $this->product_model->get_by_slug($featured_product['slug']);
+            if ($full_fp) {
+                $featured_product = $full_fp;
+            }
+        }
 
         $data = [
-            'title'          => $this->site_name . ' - Multipurpose eCommerce',
-            'active_page'    => 'home',
-            'banners'        => $banners,
-            'products'       => $products,
-            'total_products' => $total_products,
-            'brands'         => $brands
+            'title'            => $this->site_name . ' - Multipurpose eCommerce',
+            'active_page'      => 'home',
+            'banners'          => $banners,
+            'products'         => $products,
+            'deal_products'    => $deal_products,
+            'new_products'     => $new_products,
+            'featured_product' => $featured_product,
+            'categories'       => $categories,
+            'total_products'   => $total_products,
+            'brands'           => $brands
         ];
 
         $this->render('home/index', $data);

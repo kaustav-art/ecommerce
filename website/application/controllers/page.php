@@ -71,11 +71,13 @@ class page extends MY_Controller {
     {
         $email = trim($this->input->post('email', TRUE));
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $existing = $this->db->where('email', $email)->get('newsletter_subscribers')->row_array();
+            $tid = (int) ($this->tenant_id ?? 1);
+            $existing = $this->db->where('tenant_id', $tid)->where('email', $email)->get('newsletter_subscribers')->row_array();
             if (!$existing) {
                 $this->db->insert('newsletter_subscribers', [
-                    'email'  => $email,
-                    'status' => 'subscribed'
+                    'tenant_id' => $tid,
+                    'email'     => $email,
+                    'status'    => 'subscribed'
                 ]);
             }
             if ($this->input->is_ajax_request()) {

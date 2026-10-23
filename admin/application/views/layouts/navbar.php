@@ -25,6 +25,22 @@
               <!-- /Search -->
 
               <ul class="navbar-nav flex-row align-items-center ms-auto">
+                <?php if (!empty($tenant)): ?>
+                  <?php
+                    $nav_store_url = ((int)($tenant['id'] ?? 1) > 1 && !empty($tenant['slug']))
+                      ? base_url('../website/s/' . $tenant['slug'])
+                      : base_url('../website/home');
+                  ?>
+                  <li class="nav-item me-3 d-none d-md-flex align-items-center gap-2">
+                    <span class="badge bg-label-primary px-3 py-2">
+                      <i class="ri ri-store-2-line me-1"></i><?= html_escape($tenant['business_name'] ?? 'Fashion Store'); ?>
+                      <span class="opacity-75 ms-1">(<?= html_escape(ucfirst($tenant['template'] ?? 'fashion')); ?>)</span>
+                    </span>
+                    <a href="<?= $nav_store_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                      <i class="ri ri-external-link-line me-1"></i>Live Store
+                    </a>
+                  </li>
+                <?php endif; ?>
                 <!-- User Profile Dropdown -->
                 <li class="nav-item navbar-dropdown dropdown-user dropdown">
                   <a

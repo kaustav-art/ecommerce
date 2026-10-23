@@ -34,6 +34,7 @@ class auth extends MY_Controller {
 
                     $this->session->set_userdata([
                         'user_id'         => $user['id'],
+                        'user_tenant_id'  => (int) $this->tenant_id,
                         'user_first_name' => $user['first_name'],
                         'user_last_name'  => $user['last_name'],
                         'user_email'      => $user['email'],
@@ -79,7 +80,7 @@ class auth extends MY_Controller {
         if ($this->input->method() === 'post') {
             $this->form_validation->set_rules('first_name', 'First Name', 'required|trim');
             $this->form_validation->set_rules('last_name', 'Last Name', 'required|trim');
-            $this->form_validation->set_rules('email', 'Email Address', 'required|trim|valid_email|is_unique[users.email]');
+            $this->form_validation->set_rules('email', 'Email Address', 'required|trim|valid_email');
             $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
 
             if ($this->form_validation->run() === TRUE) {
@@ -88,7 +89,13 @@ class auth extends MY_Controller {
                 $email      = $this->input->post('email', TRUE);
                 $password   = $this->input->post('password');
 
+                if ($this->user_model->get_by_email($email)) {
+                    $this->session->set_flashdata('error', 'An account with this email address already exists in this store.');
+                    redirect('register');
+                }
+
                 $user_id = $this->user_model->register([
+                    'tenant_id'  => (int) $this->tenant_id,
                     'first_name' => $first_name,
                     'last_name'  => $last_name,
                     'email'      => $email,
@@ -99,6 +106,7 @@ class auth extends MY_Controller {
 
                 $this->session->set_userdata([
                     'user_id'         => $user_id,
+                    'user_tenant_id'  => (int) $this->tenant_id,
                     'user_first_name' => $first_name,
                     'user_last_name'  => $last_name,
                     'user_email'      => $email,
@@ -131,6 +139,7 @@ class auth extends MY_Controller {
     {
         $this->session->unset_userdata([
             'user_id',
+            'user_tenant_id',
             'user_first_name',
             'user_last_name',
             'user_email',
@@ -245,6 +254,7 @@ class auth extends MY_Controller {
             // Log user in
             $this->session->set_userdata([
                 'user_id'         => $user['id'],
+                'user_tenant_id'  => (int) $this->tenant_id,
                 'user_first_name' => $user['first_name'],
                 'user_last_name'  => $user['last_name'],
                 'user_email'      => $user['email'],
@@ -342,6 +352,7 @@ class auth extends MY_Controller {
 
         // Create new account
         $new_user_id = $this->user_model->register([
+            'tenant_id'  => (int) $this->tenant_id,
             'first_name' => $first_name,
             'last_name'  => $last_name,
             'email'      => $final_email,
@@ -365,6 +376,7 @@ class auth extends MY_Controller {
         // Log user in
         $this->session->set_userdata([
             'user_id'         => $user['id'],
+            'user_tenant_id'  => (int) $this->tenant_id,
             'user_first_name' => $user['first_name'],
             'user_last_name'  => $user['last_name'],
             'user_email'      => $user['email'],

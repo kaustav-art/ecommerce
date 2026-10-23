@@ -8,11 +8,18 @@ class return_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all($filters = [])
     {
         $this->db->select('r.*, o.order_number, o.total_amount, o.customer_name, o.customer_email, o.customer_phone')
                  ->from('order_returns r')
-                 ->join('orders o', 'o.id = r.order_id', 'left');
+                 ->join('orders o', 'o.id = r.order_id', 'left')
+                 ->where('r.tenant_id', $this->tid());
 
         if (!empty($filters['status'])) {
             $this->db->where('r.status', $filters['status']);
@@ -28,6 +35,7 @@ class return_model extends CI_Model {
         return $this->db->select('r.*, o.order_number, o.total_amount, o.customer_name, o.customer_email, o.customer_phone')
                         ->from('order_returns r')
                         ->join('orders o', 'o.id = r.order_id', 'left')
+                        ->where('r.tenant_id', $this->tid())
                         ->where('r.id', (int) $id)
                         ->get()
                         ->row_array();
@@ -39,6 +47,6 @@ class return_model extends CI_Model {
         if ($admin_notes !== null) {
             $data['admin_notes'] = $admin_notes;
         }
-        return $this->db->where('id', (int) $id)->update('order_returns', $data);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('order_returns', $data);
     }
 }

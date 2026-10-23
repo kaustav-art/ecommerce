@@ -8,11 +8,19 @@ class customer_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all($limit = NULL, $offset = NULL, $filters = [])
     {
+        $tid = $this->tid();
         $this->db->select('u.*, cg.name as group_name, cg.discount_percent as group_discount')
                  ->from('users u')
-                 ->join('customer_groups cg', 'cg.id = u.customer_group_id', 'left');
+                 ->join('customer_groups cg', 'cg.id = u.customer_group_id', 'left')
+                 ->where('u.tenant_id', $tid);
 
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
@@ -41,12 +49,12 @@ class customer_model extends CI_Model {
         $customers = $this->db->get()->result_array();
 
         foreach ($customers as &$c) {
-            $c['orders_count']      = $this->db->where('user_id', $c['id'])->count_all_results('orders');
-            $c['total_spent']       = (float) $this->db->select_sum('total_amount')->where('user_id', $c['id'])->where('payment_status', 'paid')->get('orders')->row()->total_amount;
-            $c['cart_items_count']  = $this->db->where('user_id', $c['id'])->count_all_results('cart_items');
-            $c['wishlist_count']    = $this->db->where('user_id', $c['id'])->count_all_results('wishlists');
-            $c['reviews_count']     = $this->db->where('user_id', $c['id'])->count_all_results('reviews');
-            $c['addresses_count']   = $this->db->where('user_id', $c['id'])->count_all_results('user_addresses');
+            $c['orders_count']      = $this->db->where('tenant_id', $tid)->where('user_id', $c['id'])->count_all_results('orders');
+            $c['total_spent']       = (float) $this->db->select_sum('total_amount')->where('tenant_id', $tid)->where('user_id', $c['id'])->where('payment_status', 'paid')->get('orders')->row()->total_amount;
+            $c['cart_items_count']  = $this->db->where('tenant_id', $tid)->where('user_id', $c['id'])->count_all_results('cart_items');
+            $c['wishlist_count']    = $this->db->where('tenant_id', $tid)->where('user_id', $c['id'])->count_all_results('wishlists');
+            $c['reviews_count']     = $this->db->where('tenant_id', $tid)->where('user_id', $c['id'])->count_all_results('reviews');
+            $c['addresses_count']   = $this->db->where('tenant_id', $tid)->where('user_id', $c['id'])->count_all_results('user_addresses');
         }
 
         return $customers;
@@ -54,7 +62,7 @@ class customer_model extends CI_Model {
 
     public function count_all($filters = [])
     {
-        $this->db->from('users u');
+        $this->db->from('users u')->where('u.tenant_id', $this->tid());
 
         if (!empty($filters['search'])) {
             $search = trim($filters['search']);
@@ -79,16 +87,19 @@ class customer_model extends CI_Model {
 
     public function get_summary_stats()
     {
-        $total_customers = $this->db->count_all('users');
-        $active_customers = $this->db->where('status', 'active')->count_all_results('users');
-        $banned_customers = $this->db->where('status', 'banned')->count_all_results('users');
+        $tid = $this->tid();
+        $total_customers = $this->db->where('tenant_id', $tid)->count_all_results('users');
+        $active_customers = $this->db->where('tenant_id', $tid)->where('status', 'active')->count_all_results('users');
+        $banned_customers = $this->db->where('tenant_id', $tid)->where('status', 'banned')->count_all_results('users');
         
         $total_revenue = (float) $this->db->select_sum('total_amount')
+                                          ->where('tenant_id', $tid)
                                           ->where('payment_status', 'paid')
                                           ->get('orders')->row()->total_amount;
 
         $abandoned_carts_count = $this->db->select('COUNT(DISTINCT user_id) as total')
                                           ->from('cart_items')
+                                          ->where('tenant_id', $tid)
                                           ->get()->row()->total ?? 0;
 
         return [
@@ -102,14 +113,16 @@ class customer_model extends CI_Model {
 
     public function get_customer_groups()
     {
-        return $this->db->order_by('name', 'ASC')->get('customer_groups')->result_array();
+        return $this->db->where('tenant_id', $this->tid())->order_by('name', 'ASC')->get('customer_groups')->result_array();
     }
 
     public function get_by_id($id)
     {
+        $tid = $this->tid();
         $customer = $this->db->select('u.*, cg.name as group_name, cg.discount_percent as group_discount')
                              ->from('users u')
                              ->join('customer_groups cg', 'cg.id = u.customer_group_id', 'left')
+                             ->where('u.tenant_id', $tid)
                              ->where('u.id', (int) $id)
                              ->get()->row_array();
 
@@ -118,14 +131,16 @@ class customer_model extends CI_Model {
         }
 
         // Addresses
-        $customer['addresses'] = $this->db->where('user_id', $customer['id'])
+        $customer['addresses'] = $this->db->where('tenant_id', $tid)
+                                          ->where('user_id', $customer['id'])
                                           ->order_by('is_default', 'DESC')
                                           ->order_by('id', 'DESC')
                                           ->get('user_addresses')
                                           ->result_array();
 
         // Orders History
-        $orders = $this->db->where('user_id', $customer['id'])
+        $orders = $this->db->where('tenant_id', $tid)
+                           ->where('user_id', $customer['id'])
                            ->order_by('id', 'DESC')
                            ->get('orders')
                            ->result_array();
@@ -142,6 +157,7 @@ class customer_model extends CI_Model {
                               ->from('cart_items ci')
                               ->join('products p', 'p.id = ci.product_id', 'left')
                               ->join('product_variants pv', 'pv.id = ci.variant_id', 'left')
+                              ->where('ci.tenant_id', $tid)
                               ->where('ci.user_id', $customer['id'])
                               ->order_by('ci.id', 'DESC')
                               ->get()->result_array();
@@ -182,6 +198,7 @@ class customer_model extends CI_Model {
                                   ->from('wishlists w')
                                   ->join('products p', 'p.id = w.product_id', 'left')
                                   ->join('categories c', 'c.id = p.category_id', 'left')
+                                  ->where('w.tenant_id', $tid)
                                   ->where('w.user_id', $customer['id'])
                                   ->order_by('w.id', 'DESC')
                                   ->get()->result_array();
@@ -192,6 +209,7 @@ class customer_model extends CI_Model {
         $reviews = $this->db->select('r.*, p.title as product_title, p.slug as product_slug, p.main_image')
                             ->from('reviews r')
                             ->join('products p', 'p.id = r.product_id', 'left')
+                            ->where('r.tenant_id', $tid)
                             ->where('r.user_id', $customer['id'])
                             ->order_by('r.id', 'DESC')
                             ->get()->result_array();
@@ -208,6 +226,7 @@ class customer_model extends CI_Model {
         // Summary Calculations
         $customer['total_orders'] = count($orders);
         $customer['total_spent']  = (float) $this->db->select_sum('total_amount')
+                                                     ->where('tenant_id', $tid)
                                                      ->where('user_id', $customer['id'])
                                                      ->where('payment_status', 'paid')
                                                      ->get('orders')->row()->total_amount;
@@ -217,27 +236,29 @@ class customer_model extends CI_Model {
 
     public function create($data)
     {
+        $data['tenant_id'] = $this->tid();
         $this->db->insert('users', $data);
         return $this->db->insert_id();
     }
 
     public function update($id, $data)
     {
-        return $this->db->where('id', (int) $id)->update('users', $data);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('users', $data);
     }
 
     public function delete($id)
     {
+        $tid = $this->tid();
         // Delete user related addresses, cart, wishlist, or user
-        $this->db->where('user_id', (int) $id)->delete('cart_items');
-        $this->db->where('user_id', (int) $id)->delete('wishlists');
-        $this->db->where('user_id', (int) $id)->delete('user_addresses');
-        return $this->db->where('id', (int) $id)->delete('users');
+        $this->db->where('tenant_id', $tid)->where('user_id', (int) $id)->delete('cart_items');
+        $this->db->where('tenant_id', $tid)->where('user_id', (int) $id)->delete('wishlists');
+        $this->db->where('tenant_id', $tid)->where('user_id', (int) $id)->delete('user_addresses');
+        return $this->db->where('tenant_id', $tid)->where('id', (int) $id)->delete('users');
     }
 
     public function get_address_by_id($address_id, $user_id = NULL)
     {
-        $this->db->where('id', (int) $address_id);
+        $this->db->where('tenant_id', $this->tid())->where('id', (int) $address_id);
         if ($user_id !== NULL) {
             $this->db->where('user_id', (int) $user_id);
         }
@@ -246,8 +267,10 @@ class customer_model extends CI_Model {
 
     public function add_address($data)
     {
+        $tid = $this->tid();
+        $data['tenant_id'] = $tid;
         if (!empty($data['is_default'])) {
-            $this->db->where('user_id', $data['user_id'])->update('user_addresses', ['is_default' => 0]);
+            $this->db->where('tenant_id', $tid)->where('user_id', $data['user_id'])->update('user_addresses', ['is_default' => 0]);
         }
         $this->db->insert('user_addresses', $data);
         return $this->db->insert_id();
@@ -255,39 +278,40 @@ class customer_model extends CI_Model {
 
     public function update_address($id, $data)
     {
+        $tid = $this->tid();
         if (!empty($data['is_default']) && !empty($data['user_id'])) {
-            $this->db->where('user_id', $data['user_id'])->where('id !=', (int) $id)->update('user_addresses', ['is_default' => 0]);
+            $this->db->where('tenant_id', $tid)->where('user_id', $data['user_id'])->where('id !=', (int) $id)->update('user_addresses', ['is_default' => 0]);
         }
-        return $this->db->where('id', (int) $id)->update('user_addresses', $data);
+        return $this->db->where('tenant_id', $tid)->where('id', (int) $id)->update('user_addresses', $data);
     }
 
     public function delete_address($address_id, $user_id)
     {
-        return $this->db->where('id', (int) $address_id)->where('user_id', (int) $user_id)->delete('user_addresses');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $address_id)->where('user_id', (int) $user_id)->delete('user_addresses');
     }
 
     public function remove_cart_item($cart_item_id, $user_id)
     {
-        return $this->db->where('id', (int) $cart_item_id)->where('user_id', (int) $user_id)->delete('cart_items');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $cart_item_id)->where('user_id', (int) $user_id)->delete('cart_items');
     }
 
     public function clear_cart($user_id)
     {
-        return $this->db->where('user_id', (int) $user_id)->delete('cart_items');
+        return $this->db->where('tenant_id', $this->tid())->where('user_id', (int) $user_id)->delete('cart_items');
     }
 
     public function remove_wishlist_item($wishlist_id, $user_id)
     {
-        return $this->db->where('id', (int) $wishlist_id)->where('user_id', (int) $user_id)->delete('wishlists');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $wishlist_id)->where('user_id', (int) $user_id)->delete('wishlists');
     }
 
     public function update_review_status($review_id, $status)
     {
-        return $this->db->where('id', (int) $review_id)->update('reviews', ['status' => $status]);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $review_id)->update('reviews', ['status' => $status]);
     }
 
     public function delete_review($review_id)
     {
-        return $this->db->where('id', (int) $review_id)->delete('reviews');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $review_id)->delete('reviews');
     }
 }

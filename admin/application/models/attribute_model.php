@@ -8,9 +8,15 @@ class attribute_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all()
     {
-        $attributes = $this->db->order_by('name', 'ASC')->get('attributes')->result_array();
+        $attributes = $this->db->where('tenant_id', $this->tid())->order_by('name', 'ASC')->get('attributes')->result_array();
         foreach ($attributes as &$attr) {
             $attr['values'] = $this->get_values($attr['id']);
             $attr['values_count'] = count($attr['values']);
@@ -22,7 +28,7 @@ class attribute_model extends CI_Model {
 
     public function get_by_id($id)
     {
-        $attr = $this->db->where('id', (int) $id)->get('attributes')->row_array();
+        $attr = $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->get('attributes')->row_array();
         if ($attr) {
             $attr['values'] = $this->get_values($attr['id']);
             $attr['products_count'] = $this->get_products_count($attr['id']);
@@ -57,18 +63,19 @@ class attribute_model extends CI_Model {
 
     public function create($data)
     {
+        $data['tenant_id'] = $this->tid();
         $this->db->insert('attributes', $data);
         return $this->db->insert_id();
     }
 
     public function update($id, $data)
     {
-        return $this->db->where('id', (int) $id)->update('attributes', $data);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('attributes', $data);
     }
 
     public function delete($id)
     {
-        return $this->db->where('id', (int) $id)->delete('attributes');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('attributes');
     }
 
     public function get_value_by_id($id)
@@ -79,6 +86,7 @@ class attribute_model extends CI_Model {
     public function add_value($attribute_id, $value, $color_code = NULL, $sort_order = 0)
     {
         $data = [
+            'tenant_id'    => $this->tid(),
             'attribute_id' => (int) $attribute_id,
             'value'        => trim($value),
             'color_code'   => $color_code ? trim($color_code) : NULL,

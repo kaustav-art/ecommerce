@@ -8,12 +8,19 @@ class product_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all($limit = NULL, $offset = NULL, $category_id = NULL, $search = NULL, $product_type = NULL)
     {
         $this->db->select('p.*, c.name as category_name, b.name as brand_name')
                  ->from('products p')
                  ->join('categories c', 'c.id = p.category_id', 'left')
-                 ->join('brands b', 'b.id = p.brand_id', 'left');
+                 ->join('brands b', 'b.id = p.brand_id', 'left')
+                 ->where('p.tenant_id', $this->tid());
 
         if (!empty($category_id)) {
             $this->db->where('p.category_id', (int) $category_id);
@@ -43,6 +50,7 @@ class product_model extends CI_Model {
 
     public function count_all($category_id = NULL, $search = NULL, $product_type = NULL)
     {
+        $this->db->where('tenant_id', $this->tid());
         if (!empty($category_id)) {
             $this->db->where('category_id', (int) $category_id);
         }
@@ -64,6 +72,7 @@ class product_model extends CI_Model {
                             ->from('products p')
                             ->join('categories c', 'c.id = p.category_id', 'left')
                             ->join('brands b', 'b.id = p.brand_id', 'left')
+                            ->where('p.tenant_id', $this->tid())
                             ->where('p.id', (int) $id)
                             ->get()
                             ->row_array();
@@ -82,13 +91,14 @@ class product_model extends CI_Model {
 
     public function create($data)
     {
+        $data['tenant_id'] = $this->tid();
         $this->db->insert('products', $data);
         return $this->db->insert_id();
     }
 
     public function update($id, $data)
     {
-        return $this->db->where('id', (int) $id)->update('products', $data);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('products', $data);
     }
 
     public function delete($id)
@@ -96,7 +106,7 @@ class product_model extends CI_Model {
         $this->db->where('product_id', (int) $id)->delete('product_variants');
         $this->db->where('product_id', (int) $id)->delete('product_attributes');
         $this->db->where('product_id', (int) $id)->delete('product_specifications');
-        return $this->db->where('id', (int) $id)->delete('products');
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->delete('products');
     }
 
     public function save_specifications($product_id, $specs)
@@ -118,7 +128,7 @@ class product_model extends CI_Model {
 
     public function get_low_stock_count($threshold = 10)
     {
-        return $this->db->where('stock_quantity <=', $threshold)->count_all_results('products');
+        return $this->db->where('tenant_id', $this->tid())->where('stock_quantity <=', $threshold)->count_all_results('products');
     }
 
     public function get_top_selling($limit = 5)
@@ -127,6 +137,7 @@ class product_model extends CI_Model {
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
                         ->join('order_items oi', 'oi.product_id = p.id', 'left')
+                        ->where('p.tenant_id', $this->tid())
                         ->group_by('p.id')
                         ->order_by('units_sold', 'DESC')
                         ->order_by('p.id', 'ASC')
@@ -140,6 +151,7 @@ class product_model extends CI_Model {
         return $this->db->select('p.*, c.name as category_name')
                         ->from('products p')
                         ->join('categories c', 'c.id = p.category_id', 'left')
+                        ->where('p.tenant_id', $this->tid())
                         ->where('p.stock_quantity <=', (int) $threshold)
                         ->order_by('p.stock_quantity', 'ASC')
                         ->limit($limit)

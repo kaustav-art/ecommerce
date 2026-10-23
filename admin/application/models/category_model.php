@@ -8,9 +8,16 @@ class category_model extends CI_Model {
         parent::__construct();
     }
 
+    protected function tid()
+    {
+        $ci =& get_instance();
+        return isset($ci->tenant_id) ? (int) $ci->tenant_id : 1;
+    }
+
     public function get_all()
     {
-        $categories = $this->db->get('categories')->result_array();
+        $tid = $this->tid();
+        $categories = $this->db->where('tenant_id', $tid)->get('categories')->result_array();
         $cat_map = [];
         $children_map = [];
         foreach ($categories as $cat) {
@@ -20,7 +27,7 @@ class category_model extends CI_Model {
         }
 
         foreach ($categories as &$cat) {
-            $cat['product_count'] = $this->db->where('category_id', $cat['id'])->count_all_results('products');
+            $cat['product_count'] = $this->db->where('tenant_id', $tid)->where('category_id', $cat['id'])->count_all_results('products');
             $cat['breadcrumb_path'] = $this->build_path_string($cat['id'], $cat_map);
             $cat['parent_name'] = (!empty($cat['parent_id']) && isset($cat_map[$cat['parent_id']]))
                 ? $cat_map[$cat['parent_id']]['name']
@@ -80,14 +87,15 @@ class category_model extends CI_Model {
 
     public function get_paginated($offset = 0, $limit = 10, $search = '')
     {
+        $tid = $this->tid();
         // Cache map of all categories for instant O(1) breadcrumb resolution
-        $all_cats = $this->db->select('id, parent_id, name')->get('categories')->result_array();
+        $all_cats = $this->db->select('id, parent_id, name')->where('tenant_id', $tid)->get('categories')->result_array();
         $cat_map = [];
         foreach ($all_cats as $c) {
             $cat_map[$c['id']] = $c;
         }
 
-        $this->db->from('categories');
+        $this->db->from('categories')->where('tenant_id', $tid);
         if (!empty($search)) {
             $this->db->group_start();
             $this->db->like('name', $search);
@@ -105,7 +113,7 @@ class category_model extends CI_Model {
                                ->result_array();
 
         foreach ($categories as &$cat) {
-            $cat['product_count'] = $this->db->where('category_id', $cat['id'])->count_all_results('products');
+            $cat['product_count'] = $this->db->where('tenant_id', $tid)->where('category_id', $cat['id'])->count_all_results('products');
             $cat['breadcrumb_path'] = $this->build_path_string($cat['id'], $cat_map);
             $cat['parent_name'] = (!empty($cat['parent_id']) && isset($cat_map[$cat['parent_id']]))
                 ? $cat_map[$cat['parent_id']]['name']
@@ -124,17 +132,17 @@ class category_model extends CI_Model {
 
     public function get_by_id($id)
     {
-        return $this->db->where('id', (int) $id)->get('categories')->row_array();
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->get('categories')->row_array();
     }
 
     public function get_by_slug($slug)
     {
-        return $this->db->where('slug', $slug)->get('categories')->row_array();
+        return $this->db->where('tenant_id', $this->tid())->where('slug', $slug)->get('categories')->row_array();
     }
 
     public function get_parent_options($exclude_id = NULL)
     {
-        $all = $this->db->order_by('sort_order', 'ASC')->order_by('name', 'ASC')->get('categories')->result_array();
+        $all = $this->db->where('tenant_id', $this->tid())->order_by('sort_order', 'ASC')->order_by('name', 'ASC')->get('categories')->result_array();
         $cat_map = [];
         foreach ($all as $c) {
             $cat_map[$c['id']] = $c;
@@ -167,7 +175,7 @@ class category_model extends CI_Model {
     public function get_descendant_ids($parent_id)
     {
         $descendants = [];
-        $children = $this->db->where('parent_id', (int) $parent_id)->get('categories')->result_array();
+        $children = $this->db->where('tenant_id', $this->tid())->where('parent_id', (int) $parent_id)->get('categories')->result_array();
         foreach ($children as $child) {
             $descendants[] = (int) $child['id'];
             $sub = $this->get_descendant_ids((int) $child['id']);
@@ -193,19 +201,21 @@ class category_model extends CI_Model {
 
     public function create($data)
     {
+        $data['tenant_id'] = $this->tid();
         $this->db->insert('categories', $data);
         return $this->db->insert_id();
     }
 
     public function update($id, $data)
     {
-        return $this->db->where('id', (int) $id)->update('categories', $data);
+        return $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->update('categories', $data);
     }
 
     public function delete($id)
     {
+        $tid = $this->tid();
         // Re-parent children to 0 or delete
-        $this->db->where('parent_id', (int) $id)->update('categories', ['parent_id' => 0]);
-        return $this->db->where('id', (int) $id)->delete('categories');
+        $this->db->where('tenant_id', $tid)->where('parent_id', (int) $id)->update('categories', ['parent_id' => 0]);
+        return $this->db->where('tenant_id', $tid)->where('id', (int) $id)->delete('categories');
     }
 }
