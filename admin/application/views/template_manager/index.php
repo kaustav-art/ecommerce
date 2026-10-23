@@ -29,13 +29,13 @@
         $is_unlocked = in_array($slug, $allowed_list, true);
         $preview_img = !empty($tpl['preview_image'])
           ? base_url('../' . ltrim($tpl['preview_image'], '/'))
-          : base_url('../website/assets/images/slider/slider-women1.jpg');
+          : base_url('../website/assets/images/templates/ecommerce_template1.png');
         $demo_url    = base_url('../website/home?preview_tpl=' . urlencode($slug));
       ?>
       <div class="col-md-4">
         <div class="card h-100 <?= $is_active ? 'border-primary border-2 shadow' : 'border shadow-sm'; ?>">
           <div class="position-relative overflow-hidden" style="height: 210px; background: #f8f9fa;">
-            <img src="<?= $preview_img; ?>" alt="<?= html_escape($tpl['name']); ?>" class="w-100 h-100" style="object-fit: cover;" onerror="this.src='<?= base_url('../website/assets/images/slider/slider-women1.jpg'); ?>'">
+            <img src="<?= $preview_img; ?>" alt="<?= html_escape($tpl['name']); ?>" class="w-100 h-100" style="object-fit: cover;" onerror="this.src='<?= base_url('../website/assets/images/templates/ecommerce_template1.png'); ?>'">
             <div class="position-absolute top-0 end-0 p-3 d-flex gap-2">
               <?php if ($is_active): ?>
                 <span class="badge bg-primary px-3 py-2 shadow-sm">

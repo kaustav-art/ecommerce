@@ -95,19 +95,56 @@ function get_active_saas_plans() {
     return $rows;
 }
 
+function normalize_saas_template($tpl) {
+    $t = strtolower(trim((string)$tpl));
+    if ($t === 'template2' || $t === 'electronics') return 'electronics';
+    if ($t === 'template3' || $t === 'grocery') return 'grocery';
+    return 'fashion';
+}
+
+function get_saas_tpl_folder_key($tpl) {
+    $c = normalize_saas_template($tpl);
+    if ($c === 'electronics') return 'template2';
+    if ($c === 'grocery') return 'template3';
+    return 'template1';
+}
+
 function get_saas_plan_by_id_or_slug($identifier) {
     $pdo = get_saas_pdo();
+    $row = null;
     if (is_numeric($identifier)) {
         $stmt = $pdo->prepare("SELECT * FROM `saas_plans` WHERE `id` = ? LIMIT 1");
         $stmt->execute([(int)$identifier]);
+        $row = $stmt->fetch();
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM `saas_plans` WHERE `slug` = ? OR `code` = ? LIMIT 1");
-        $stmt->execute([$identifier, $identifier]);
+        $clean = trim((string)$identifier);
+        $stmt = $pdo->prepare("SELECT * FROM `saas_plans` WHERE LOWER(`slug`) = LOWER(?) OR LOWER(`code`) = LOWER(?) LIMIT 1");
+        $stmt->execute([$clean, $clean]);
+        $row = $stmt->fetch();
+
+        // Map reference project codes (SALON, SPA, SALON_SPA) if passed in ?plan=SPA
+        if (!$row) {
+            $upper = strtoupper($clean);
+            $mappedId = ($upper === 'SALON') ? 1 : (($upper === 'SPA') ? 2 : 3);
+            $stmt2 = $pdo->prepare("SELECT * FROM `saas_plans` WHERE `id` = ? LIMIT 1");
+            $stmt2->execute([$mappedId]);
+            $row = $stmt2->fetch();
+        }
     }
-    $row = $stmt->fetch();
+    if (!$row) {
+        $stmtFallback = $pdo->query("SELECT * FROM `saas_plans` WHERE `is_active` = 1 ORDER BY `sort_order` ASC, `id` ASC LIMIT 1");
+        $row = $stmtFallback->fetch();
+    }
     if ($row) {
         $row['features_list'] = !empty($row['features']) ? (json_decode($row['features'], true) ?: []) : [];
-        $row['allowed_templates_list'] = !empty($row['allowed_templates']) ? (json_decode($row['allowed_templates'], true) ?: ['fashion', 'electronics', 'grocery']) : ['fashion', 'electronics', 'grocery'];
+        $rawAllowed = !empty($row['allowed_templates']) ? (json_decode($row['allowed_templates'], true) ?: ['fashion', 'electronics', 'grocery']) : ['fashion', 'electronics', 'grocery'];
+        $normAllowed = [];
+        foreach ($rawAllowed as $at) {
+            $c = normalize_saas_template($at);
+            $normAllowed[] = $c;
+            $normAllowed[] = get_saas_tpl_folder_key($c);
+        }
+        $row['allowed_templates_list'] = array_values(array_unique($normAllowed));
         $row['effective_price'] = (!empty($row['discounted_price']) && (float)$row['discounted_price'] > 0 && (float)$row['discounted_price'] < (float)$row['price'])
             ? (float)$row['discounted_price']
             : (float)$row['price'];
@@ -209,15 +246,12 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
         $plan = get_saas_plan_by_id_or_slug(1);
     }
 
-    $chosenTemplate = strtolower($payment['chosen_template'] ?: ($setup['template'] ?? 'fashion'));
-    if (!in_array($chosenTemplate, ['fashion', 'electronics', 'grocery'], true)) {
-        $chosenTemplate = 'fashion';
-    }
-
+    $chosenTemplate = normalize_saas_template($payment['chosen_template'] ?: ($setup['template'] ?? 'fashion'));
     // Enforce plan template eligibility
     if (!in_array($chosenTemplate, $plan['allowed_templates_list'], true)) {
-        $chosenTemplate = $plan['allowed_templates_list'][0] ?? 'fashion';
+        $chosenTemplate = normalize_saas_template($plan['allowed_templates_list'][0] ?? 'fashion');
     }
+    $tplFolderKey = get_saas_tpl_folder_key($chosenTemplate);
 
     $storeSlug    = sanitize_store_slug($payment['store_slug'] ?: ($setup['store_slug'] ?? $payment['business_name']));
     if (empty($storeSlug) || is_reserved_store_slug($storeSlug)) {
@@ -399,50 +433,96 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
         }
 
         // Seed Starter Catalog for New Tenant if they have 0 products
+        // Pulls directly from Superadmin-customized template_categories, template_hero_banners, and template_products!
         $prodCountStmt = $pdo->prepare("SELECT COUNT(*) FROM `products` WHERE `tenant_id` = ?");
         $prodCountStmt->execute([$tenantId]);
         if ((int)$prodCountStmt->fetchColumn() === 0) {
-            // Source tenant ID based on chosen template: 1 = fashion, 2 = grocery, 3 = electronics
-            $sourceTenantId = 1;
-            if ($chosenTemplate === 'grocery') $sourceTenantId = 2;
-            elseif ($chosenTemplate === 'electronics') $sourceTenantId = 3;
+            $catNameMap = [];
+            $defaultCatId = 1;
 
-            // Clone root categories from source tenant
-            $srcCats = $pdo->prepare("SELECT * FROM `categories` WHERE `tenant_id` = ? AND `parent_id` = 0 ORDER BY `sort_order` ASC LIMIT 8");
-            $srcCats->execute([$sourceTenantId]);
-            $catIdMap = [];
+            // 1. Seed Categories from Superadmin template_categories
+            $tplCatsStmt = $pdo->prepare("SELECT * FROM `template_categories` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
+            $tplCatsStmt->execute([$tplFolderKey]);
+            $tplCats = $tplCatsStmt->fetchAll();
+
             $insCat = $pdo->prepare("INSERT INTO `categories` (`tenant_id`, `parent_id`, `name`, `slug`, `description`, `image`, `is_featured`, `sort_order`, `status`)
-                VALUES (?, 0, ?, ?, ?, ?, ?, ?, 'active')");
-            foreach ($srcCats->fetchAll() as $sc) {
-                $insCat->execute([$tenantId, $sc['name'], $sc['slug'], $sc['description'], $sc['image'], $sc['is_featured'], $sc['sort_order']]);
-                $catIdMap[$sc['id']] = (int)$pdo->lastInsertId();
+                VALUES (?, 0, ?, ?, ?, ?, 1, ?, 'active')");
+
+            if (!empty($tplCats)) {
+                foreach ($tplCats as $idx => $tc) {
+                    $cSlug = $tc['slug'] ?: sanitize_store_slug($tc['name']);
+                    $insCat->execute([$tenantId, $tc['name'], $cSlug, $tc['subtitle'] ?? '', $tc['image'], (int)$tc['sort_order']]);
+                    $cid = (int)$pdo->lastInsertId();
+                    $catNameMap[strtolower(trim($tc['name']))] = $cid;
+                    if ($idx === 0) $defaultCatId = $cid;
+                }
+            } else {
+                $sourceTenantId = ($chosenTemplate === 'grocery') ? 2 : (($chosenTemplate === 'electronics') ? 3 : 1);
+                $srcCats = $pdo->prepare("SELECT * FROM `categories` WHERE `tenant_id` = ? AND `parent_id` = 0 ORDER BY `sort_order` ASC LIMIT 8");
+                $srcCats->execute([$sourceTenantId]);
+                foreach ($srcCats->fetchAll() as $idx => $sc) {
+                    $insCat->execute([$tenantId, $sc['name'], $sc['slug'], $sc['description'], $sc['image'], $sc['sort_order']]);
+                    $cid = (int)$pdo->lastInsertId();
+                    $catNameMap[strtolower(trim($sc['name']))] = $cid;
+                    if ($idx === 0) $defaultCatId = $cid;
+                }
             }
 
-            // Clone banners from source tenant
-            $srcBanners = $pdo->prepare("SELECT * FROM `banners` WHERE `tenant_id` = ? ORDER BY `sort_order` ASC LIMIT 4");
-            $srcBanners->execute([$sourceTenantId]);
+            // 2. Seed Hero Banners from Superadmin template_hero_banners
+            $tplBanStmt = $pdo->prepare("SELECT * FROM `template_hero_banners` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
+            $tplBanStmt->execute([$tplFolderKey]);
+            $tplBans = $tplBanStmt->fetchAll();
+
             $insBanner = $pdo->prepare("INSERT INTO `banners` (`tenant_id`, `title`, `subtitle`, `button_text`, `button_link`, `image`, `sort_order`, `status`)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'active')");
-            foreach ($srcBanners->fetchAll() as $sb) {
-                $insBanner->execute([$tenantId, $sb['title'], $sb['subtitle'], $sb['button_text'], $sb['button_link'], $sb['image'], $sb['sort_order']]);
+            if (!empty($tplBans)) {
+                foreach ($tplBans as $tb) {
+                    $insBanner->execute([
+                        $tenantId,
+                        $tb['title'],
+                        $tb['badge'] ?: ($tb['description'] ?? ''),
+                        $tb['button_text'] ?: 'Shop Now',
+                        $tb['button_url'] ?: 'shop',
+                        $tb['image'],
+                        (int)$tb['sort_order']
+                    ]);
+                }
             }
 
-            // Clone up to 12 starter products from source tenant
-            $srcProds = $pdo->prepare("SELECT * FROM `products` WHERE `tenant_id` = ? AND `status` = 'published' ORDER BY `id` ASC LIMIT 12");
-            $srcProds->execute([$sourceTenantId]);
+            // 3. Seed Products from Superadmin template_products
+            $tplProdStmt = $pdo->prepare("SELECT * FROM `template_products` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
+            $tplProdStmt->execute([$tplFolderKey]);
+            $tplProds = $tplProdStmt->fetchAll();
+
             $insProd = $pdo->prepare("INSERT INTO `products`
                 (`tenant_id`, `category_id`, `brand_id`, `product_type`, `title`, `slug`, `sku`, `unit_label`, `warranty_info`, `price`, `sale_price`, `tax_rate`, `stock_quantity`, `low_stock_threshold`, `max_purchase_quantity`, `stock_status`, `short_description`, `description`, `highlights`, `main_image`, `gallery_images`, `is_featured`, `is_trending`, `is_new`, `is_cod_allowed`, `rating`, `reviews_count`, `status`)
-                VALUES (?, ?, 0, 'simple', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_stock', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 'published')");
-            foreach ($srcProds->fetchAll() as $sp) {
-                $mappedCatId = $catIdMap[$sp['category_id']] ?? ( reset($catIdMap) ?: 1 );
-                $newSku = $sp['sku'] . '-T' . $tenantId;
-                $insProd->execute([
-                    $tenantId, $mappedCatId, $sp['title'], $sp['slug'], $newSku,
-                    $sp['unit_label'], $sp['warranty_info'], $sp['price'], $sp['sale_price'],
-                    $sp['tax_rate'], max(20, (int)$sp['stock_quantity']), $sp['low_stock_threshold'], $sp['max_purchase_quantity'],
-                    $sp['short_description'], $sp['description'], $sp['highlights'], $sp['main_image'], $sp['gallery_images'],
-                    $sp['is_featured'], $sp['is_trending'], $sp['is_new'], $sp['rating'], $sp['reviews_count']
-                ]);
+                VALUES (?, ?, 0, 'simple', ?, ?, ?, ?, '', ?, ?, 10.00, 35, 5, 10, 'in_stock', ?, ?, '', ?, ?, 1, 1, 1, 1, ?, ?, 'published')");
+
+            if (!empty($tplProds)) {
+                foreach ($tplProds as $idx => $tp) {
+                    $catKey = strtolower(trim($tp['category_name'] ?? ''));
+                    $mappedCatId = $catNameMap[$catKey] ?? $defaultCatId;
+                    $pSlug = ($tp['slug'] ?: sanitize_store_slug($tp['name'])) . '-t' . $tenantId;
+                    $newSku = strtoupper(substr($chosenTemplate, 0, 3)) . '-' . ($idx + 101) . '-T' . $tenantId;
+                    $galleryJson = !empty($tp['hover_image']) ? json_encode([$tp['hover_image']]) : json_encode([$tp['image']]);
+                    $salePrice = (!empty($tp['sale_price']) && (float)$tp['sale_price'] > 0) ? (float)$tp['sale_price'] : null;
+                    $insProd->execute([
+                        $tenantId,
+                        $mappedCatId,
+                        $tp['name'],
+                        $pSlug,
+                        $newSku,
+                        $tp['unit_label'] ?? '',
+                        (float)$tp['price'],
+                        $salePrice,
+                        $tp['short_desc'] ?? $tp['name'],
+                        $tp['short_desc'] ?? $tp['name'],
+                        $tp['image'],
+                        $galleryJson,
+                        (float)($tp['rating'] ?? 4.8),
+                        (int)($tp['reviews_count'] ?? 18)
+                    ]);
+                }
             }
         }
 

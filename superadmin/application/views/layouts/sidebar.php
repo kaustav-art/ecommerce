@@ -59,10 +59,16 @@ $act_c = isset($active_controller) ? $active_controller : 'dashboard';
                 <span>Tenant Stores</span>
             </a>
         </li>
+        <li class="sa-menu-item <?= $act_c === 'layouts' ? 'active' : '' ?>">
+            <a href="<?= superadmin_url('layouts') ?>" class="sa-menu-link">
+                <i class="fa-solid fa-palette text-warning"></i>
+                <span>Customize Templates</span>
+            </a>
+        </li>
         <li class="sa-menu-item <?= $act_c === 'website' ? 'active' : '' ?>">
             <a href="<?= superadmin_url('website') ?>" class="sa-menu-link">
-                <i class="fa-solid fa-globe text-warning"></i>
-                <span>Landing CMS & Templates</span>
+                <i class="fa-solid fa-globe text-primary"></i>
+                <span>Landing CMS & Themes</span>
             </a>
         </li>
         <li class="sa-menu-item <?= $act_c === 'settings' ? 'active' : '' ?>">
@@ -80,21 +86,21 @@ $act_c = isset($active_controller) ? $active_controller : 'dashboard';
             </a>
         </li>
         <li class="sa-menu-item">
-            <a href="<?= tenant_site_url('home') ?>" target="_blank" class="sa-menu-link">
+            <a href="<?= tenant_site_url('home?preview_tpl=fashion') ?>" target="_blank" class="sa-menu-link">
                 <i class="fa-solid fa-shirt text-info"></i>
-                <span>Fashion Store (T1)</span>
+                <span>Fashion Template (T1)</span>
             </a>
         </li>
         <li class="sa-menu-item">
-            <a href="<?= tenant_site_url('s/techzone-electronics') ?>" target="_blank" class="sa-menu-link">
+            <a href="<?= tenant_site_url('home?preview_tpl=electronics') ?>" target="_blank" class="sa-menu-link">
                 <i class="fa-solid fa-microchip text-primary"></i>
-                <span>Electronics Store (T2)</span>
+                <span>Electronics Template (T2)</span>
             </a>
         </li>
         <li class="sa-menu-item">
-            <a href="<?= tenant_site_url('s/fresh-mart-grocery') ?>" target="_blank" class="sa-menu-link">
+            <a href="<?= tenant_site_url('home?preview_tpl=grocery') ?>" target="_blank" class="sa-menu-link">
                 <i class="fa-solid fa-basket-shopping text-success"></i>
-                <span>Grocery Store (T3)</span>
+                <span>Grocery Template (T3)</span>
             </a>
         </li>
         <li class="sa-menu-item">

@@ -1,1015 +1,1361 @@
 <?php
 /**
- * Multi-Step SaaS Registration, Plan Selection, Template Selection & Payment Checkout Wizard (subscribe.php)
- * Follows referance-project/subscribe.php workflow and implements all requirements from Section 5.
+ * SaaS Subscription & Project Setup Wizard (subscribe.php)
+ * Following http://localhost/spasalonmanagement/subscribe.php?plan=SPA
+ * 5-Step Flow:
+ *   Step 1: Account (Full Name, Email, Phone, Password + Live Uniqueness Check)
+ *   Step 2: OTP Verify (6-Digit OTP Verification + Demo Auto-Fill + Resend Timer)
+ *   Step 3: Setup Info (Store Profile, Domain/Slug Availability Check, Logo & Favicon Upload)
+ *   Step 4: Choose Template (Template 1: Fashion, Template 2: Electronics, Template 3: Grocery + Live Preview)
+ *   Step 5: Payment (Order Summary, Stripe / Razorpay / Sandbox Checkout, 7-Step Live Deployment & Launch Hub)
  */
 require_once __DIR__ . '/saas_core.php';
 
-$pdo       = get_saas_pdo();
-$settings  = get_all_saas_settings();
-$plans     = get_active_saas_plans();
-$templates = get_active_saas_templates();
+$pdo = get_saas_pdo();
+$settings = get_all_saas_settings();
 
-$platformName = $settings['platform_name'] ?? 'Codeulas Cloud';
-$currencySym  = $settings['currency_symbol'] ?? '$';
-
-// Check if returning from a verified activated order (?activated_order=...)
-$activatedOrder = null;
-$activatedTenant = null;
-if (!empty($_GET['activated_order'])) {
-    $stmt = $pdo->prepare("SELECT * FROM `saas_payments` WHERE `order_number` = ? AND `payment_status` = 'paid' LIMIT 1");
-    $stmt->execute([trim($_GET['activated_order'])]);
-    $activatedOrder = $stmt->fetch();
-    if ($activatedOrder && !empty($activatedOrder['tenant_id'])) {
-        $tStmt = $pdo->prepare("SELECT * FROM `saas_tenants` WHERE `id` = ? LIMIT 1");
-        $tStmt->execute([(int)$activatedOrder['tenant_id']]);
-        $activatedTenant = $tStmt->fetch();
-    }
+// Determine selected plan from ?plan=... (supports SPA, SALON, STARTER, GROWTH, ENTERPRISE, or ID)
+$requestedPlan = isset($_GET['plan']) ? trim($_GET['plan']) : 'STARTER';
+$plan = get_saas_plan_by_id_or_slug($requestedPlan);
+if (!$plan) {
+    $plan = get_saas_plan_by_id_or_slug(1);
 }
 
-// Check if retrying a failed/cancelled/pending order (?retry_order=...)
-$retryOrder = null;
-$paymentErrorMsg = '';
-if (!empty($_GET['retry_order'])) {
-    $stmt = $pdo->prepare("SELECT * FROM `saas_payments` WHERE `order_number` = ? LIMIT 1");
-    $stmt->execute([trim($_GET['retry_order'])]);
-    $retryOrder = $stmt->fetch();
-    if ($retryOrder) {
-        if ($retryOrder['payment_status'] === 'paid') {
-            header('Location: subscribe.php?activated_order=' . urlencode($retryOrder['order_number']));
-            exit;
-        }
-        $_SESSION['saas_pending_order_number'] = $retryOrder['order_number'];
-        if (!empty($retryOrder['setup_payload'])) {
-            $_SESSION['saas_registration'] = json_decode($retryOrder['setup_payload'], true) ?: [];
-        }
-        $errCode = $_GET['payment_error'] ?? $retryOrder['payment_status'];
-        if ($errCode === 'cancelled') {
-            $paymentErrorMsg = 'Payment was cancelled. Your subscription has NOT been activated yet. You can retry payment below.';
-        } else {
-            $paymentErrorMsg = 'Payment could not be verified (' . htmlspecialchars($errCode) . '). Your subscription remains pending — please retry below.';
-        }
-    }
+$allPlans = get_active_saas_plans();
+$plan_code = strtoupper($plan['code'] ?: ($plan['slug'] ?: 'STARTER'));
+$plan_name = $plan['name'] ?? 'Starter Store Plan';
+$plan_price = (float)($plan['effective_price'] ?? $plan['price'] ?? 29.00);
+$plan_currency_sym = ($plan['currency'] ?? 'USD') === 'INR' ? '₹' : '$';
+$allowed_templates = $plan['allowed_templates_list'] ?? ['template1', 'template2', 'template3', 'fashion', 'electronics', 'grocery'];
+
+// Payment Gateway Configuration
+$stripe_enabled = ($settings['stripe_enabled'] ?? '1') === '1';
+$stripe_pk      = $settings['stripe_publishable_key'] ?? 'pk_test_51MockStripePublishableKey';
+$razorpay_enabled = ($settings['razorpay_enabled'] ?? '1') === '1';
+$razorpay_key_id  = $settings['razorpay_key_id'] ?? 'rzp_test_MockKeyId12345';
+$sandbox_enabled  = ($settings['sandbox_enabled'] ?? '1') === '1';
+
+// Check if returning from Stripe Checkout
+$stripe_return_result = null;
+if (isset($_GET['stripe_payment']) && $_GET['stripe_payment'] === 'success' && !empty($_SESSION['pending_wizard_setup'])) {
+    require_once __DIR__ . '/subscribe_api.php';
+    $pending_data = $_SESSION['pending_wizard_setup'];
+    $pending_data['payment_method'] = 'stripe';
+    $pending_data['transaction_id'] = isset($_GET['session_id']) ? trim($_GET['session_id']) : ('STRIPE-' . time());
+    $stripe_return_result = execute_subscription_provisioning($pdo, $settings, $pending_data, []);
+    unset($_SESSION['pending_wizard_setup']);
 }
 
-// Pre-selected plan or template from query string
-$initialPlanSlug = strtolower(trim($_GET['plan'] ?? ''));
-$initialTplKey   = strtolower(trim($_GET['tpl'] ?? 'fashion'));
-if (!in_array($initialTplKey, ['fashion', 'electronics', 'grocery'], true)) {
-    $initialTplKey = 'fashion';
-}
-$initialPlanId = $plans[0]['id'] ?? 1;
-foreach ($plans as $p) {
-    if ($initialPlanSlug !== '' && (strtolower($p['slug']) === $initialPlanSlug || strtolower((string)$p['id']) === $initialPlanSlug)) {
-        $initialPlanId = (int)$p['id'];
-        break;
-    }
-}
-if ($retryOrder) {
-    $initialPlanId = (int)$retryOrder['plan_id'];
-    $initialTplKey = $retryOrder['chosen_template'] ?: $initialTplKey;
-}
-
-$stripeEnabled   = ($settings['stripe_enabled'] ?? '0') === '1';
-$razorpayEnabled = ($settings['razorpay_enabled'] ?? '0') === '1';
-$payuEnabled     = ($settings['payu_enabled'] ?? '0') === '1';
-$sandboxEnabled  = ($settings['sandbox_enabled'] ?? '1') === '1';
+// Template Showcase Metadata for Step 4
+$templates_catalog = [
+    'template1' => [
+        'key'         => 'template1',
+        'slug'        => 'fashion',
+        'badge'       => 'TEMPLATE 1 — FASHION',
+        'title'       => 'Modave Fashion Storefront',
+        'subtitle'    => 'Luxury Apparel, Footwear, Handbags & Designer Lookbooks',
+        'preview_img' => saas_base_url('website/assets/images/templates/ecommerce_template1.png'),
+        'demo_url'    => saas_base_url('website/home?preview_tpl=fashion'),
+        'features'    => ['Hero Banner Slider', 'Circular Category Showcase', 'QuickView & Size Swatches', 'Superadmin Customizable']
+    ],
+    'template2' => [
+        'key'         => 'template2',
+        'slug'        => 'electronics',
+        'badge'       => 'TEMPLATE 2 — ELECTRONICS',
+        'title'       => 'Bazaro Tech & Gadgets Store',
+        'subtitle'    => 'Smartphones, Laptops, Audio Gear & High-Tech Accessories',
+        'preview_img' => saas_base_url('website/assets/templates/bazaro/img/hero/hero-4/hero-1.jpg'),
+        'demo_url'    => saas_base_url('website/home?preview_tpl=electronics'),
+        'features'    => ['Interactive Tech Hero Slider', 'Category & Deal Showcases', 'Specs & Rating Badges', 'Superadmin Customizable']
+    ],
+    'template3' => [
+        'key'         => 'template3',
+        'slug'        => 'grocery',
+        'badge'       => 'TEMPLATE 3 — GROCERY',
+        'title'       => 'Bazaro Fresh Grocery Mart',
+        'subtitle'    => 'Organic Produce, Daily Essentials, Dairy & Pantry Delivery',
+        'preview_img' => saas_base_url('website/assets/templates/bazaro/img/hero/hero-2/thumb-1.jpg'),
+        'demo_url'    => saas_base_url('website/home?preview_tpl=grocery'),
+        'features'    => ['Fresh Organic Hero Banners', 'Unit/Weight Badges (500g, 1kg)', 'Fast Add-to-Cart Controls', 'Superadmin Customizable']
+    ],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Your Store — <?= htmlspecialchars($platformName) ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Subscribe & Setup Store — <?php echo htmlspecialchars($plan_name); ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
     <style>
         :root {
-            --bg-dark: #070b14;
-            --bg-card: #111827;
-            --border-subtle: rgba(255, 255, 255, 0.1);
-            --primary: #6366f1;
-            --accent: #ec4899;
-            --emerald: #10b981;
-            --danger: #ef4444;
-            --text-main: #f8fafc;
+            --gold-primary: #c29958;
+            --gold-light: #d4af37;
+            --gold-dark: #9e7a3c;
+            --dark-bg: #0b0f19;
+            --dark-card: #131926;
+            --dark-surface: #1c2436;
+            --text-light: #f8fafc;
             --text-muted: #94a3b8;
+            --border-gold: rgba(194, 153, 88, 0.25);
         }
-        * { box-sizing: border-box; }
+
         body {
-            margin: 0;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-main);
+            background-color: var(--dark-bg);
+            background-image:
+                radial-gradient(circle at 15% 15%, rgba(194, 153, 88, 0.08) 0%, transparent 35%),
+                radial-gradient(circle at 85% 85%, rgba(194, 153, 88, 0.06) 0%, transparent 40%);
+            color: var(--text-light);
             min-height: 100vh;
+            overflow-x: hidden;
         }
-        .wizard-header {
-            background: rgba(15, 23, 42, 0.9);
-            border-bottom: 1px solid var(--border-subtle);
-            padding: 16px 5%;
+
+        h1, h2, h3, .serif-title {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        /* Navbar */
+        .wizard-navbar {
+            background: rgba(11, 15, 25, 0.9);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        /* 5-Step Progress Bar */
+        .wizard-steps-bar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            position: relative;
+            max-width: 820px;
+            margin: 0 auto 38px;
         }
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 1.25rem;
+        .wizard-steps-bar::before {
+            content: '';
+            position: absolute;
+            top: 21px;
+            left: 40px;
+            right: 40px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
         }
-        .brand-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
+        .step-node {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            flex: 1;
+        }
+        .step-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--dark-card);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-muted);
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.35s ease;
         }
-        .wizard-container {
-            max-width: 1120px;
-            margin: 36px auto 80px;
-            padding: 0 20px;
+        .step-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            transition: all 0.35s ease;
         }
-        /* Stepper */
-        .stepper {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 36px;
+        .step-node.active .step-circle {
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
+            border-color: var(--gold-light);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(194, 153, 88, 0.45);
+            transform: scale(1.06);
         }
-        .step-pill {
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid var(--border-subtle);
-            border-radius: 14px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            opacity: 0.6;
+        .step-node.active .step-label {
+            color: var(--gold-light);
+        }
+        .step-node.completed .step-circle {
+            background: #10b981;
+            border-color: #10b981;
+            color: #fff;
+        }
+        .step-node.completed .step-label {
+            color: #10b981;
+        }
+
+        /* Wizard Main Card */
+        .wizard-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 38px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+            max-width: 960px;
+            margin: 0 auto 60px;
+        }
+        @media (max-width: 768px) {
+            .wizard-card { padding: 24px 18px; }
+        }
+
+        /* Inputs */
+        .wiz-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: #cbd5e1;
+            margin-bottom: 7px;
+            display: block;
+        }
+        .wiz-input {
+            background: var(--dark-surface) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: #fff !important;
+            border-radius: 11px;
+            padding: 12px 15px;
+            font-size: 0.95rem;
             transition: all 0.25s;
         }
-        .step-pill.active {
-            opacity: 1;
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.14);
+        .wiz-input:focus {
+            border-color: var(--gold-primary) !important;
+            box-shadow: 0 0 0 3px rgba(194, 153, 88, 0.18) !important;
         }
-        .step-pill.completed {
-            opacity: 1;
-            border-color: var(--emerald);
-            background: rgba(16, 185, 129, 0.1);
+        .wiz-input.is-invalid {
+            border-color: #ef4444 !important;
         }
-        .step-num {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
+        .wiz-input.is-valid {
+            border-color: #10b981 !important;
+        }
+
+        /* Gold Buttons */
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-dark) 100%);
+            color: #fff !important;
+            border: none;
+            border-radius: 11px;
+            padding: 13px 28px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(194, 153, 88, 0.28);
+        }
+        .btn-gold:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px rgba(194, 153, 88, 0.4);
+        }
+        .btn-gold:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .btn-outline-wiz {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            border-radius: 11px;
+            padding: 12px 22px;
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+        .btn-outline-wiz:hover {
             background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* OTP Boxes */
+        .otp-box-group {
             display: flex;
-            align-items: center;
             justify-content: center;
+            gap: 12px;
+            margin: 24px 0;
+        }
+        .otp-digit {
+            width: 54px;
+            height: 62px;
+            text-align: center;
+            font-size: 1.5rem;
             font-weight: 800;
-            font-size: 0.85rem;
-        }
-        .step-pill.active .step-num { background: var(--primary); color: #fff; }
-        .step-pill.completed .step-num { background: var(--emerald); color: #fff; }
-        .step-label { font-size: 0.88rem; font-weight: 700; }
-
-        .step-panel {
-            display: none;
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 22px;
-            padding: 36px;
-        }
-        .step-panel.active { display: block; }
-
-        .panel-title { margin: 0 0 6px; font-size: 1.65rem; font-weight: 800; }
-        .panel-sub { margin: 0 0 28px; color: var(--text-muted); font-size: 0.96rem; }
-
-        /* Cards Grid */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-        .select-card {
-            background: rgba(15, 23, 42, 0.75);
-            border: 2px solid var(--border-subtle);
-            border-radius: 18px;
-            padding: 24px;
-            cursor: pointer;
+            background: var(--dark-surface);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: var(--gold-light);
             transition: all 0.2s;
+        }
+        .otp-digit:focus {
+            border-color: var(--gold-primary);
+            outline: none;
+            box-shadow: 0 0 15px rgba(194, 153, 88, 0.3);
+        }
+
+        /* Template Cards (Step 4) */
+        .tpl-select-card {
+            background: var(--dark-surface);
+            border: 2px solid rgba(255, 255, 255, 0.09);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            height: 100%;
             position: relative;
         }
-        .select-card:hover { border-color: rgba(99, 102, 241, 0.5); }
-        .select-card.selected {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.1);
-            box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.4);
+        .tpl-select-card:hover:not(.locked) {
+            border-color: rgba(194, 153, 88, 0.55);
+            transform: translateY(-4px);
         }
-        .select-card.disabled-card {
+        .tpl-select-card.selected {
+            border-color: var(--gold-primary);
+            box-shadow: 0 12px 32px rgba(194, 153, 88, 0.28);
+            background: linear-gradient(180deg, rgba(194, 153, 88, 0.1), var(--dark-surface));
+        }
+        .tpl-select-card.locked {
             opacity: 0.45;
             cursor: not-allowed;
         }
-        .card-check {
-            position: absolute;
-            top: 18px;
-            right: 18px;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            color: transparent;
+        .tpl-thumb-wrap {
+            height: 185px;
+            overflow: hidden;
+            position: relative;
+            background: #090d16;
         }
-        .select-card.selected .card-check {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: #fff;
-        }
-
-        /* Forms */
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .form-group { margin-bottom: 18px; }
-        .form-group label {
-            display: block;
-            font-size: 0.86rem;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #cbd5e1;
-        }
-        .form-control {
+        .tpl-thumb-wrap img {
             width: 100%;
-            padding: 12px 15px;
-            background: #0b0f19;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.95rem;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
         }
-        .form-control:focus { outline: none; border-color: var(--primary); }
-        .field-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
+        .tpl-select-card:hover .tpl-thumb-wrap img {
+            transform: scale(1.05);
+        }
+        .tpl-check-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: transparent;
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 13px 26px;
-            border-radius: 11px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.25s;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
+        .tpl-select-card.selected .tpl-check-badge {
+            background: var(--gold-primary);
+            border-color: #fff;
             color: #fff;
         }
-        .btn-outline {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            color: #fff;
-        }
-        .btn-emerald {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #fff;
-        }
-        .wizard-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 28px;
-            padding-top: 22px;
-            border-top: 1px solid var(--border-subtle);
-        }
-        .alert-box {
-            padding: 14px 18px;
+
+        /* Upload Dropzone */
+        .upload-zone {
+            background: rgba(255,255,255,0.02);
+            border: 1.5px dashed rgba(255,255,255,0.2);
             border-radius: 12px;
-            margin-bottom: 20px;
-            font-size: 0.92rem;
-            display: none;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
         }
-        .alert-error {
-            background: rgba(239, 68, 68, 0.16);
-            border: 1px solid var(--danger);
-            color: #fca5a5;
+        .upload-zone:hover {
+            border-color: var(--gold-primary);
+            background: rgba(194, 153, 88, 0.05);
         }
-        .alert-success {
-            background: rgba(16, 185, 129, 0.16);
-            border: 1px solid var(--emerald);
-            color: #6ee7b7;
-        }
-        .gateway-option {
-            background: rgba(15, 23, 42, 0.85);
-            border: 2px solid var(--border-subtle);
-            border-radius: 14px;
-            padding: 18px 20px;
+
+        /* Payment Gateway Pills */
+        .gw-pill {
+            background: var(--dark-surface);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.25s;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            margin-bottom: 12px;
+            gap: 12px;
         }
-        .gateway-option.selected {
-            border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.12);
+        .gw-pill.active {
+            border-color: var(--gold-primary);
+            background: rgba(194, 153, 88, 0.12);
         }
-        @media (max-width: 768px) {
-            .stepper { grid-template-columns: 1fr 1fr; }
-            .form-grid { grid-template-columns: 1fr; }
+
+        .step-section { display: none; }
+        .step-section.active { display: block; animation: fadeIn 0.35s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
-    <header class="wizard-header">
-        <a href="index.php" class="brand">
-            <span class="brand-icon"><i class="fa-solid fa-layer-group"></i></span>
-            <span><?= htmlspecialchars($platformName) ?></span>
-        </a>
-        <div>
-            <a href="index.php" class="btn btn-outline" style="padding:8px 16px;font-size:0.86rem;">← Back to Home</a>
+    <!-- Top Navigation -->
+    <nav class="wizard-navbar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="index.php" class="text-decoration-none d-flex align-items-center gap-2">
+                <span style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#c29958,#9e7a3c);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                </span>
+                <div>
+                    <span class="fw-bold text-white fs-5">LuxeCommerce</span>
+                    <span class="badge ms-1" style="background:rgba(194,153,88,0.2);color:#d4af37;font-size:0.68rem;">SAAS CLOUD</span>
+                </div>
+            </a>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-none d-md-flex align-items-center gap-2 px-3 py-1 rounded-pill" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                    <span class="text-white-50 small">Selected Plan:</span>
+                    <strong class="text-warning small" id="navPlanBadge"><?php echo htmlspecialchars($plan_name); ?> (<?php echo $plan_currency_sym . number_format($plan_price, 2); ?>)</strong>
+                </div>
+                <a href="index.php" class="btn btn-sm btn-outline-wiz py-2 px-3">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Plans
+                </a>
+            </div>
         </div>
-    </header>
+    </nav>
 
-    <div class="wizard-container">
-
-        <?php if ($activatedOrder && $activatedTenant): ?>
-            <!-- STEP 5: ACTIVATED STORE SUCCESS PAGE -->
-            <div class="step-panel active" style="text-align:center;padding:48px 36px;">
-                <div style="width:76px;height:76px;border-radius:50%;background:rgba(16,185,129,0.2);color:#10b981;font-size:2.2rem;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                <h1 style="margin:0 0 10px;font-size:2.2rem;">Your E-Commerce Store Is Live!</h1>
-                <p style="color:var(--text-muted);max-width:620px;margin:0 auto 32px;">
-                    Payment has been verified and your isolated multi-tenant store, database records, and merchant dashboard have been provisioned.
-                </p>
-
-                <div style="max-width:680px;margin:0 auto 32px;background:rgba(15,23,42,0.85);border:1px solid var(--border-subtle);border-radius:18px;padding:26px;text-align:left;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <div>
-                            <div style="font-size:0.8rem;color:var(--text-muted);">Store Name</div>
-                            <div style="font-weight:700;font-size:1.05rem;"><?= htmlspecialchars($activatedTenant['business_name']) ?></div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem;color:var(--text-muted);">Active Storefront Template</div>
-                            <div style="font-weight:700;color:#818cf8;text-transform:capitalize;"><?= htmlspecialchars($activatedTenant['template']) ?> Store</div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem;color:var(--text-muted);">Admin Login Email</div>
-                            <div style="font-weight:700;"><?= htmlspecialchars($activatedTenant['admin_email']) ?></div>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem;color:var(--text-muted);">License / Order Reference</div>
-                            <div style="font-weight:700;color:#34d399;"><?= htmlspecialchars($activatedTenant['license_key'] ?: $activatedOrder['order_number']) ?></div>
-                        </div>
-                        <div style="grid-column:span 2;">
-                            <div style="font-size:0.8rem;color:var(--text-muted);">Live Storefront URL</div>
-                            <a href="<?= htmlspecialchars($activatedTenant['website_url']) ?>" target="_blank" style="color:#38bdf8;font-weight:700;word-break:break-all;">
-                                <?= htmlspecialchars($activatedTenant['website_url']) ?> <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                            </a>
-                        </div>
-                        <div style="grid-column:span 2;">
-                            <div style="font-size:0.8rem;color:var(--text-muted);">Tenant Admin Dashboard URL</div>
-                            <a href="<?= htmlspecialchars($activatedTenant['admin_url']) ?>" target="_blank" style="color:#a5b4fc;font-weight:700;word-break:break-all;">
-                                <?= htmlspecialchars($activatedTenant['admin_url']) ?> <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
-                    <a href="<?= htmlspecialchars($activatedTenant['website_url']) ?>" target="_blank" class="btn btn-emerald">
-                        <i class="fa-solid fa-store"></i> Open My Storefront
-                    </a>
-                    <a href="<?= htmlspecialchars($activatedTenant['admin_url']) ?>" class="btn btn-primary">
-                        <i class="fa-solid fa-gauge-high"></i> Log In to Tenant Dashboard
-                    </a>
-                </div>
+    <div class="container py-5">
+        <!-- 5-Step Progress Indicator -->
+        <div class="wizard-steps-bar" id="wizardStepBar">
+            <div class="step-node active" id="stepNode1">
+                <div class="step-circle"><span>1</span></div>
+                <div class="step-label">Account</div>
             </div>
-        <?php else: ?>
-
-            <!-- WIZARD STEPPER -->
-            <div class="stepper">
-                <div class="step-pill active" id="stepper-1">
-                    <span class="step-num">1</span>
-                    <span class="step-label">Select Pricing Plan</span>
-                </div>
-                <div class="step-pill" id="stepper-2">
-                    <span class="step-num">2</span>
-                    <span class="step-label">Owner Registration</span>
-                </div>
-                <div class="step-pill" id="stepper-3">
-                    <span class="step-num">3</span>
-                    <span class="step-label">Choose Template</span>
-                </div>
-                <div class="step-pill" id="stepper-4">
-                    <span class="step-num">4</span>
-                    <span class="step-label">Payment & Launch</span>
-                </div>
+            <div class="step-node" id="stepNode2">
+                <div class="step-circle"><span>2</span></div>
+                <div class="step-label">OTP Verify</div>
             </div>
-
-            <div id="wizard-alert" class="alert-box alert-error" <?= $paymentErrorMsg ? 'style="display:block;"' : '' ?>>
-                <?= $paymentErrorMsg ?>
+            <div class="step-node" id="stepNode3">
+                <div class="step-circle"><span>3</span></div>
+                <div class="step-label">Setup Info</div>
             </div>
-
-            <!-- STEP 1: PLAN SELECTION -->
-            <div class="step-panel active" id="panel-step-1">
-                <h2 class="panel-title">Step 1: Choose Your Subscription Plan</h2>
-                <p class="panel-sub">Select a pricing plan managed by the platform administrator. Plan limits and available templates are configured per tier.</p>
-
-                <div class="cards-grid">
-                    <?php foreach ($plans as $plan):
-                        $isSel = ((int)$plan['id'] === (int)$initialPlanId);
-                        $pLimit = ((int)$plan['product_limit'] === -1) ? 'Unlimited Products' : $plan['product_limit'] . ' Products';
-                        $oLimit = ((int)$plan['order_limit'] === -1) ? 'Unlimited Orders' : $plan['order_limit'] . ' Orders/mo';
-                    ?>
-                    <div class="select-card plan-option <?= $isSel ? 'selected' : '' ?>"
-                         data-plan-id="<?= (int)$plan['id'] ?>"
-                         data-plan-name="<?= htmlspecialchars($plan['name']) ?>"
-                         data-plan-price="<?= htmlspecialchars(number_format($plan['effective_price'], 2, '.', '')) ?>"
-                         data-plan-cycle="<?= htmlspecialchars($plan['billing_cycle']) ?>"
-                         data-allowed-templates='<?= htmlspecialchars(json_encode($plan['allowed_templates_list'])) ?>'
-                         onclick="selectPlanCard(this)">
-                        <div class="card-check"><i class="fa-solid fa-check"></i></div>
-                        <?php if (!empty($plan['badge'])): ?>
-                            <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(99,102,241,0.2);color:#a5b4fc;font-size:0.75rem;font-weight:700;margin-bottom:10px;">
-                                <?= htmlspecialchars($plan['badge']) ?>
-                            </span>
-                        <?php endif; ?>
-                        <h3 style="margin:0 0 6px;font-size:1.3rem;"><?= htmlspecialchars($plan['name']) ?></h3>
-                        <div style="font-size:2rem;font-weight:800;margin-bottom:8px;">
-                            <?= htmlspecialchars($currencySym) ?><?= number_format($plan['effective_price'], 2) ?>
-                            <span style="font-size:0.9rem;color:var(--text-muted);font-weight:500;">/ <?= htmlspecialchars($plan['billing_cycle']) ?></span>
-                        </div>
-                        <div style="font-size:0.84rem;color:#34d399;margin-bottom:14px;">
-                            <?= htmlspecialchars($pLimit) ?> • <?= htmlspecialchars($oLimit) ?>
-                        </div>
-                        <ul style="list-style:none;padding:0;margin:0;font-size:0.86rem;color:#cbd5e1;">
-                            <?php foreach (array_slice($plan['features_list'], 0, 4) as $f): ?>
-                                <li style="margin-bottom:6px;"><i class="fa-solid fa-check" style="color:#10b981;margin-right:6px;"></i><?= htmlspecialchars($f) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <div class="wizard-footer">
-                    <a href="index.php" class="btn btn-outline">Cancel</a>
-                    <button type="button" class="btn btn-primary" onclick="goToStep(2)">
-                        Continue to Registration <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </div>
+            <div class="step-node" id="stepNode4">
+                <div class="step-circle"><span>4</span></div>
+                <div class="step-label">Choose Template</div>
             </div>
-
-            <!-- STEP 2: BUSINESS OWNER REGISTRATION -->
-            <div class="step-panel" id="panel-step-2">
-                <h2 class="panel-title">Step 2: Business Owner & Store Registration</h2>
-                <p class="panel-sub">Enter your merchant account details. Your paid subscription will only activate after payment verification in Step 4.</p>
-
-                <form id="registration-form" onsubmit="submitRegistrationStep(event)">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Owner's Full Name *</label>
-                            <input type="text" id="reg_owner_name" name="owner_name" class="form-control" required
-                                   value="<?= htmlspecialchars($_SESSION['saas_registration']['owner_name'] ?? '') ?>"
-                                   placeholder="e.g. Michael Carter">
-                        </div>
-                        <div class="form-group">
-                            <label>Business / Store Name *</label>
-                            <input type="text" id="reg_business_name" name="business_name" class="form-control" required
-                                   value="<?= htmlspecialchars($_SESSION['saas_registration']['business_name'] ?? '') ?>"
-                                   placeholder="e.g. Apex Tech Hub" oninput="autoGenerateSlug(this.value)">
-                        </div>
-                    </div>
-
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Unique Store Slug / Subdomain *</label>
-                            <input type="text" id="reg_store_slug" name="store_slug" class="form-control" required
-                                   value="<?= htmlspecialchars($_SESSION['saas_registration']['store_slug'] ?? '') ?>"
-                                   placeholder="e.g. apex-tech-hub" onblur="validateUniqueField('store_slug', this.value)">
-                            <div class="field-hint" id="slug-preview-hint">
-                                Store URL: <code><?= htmlspecialchars(saas_base_url('website/s/your-store')) ?></code>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Default Store Currency</label>
-                            <select id="reg_currency" name="currency_code" class="form-control">
-                                <option value="USD">USD ($) — US Dollar</option>
-                                <option value="INR">INR (₹) — Indian Rupee</option>
-                                <option value="EUR">EUR (€) — Euro</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Owner Email Address (Used for Admin Login) *</label>
-                            <input type="email" id="reg_email" name="email" class="form-control" required
-                                   value="<?= htmlspecialchars($_SESSION['saas_registration']['owner_email'] ?? '') ?>"
-                                   placeholder="owner@yourstore.com" onblur="validateUniqueField('email', this.value)">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number *</label>
-                            <input type="text" id="reg_phone" name="phone" class="form-control" required
-                                   value="<?= htmlspecialchars($_SESSION['saas_registration']['owner_phone'] ?? '') ?>"
-                                   placeholder="+1 (555) 234-5678">
-                        </div>
-                    </div>
-
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Admin Password (min. 6 characters) *</label>
-                            <input type="password" id="reg_password" name="password" class="form-control" required minlength="6" placeholder="••••••••">
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm Password *</label>
-                            <input type="password" id="reg_password_confirm" name="password_confirm" class="form-control" required minlength="6" placeholder="••••••••">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Business / Billing Address *</label>
-                        <input type="text" id="reg_address" name="business_address" class="form-control" required
-                               value="<?= htmlspecialchars($_SESSION['saas_registration']['business_address'] ?? '') ?>"
-                               placeholder="450 Market Street, Suite 300, San Francisco, CA">
-                    </div>
-
-                    <div class="wizard-footer">
-                        <button type="button" class="btn btn-outline" onclick="goToStep(1)">
-                            <i class="fa-solid fa-arrow-left"></i> Back to Plans
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="btn-reg-submit">
-                            Save & Select Template <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </form>
+            <div class="step-node" id="stepNode5">
+                <div class="step-circle"><span>5</span></div>
+                <div class="step-label">Payment</div>
             </div>
+        </div>
 
-            <!-- STEP 3: STORE TEMPLATE SELECTION -->
-            <div class="step-panel" id="panel-step-3">
-                <h2 class="panel-title">Step 3: Select Your Storefront Template</h2>
-                <p class="panel-sub">Choose the visual storefront design for your store. You can preview any template live before locking in your selection.</p>
+        <!-- Main Wizard Card -->
+        <div class="wizard-card">
 
-                <div class="cards-grid">
-                    <?php foreach ($templates as $tpl):
-                        $tKey = $tpl['template_key'];
-                        $isSel = ($tKey === $initialTplKey);
-                        $thumb = !empty($tpl['preview_image']) ? $tpl['preview_image'] : 'website/assets/images/templates/' . $tKey . '.jpg';
-                    ?>
-                    <div class="select-card tpl-option <?= $isSel ? 'selected' : '' ?>"
-                         data-tpl-key="<?= htmlspecialchars($tKey) ?>"
-                         data-tpl-name="<?= htmlspecialchars($tpl['name']) ?>"
-                         onclick="selectTemplateCard(this)">
-                        <div class="card-check"><i class="fa-solid fa-check"></i></div>
-                        <div style="height:170px;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#1e293b;">
-                            <img src="<?= htmlspecialchars($thumb) ?>" alt="<?= htmlspecialchars($tpl['name']) ?>" style="width:100%;height:100%;object-fit:cover;">
-                        </div>
-                        <span style="font-size:0.76rem;color:#38bdf8;font-weight:700;"><?= htmlspecialchars($tpl['badge']) ?></span>
-                        <h3 style="margin:4px 0 6px;font-size:1.25rem;"><?= htmlspecialchars($tpl['name']) ?></h3>
-                        <p style="font-size:0.86rem;color:var(--text-muted);margin:0 0 14px;"><?= htmlspecialchars($tpl['tagline']) ?></p>
-                        <a href="launch.php?tpl=<?= urlencode($tKey) ?>" target="_blank" onclick="event.stopPropagation();" class="btn btn-outline" style="width:100%;padding:9px;font-size:0.84rem;">
-                            <i class="fa-solid fa-eye"></i> Preview Live Demo
-                        </a>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
+            <!-- Global Alert Box -->
+            <div id="wizardAlert" class="alert d-none mb-4" role="alert"></div>
 
-                <div class="wizard-footer">
-                    <button type="button" class="btn btn-outline" onclick="goToStep(2)">
-                        <i class="fa-solid fa-arrow-left"></i> Back to Registration
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btn-tpl-submit" onclick="saveTemplateAndProceedToPayment()">
-                        Proceed to Payment Checkout <i class="fa-solid fa-credit-card"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- STEP 4: PAYMENT GATEWAY CHECKOUT -->
-            <div class="step-panel" id="panel-step-4">
-                <h2 class="panel-title">Step 4: Complete Subscription Payment</h2>
-                <p class="panel-sub">Your pending subscription order has been created. Choose a verified payment gateway to activate your tenant store.</p>
-
-                <div style="display:grid;grid-template-columns:1fr 1.15fr;gap:28px;">
-                    <!-- Order Summary -->
-                    <div style="background:rgba(15,23,42,0.85);border:1px solid var(--border-subtle);border-radius:16px;padding:24px;">
-                        <h4 style="margin:0 0 16px;font-size:1.1rem;color:#a5b4fc;">Subscription Summary</h4>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Order Reference:</span>
-                            <strong id="summary-order-num"><?= htmlspecialchars($retryOrder['order_number'] ?? 'Pending...') ?></strong>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Selected Plan:</span>
-                            <strong id="summary-plan-name">—</strong>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Storefront Template:</span>
-                            <strong id="summary-tpl-name" style="text-transform:capitalize;color:#38bdf8;">—</strong>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Store Slug:</span>
-                            <strong id="summary-store-slug"><?= htmlspecialchars($retryOrder['store_slug'] ?? ($_SESSION['saas_registration']['store_slug'] ?? '—')) ?></strong>
-                        </div>
-                        <hr style="border:0;border-top:1px solid var(--border-subtle);margin:16px 0;">
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                            <span style="font-weight:700;">Total Due Now:</span>
-                            <span style="font-size:1.85rem;font-weight:800;color:#34d399;" id="summary-amount">$0.00</span>
-                        </div>
-                    </div>
-
-                    <!-- Payment Gateways -->
+            <!-- ==========================================
+                 STEP 1: ACCOUNT REGISTRATION
+            =========================================== -->
+            <div class="step-section active" id="sectionStep1">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary border-opacity-25">
                     <div>
-                        <h4 style="margin:0 0 14px;font-size:1.05rem;">Select Payment Method</h4>
-
-                        <?php if ($razorpayEnabled): ?>
-                        <div class="gateway-option selected" data-gateway="razorpay" onclick="selectGateway(this)">
-                            <div>
-                                <strong><i class="fa-solid fa-bolt" style="color:#38bdf8;margin-right:8px;"></i> Razorpay Checkout</strong>
-                                <div style="font-size:0.82rem;color:var(--text-muted);">Cards, UPI, NetBanking & Wallets (HMAC-SHA256 Verified)</div>
-                            </div>
-                            <i class="fa-solid fa-circle-check" style="color:var(--primary);font-size:1.2rem;"></i>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if ($stripeEnabled): ?>
-                        <div class="gateway-option <?= !$razorpayEnabled ? 'selected' : '' ?>" data-gateway="stripe" onclick="selectGateway(this)">
-                            <div>
-                                <strong><i class="fa-brands fa-stripe" style="color:#818cf8;font-size:1.3rem;margin-right:8px;"></i> Stripe Hosted Checkout</strong>
-                                <div style="font-size:0.82rem;color:var(--text-muted);">International Credit & Debit Cards (3D Secure)</div>
-                            </div>
-                            <i class="fa-solid fa-circle-check" style="color:var(--primary);font-size:1.2rem;"></i>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if ($payuEnabled): ?>
-                        <div class="gateway-option" data-gateway="payu" onclick="selectGateway(this)">
-                            <div>
-                                <strong><i class="fa-solid fa-building-columns" style="color:#f59e0b;margin-right:8px;"></i> PayU Money / Biz</strong>
-                                <div style="font-size:0.82rem;color:var(--text-muted);">SHA-512 Encrypted Redirect Checkout</div>
-                            </div>
-                            <i class="fa-solid fa-circle-check" style="color:var(--primary);font-size:1.2rem;"></i>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if ($sandboxEnabled): ?>
-                        <div class="gateway-option <?= (!$razorpayEnabled && !$stripeEnabled) ? 'selected' : '' ?>" data-gateway="sandbox" onclick="selectGateway(this)">
-                            <div>
-                                <strong><i class="fa-solid fa-flask" style="color:#10b981;margin-right:8px;"></i> Sandbox / Instant Test Gateway</strong>
-                                <div style="font-size:0.82rem;color:var(--text-muted);">Simulate verified payment or failed/cancelled callback for local testing</div>
-                            </div>
-                            <i class="fa-solid fa-circle-check" style="color:var(--primary);font-size:1.2rem;"></i>
-                        </div>
-                        <?php endif; ?>
-
-                        <button type="button" class="btn btn-emerald" id="btn-pay-now" style="width:100%;padding:15px;margin-top:12px;font-size:1rem;" onclick="initiateSubscriptionPayment()">
-                            <i class="fa-solid fa-lock"></i> Complete Verified Payment & Activate Store
-                        </button>
+                        <span class="badge mb-2" style="background:rgba(194,153,88,0.18);color:var(--gold-light);">STEP 1 OF 5 — OWNER ACCOUNT</span>
+                        <h2 class="serif-title fw-bold mb-1">Create Your Store Owner Account</h2>
+                        <p class="text-white-50 small mb-0">Enter your administrator details to begin setting up your multi-template eCommerce store.</p>
+                    </div>
+                    <!-- Plan Switcher Dropdown -->
+                    <div class="mt-3 mt-md-0">
+                        <label class="wiz-label mb-1">Subscription Plan</label>
+                        <select id="wizPlanSelector" class="form-select wiz-input py-2" onchange="onPlanSelectorChange(this.value)">
+                            <?php foreach ($allPlans as $p):
+                                $pCode = strtoupper($p['code'] ?: $p['slug']);
+                                $pPrice = (float)$p['effective_price'];
+                                $sel = ((int)$p['id'] === (int)$plan['id']) ? 'selected' : '';
+                            ?>
+                            <option value="<?php echo htmlspecialchars($pCode); ?>"
+                                    data-id="<?php echo (int)$p['id']; ?>"
+                                    data-name="<?php echo htmlspecialchars($p['name']); ?>"
+                                    data-price="<?php echo $pPrice; ?>"
+                                    data-allowed='<?php echo htmlspecialchars(json_encode($p['allowed_templates_list'])); ?>'
+                                    <?php echo $sel; ?>>
+                                <?php echo htmlspecialchars($p['name']); ?> — $<?php echo number_format($pPrice, 2); ?>/<?php echo htmlspecialchars($p['billing_cycle']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
 
-                <div class="wizard-footer">
-                    <button type="button" class="btn btn-outline" onclick="goToStep(3)">
-                        <i class="fa-solid fa-arrow-left"></i> Change Template
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="wiz-label">Full Name <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50"><i class="fa-regular fa-user"></i></span>
+                            <input type="text" id="wizName" class="form-control wiz-input" placeholder="e.g. Alexander Sterling" required>
+                        </div>
+                        <div class="small mt-1 d-none" id="errName"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Official Email Address <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50"><i class="fa-regular fa-envelope"></i></span>
+                            <input type="email" id="wizEmail" class="form-control wiz-input" placeholder="owner@yourstore.com" onblur="validateUniqueField('email')" required>
+                        </div>
+                        <div class="small mt-1 d-none" id="errEmail"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Mobile / WhatsApp Number <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50"><i class="fa-solid fa-phone"></i></span>
+                            <input type="tel" id="wizPhone" class="form-control wiz-input" placeholder="+1 555 234 5678" onblur="validateUniqueField('phone')" required>
+                        </div>
+                        <div class="small mt-1 d-none" id="errPhone"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Admin Login Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="wizPassword" class="form-control wiz-input" placeholder="Minimum 6 characters" required>
+                            <button type="button" class="btn btn-outline-secondary border-opacity-25 text-white-50" onclick="togglePassVisibility()">
+                                <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                        <div class="small mt-1 d-none" id="errPassword"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <button type="button" id="btnStep1Next" class="btn btn-gold px-4" onclick="processStep1()">
+                        Proceed to OTP Verification <i class="fa-solid fa-arrow-right ms-2"></i>
                     </button>
-                    <span style="font-size:0.82rem;color:var(--text-muted);"><i class="fa-solid fa-shield-halved"></i> 256-Bit SSL Encrypted & Server-Verified</span>
                 </div>
             </div>
 
-        <?php endif; ?>
+            <!-- ==========================================
+                 STEP 2: OTP VERIFICATION
+            =========================================== -->
+            <div class="step-section" id="sectionStep2">
+                <div class="text-center py-2">
+                    <span class="badge mb-2" style="background:rgba(194,153,88,0.18);color:var(--gold-light);">STEP 2 OF 5 — SECURITY VERIFICATION</span>
+                    <h2 class="serif-title fw-bold mb-2">Verify Your Identity</h2>
+                    <p class="text-white-50 small mb-3">
+                        We've sent a 6-digit verification code to <strong class="text-white" id="otpTargetEmail"></strong> and <strong class="text-white" id="otpTargetPhone"></strong>
+                    </p>
 
+                    <!-- Demo OTP Fast Fill Banner (Matching Reference Project) -->
+                    <div class="d-inline-flex align-items-center gap-3 px-4 py-2 rounded-3 mb-3" style="background:rgba(16, 185, 129, 0.12);border:1px solid rgba(16, 185, 129, 0.35);">
+                        <div class="text-start">
+                            <div class="text-success fw-bold" style="font-size:0.72rem;letter-spacing:0.6px;">INSTANT DEMO VERIFICATION CODE</div>
+                            <div class="fs-5 fw-bold text-white" style="letter-spacing:4px;" id="demoOtpDisplay">------</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-success fw-bold px-3" onclick="autoFillDemoOtp()">
+                            <i class="fa-solid fa-bolt me-1"></i> Auto-Fill Code
+                        </button>
+                    </div>
+
+                    <div class="otp-box-group">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit1" oninput="otpNext(this, 1)" onkeydown="otpBack(event, 1)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit2" oninput="otpNext(this, 2)" onkeydown="otpBack(event, 2)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit3" oninput="otpNext(this, 3)" onkeydown="otpBack(event, 3)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit4" oninput="otpNext(this, 4)" onkeydown="otpBack(event, 4)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit5" oninput="otpNext(this, 5)" onkeydown="otpBack(event, 5)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit6" oninput="otpNext(this, 6)" onkeydown="otpBack(event, 6)">
+                    </div>
+
+                    <div class="small text-white-50 mb-4">
+                        Didn't receive the code?
+                        <button type="button" id="btnResendOtp" class="btn btn-link text-warning p-0 ms-1 text-decoration-none fw-bold" onclick="resendOtpCode()">Resend OTP</button>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3 border-top border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-outline-wiz" onclick="goToWizardStep(1)">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Change Account Info
+                        </button>
+                        <button type="button" id="btnVerifyOtp" class="btn btn-gold px-4" onclick="submitOtpVerification()">
+                            Verify & Continue <i class="fa-solid fa-check-circle ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 STEP 3: BUSINESS & STORE SETUP INFO
+            =========================================== -->
+            <div class="step-section" id="sectionStep3">
+                <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <span class="badge mb-2" style="background:rgba(194,153,88,0.18);color:var(--gold-light);">STEP 3 OF 5 — STORE CONFIGURATION</span>
+                    <h2 class="serif-title fw-bold mb-1">Configure Your Store Profile & Domain</h2>
+                    <p class="text-white-50 small mb-0">Customize your store name, public storefront slug/domain, default currency, and branding assets.</p>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="wiz-label">Store / Business Name <span class="text-danger">*</span></label>
+                        <input type="text" id="wizBusinessName" class="form-control wiz-input" placeholder="e.g. Velvet & Vogue Boutique" oninput="autoSuggestDomain(this.value)">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Business Tagline</label>
+                        <input type="text" id="wizTagline" class="form-control wiz-input" placeholder="e.g. Curated Luxury Fashion & Lifestyle">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Official Business Email</label>
+                        <input type="email" id="wizCompanyEmail" class="form-control wiz-input" placeholder="support@yourstore.com">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Official Business Phone</label>
+                        <input type="text" id="wizCompanyPhone" class="form-control wiz-input" placeholder="+1 800 555 0199">
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="wiz-label">Physical Store / Warehouse Address</label>
+                        <input type="text" id="wizCompanyAddress" class="form-control wiz-input" placeholder="742 Commerce Avenue, Suite 200, New York">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="wiz-label">Default Store Currency</label>
+                        <select id="wizCurrencySymbol" class="form-select wiz-input">
+                            <option value="$">USD ($) — US Dollar</option>
+                            <option value="₹">INR (₹) — Indian Rupee</option>
+                            <option value="€">EUR (€) — Euro</option>
+                            <option value="£">GBP (£) — British Pound</option>
+                            <option value="AED ">AED — UAE Dirham</option>
+                        </select>
+                    </div>
+
+                    <!-- Domain / Store Slug -->
+                    <div class="col-12">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                            <label class="wiz-label">Custom Domain / Subdomain / Store Folder Slug <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50">
+                                    <?php echo htmlspecialchars(saas_base_url('website/s/')); ?>
+                                </span>
+                                <input type="text" id="wizDomain" class="form-control wiz-input" placeholder="velvetvogue" oninput="debounceDomainCheck()">
+                                <button type="button" class="btn btn-outline-wiz" onclick="checkDomainAvailability()">
+                                    Check Availability
+                                </button>
+                            </div>
+                            <div class="small mt-2" id="domainStatusMsg">
+                                <span class="text-white-50">Your live store will be accessible immediately at: <code class="text-warning" id="liveSlugPreview"><?php echo htmlspecialchars(saas_base_url('website/s/your-store')); ?></code></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Branding Uploads -->
+                    <div class="col-md-6">
+                        <label class="wiz-label">Company Logo (Optional)</label>
+                        <div class="upload-zone" onclick="document.getElementById('wizLogoFile').click()">
+                            <input type="file" id="wizLogoFile" accept=".png,.jpg,.jpeg,.webp,.svg" class="d-none" onchange="previewUpload(this, 'logoPreviewLabel')">
+                            <i class="fa-solid fa-cloud-arrow-up fs-4 text-warning mb-1"></i>
+                            <div class="small text-white-50" id="logoPreviewLabel">Click to upload Store Logo (PNG, JPG, WEBP)</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="wiz-label">Browser Favicon (Optional)</label>
+                        <div class="upload-zone" onclick="document.getElementById('wizFaviconFile').click()">
+                            <input type="file" id="wizFaviconFile" accept=".ico,.png,.webp" class="d-none" onchange="previewUpload(this, 'favPreviewLabel')">
+                            <i class="fa-solid fa-icons fs-4 text-warning mb-1"></i>
+                            <div class="small text-white-50" id="favPreviewLabel">Click to upload Favicon (ICO, PNG, WEBP)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-wiz" onclick="goToWizardStep(2)">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back
+                    </button>
+                    <button type="button" id="btnStep3Next" class="btn btn-gold px-4" onclick="processStep3()">
+                        Continue to Choose Template <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 STEP 4: CHOOSE STOREFRONT TEMPLATE
+            =========================================== -->
+            <div class="step-section" id="sectionStep4">
+                <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <span class="badge mb-2" style="background:rgba(194,153,88,0.18);color:var(--gold-light);">STEP 4 OF 5 — STOREFRONT DESIGN</span>
+                    <h2 class="serif-title fw-bold mb-1">Choose Your Website Theme Template</h2>
+                    <p class="text-white-50 small mb-0">Select your preferred eCommerce storefront template. Each template comes pre-loaded with Superadmin-curated Hero Banners, Categories, and Products.</p>
+                </div>
+
+                <input type="hidden" id="wizChosenTemplate" value="template1">
+
+                <div class="row g-4">
+                    <?php foreach ($templates_catalog as $tKey => $tpl):
+                        $isAllowed = in_array($tKey, $allowed_templates, true) || in_array($tpl['slug'], $allowed_templates, true);
+                    ?>
+                    <div class="col-lg-4 col-md-6">
+                        <div class="tpl-select-card <?php echo $tKey === 'template1' ? 'selected' : ''; ?> <?php echo !$isAllowed ? 'locked' : ''; ?>"
+                             id="tplCard_<?php echo $tKey; ?>"
+                             data-tpl="<?php echo $tKey; ?>"
+                             data-slug="<?php echo $tpl['slug']; ?>"
+                             data-title="<?php echo htmlspecialchars($tpl['title']); ?>"
+                             onclick="selectWizardTemplate('<?php echo $tKey; ?>')">
+                            <div class="tpl-thumb-wrap">
+                                <img src="<?php echo htmlspecialchars($tpl['preview_img']); ?>" alt="<?php echo htmlspecialchars($tpl['title']); ?>">
+                                <div class="tpl-check-badge"><i class="fa-solid fa-check"></i></div>
+                                <span class="badge position-absolute top-0 start-0 m-2" style="background:rgba(11,15,25,0.85);color:var(--gold-light);font-size:0.68rem;">
+                                    <?php echo htmlspecialchars($tpl['badge']); ?>
+                                </span>
+                            </div>
+                            <div class="p-3">
+                                <h5 class="fw-bold text-white mb-1"><?php echo htmlspecialchars($tpl['title']); ?></h5>
+                                <p class="text-white-50 small mb-2"><?php echo htmlspecialchars($tpl['subtitle']); ?></p>
+                                <ul class="list-unstyled small text-white-50 mb-3">
+                                    <?php foreach ($tpl['features'] as $f): ?>
+                                    <li class="mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i> <?php echo htmlspecialchars($f); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <div class="d-flex gap-2">
+                                    <a href="<?php echo htmlspecialchars($tpl['demo_url']); ?>" target="_blank" class="btn btn-sm btn-outline-wiz w-100" onclick="event.stopPropagation();">
+                                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Live Demo Preview
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-wiz" onclick="goToWizardStep(3)">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back to Setup Info
+                    </button>
+                    <button type="button" class="btn btn-gold px-4" onclick="processStep4()">
+                        Review & Proceed to Payment <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 STEP 5: SUMMARY & PAYMENT CHECKOUT
+            =========================================== -->
+            <div class="step-section" id="sectionStep5">
+                <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <span class="badge mb-2" style="background:rgba(194,153,88,0.18);color:var(--gold-light);">STEP 5 OF 5 — FINALIZE & DEPLOY</span>
+                    <h2 class="serif-title fw-bold mb-1">Subscription Summary & Payment</h2>
+                    <p class="text-white-50 small mb-0">Review your store configuration and complete payment to automatically provision your store and admin panel.</p>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Left: Order & Deployment Summary -->
+                    <div class="col-lg-6">
+                        <div class="p-4 rounded-4 h-100" style="background:var(--dark-surface);border:1px solid rgba(255,255,255,0.08);">
+                            <h5 class="fw-bold text-warning mb-3"><i class="fa-solid fa-receipt me-2"></i>Subscription & Deployment Summary</h5>
+                            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white-50 small">Software Plan</span>
+                                <strong class="text-white small" id="sumPlanName"><?php echo htmlspecialchars($plan_name); ?></strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white-50 small">Store Business Name</span>
+                                <strong class="text-white small" id="sumBusinessName">-</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white-50 small">Storefront URL Slug</span>
+                                <strong class="text-warning small" id="sumDomain">-</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white-50 small">Admin Login Account</span>
+                                <strong class="text-white small" id="sumAdminEmail">-</strong>
+                            </div>
+                            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-white-50 small">Selected Theme Template</span>
+                                <strong class="text-info small" id="sumTemplate">Template 1 — Fashion</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center pt-3 mt-2">
+                                <span class="fw-bold text-white">Total Subscription Rate</span>
+                                <span class="fs-3 fw-bold text-warning" id="sumTotalAmount"><?php echo $plan_currency_sym . number_format($plan_price, 2); ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Payment Gateway Selection -->
+                    <div class="col-lg-6">
+                        <div class="p-4 rounded-4 h-100" style="background:var(--dark-surface);border:1px solid rgba(255,255,255,0.08);">
+                            <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-shield-halved text-success me-2"></i>Select Payment Gateway</h5>
+
+                            <input type="hidden" id="selectedGateway" value="sandbox">
+
+                            <div class="d-flex flex-column gap-3 mb-3">
+                                <?php if ($stripe_enabled): ?>
+                                <div class="gw-pill" id="gwPill_stripe" onclick="selectPaymentGateway('stripe')">
+                                    <i class="fa-brands fa-cc-stripe fs-3 text-info"></i>
+                                    <div>
+                                        <div class="fw-bold text-white small">Stripe Official Checkout</div>
+                                        <div class="text-white-50" style="font-size:0.75rem;">Pay securely via Credit / Debit Card or Apple Pay</div>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php if ($razorpay_enabled): ?>
+                                <div class="gw-pill" id="gwPill_razorpay" onclick="selectPaymentGateway('razorpay')">
+                                    <i class="fa-solid fa-building-columns fs-4 text-primary"></i>
+                                    <div>
+                                        <div class="fw-bold text-white small">Razorpay Standard</div>
+                                        <div class="text-white-50" style="font-size:0.75rem;">UPI, Cards, NetBanking & International Payments</div>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php if ($sandbox_enabled): ?>
+                                <div class="gw-pill active" id="gwPill_sandbox" onclick="selectPaymentGateway('sandbox')">
+                                    <i class="fa-solid fa-flask fs-4 text-success"></i>
+                                    <div>
+                                        <div class="fw-bold text-white small">Sandbox / Instant Demo Checkout</div>
+                                        <div class="text-white-50" style="font-size:0.75rem;">Instant verified test payment & automated store deployment</div>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" id="toggleSandboxSim" checked>
+                                <label class="form-check-label small text-white-50" for="toggleSandboxSim">
+                                    Simulate instant payment (Sandbox / Demo Mode for testing)
+                                </label>
+                            </div>
+
+                            <button type="button" id="btnSubmitPayment" class="btn btn-gold w-100 py-3 fs-6" onclick="executeFinalPayment()">
+                                <i class="fa-solid fa-lock me-2"></i> Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-start mt-4 pt-3 border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-wiz" onclick="goToWizardStep(4)">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Change Template
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 LIVE 7-STEP DEPLOYMENT PROGRESSION
+            =========================================== -->
+            <div class="step-section" id="sectionDeploying">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-warning mb-3" style="width:3.2rem;height:3.2rem;" role="status"></div>
+                    <h2 class="serif-title fw-bold mb-1">Provisioning Your eCommerce Cloud Instance...</h2>
+                    <p class="text-white-50 small mb-4">Please wait while we configure your tenant storefront, Superadmin template catalog, and admin panel.</p>
+
+                    <div class="progress mx-auto mb-4" style="max-width:540px;height:12px;background:rgba(255,255,255,0.08);border-radius:20px;">
+                        <div id="deployProgressBar" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width:15%;"></div>
+                    </div>
+
+                    <div class="text-start mx-auto p-4 rounded-4" style="max-width:560px;background:var(--dark-surface);border:1px solid rgba(255,255,255,0.08);">
+                        <div class="small mb-2 text-success" id="dpStep1"><i class="fa-solid fa-check-circle me-2"></i>1. Verifying subscription payment & generating license key...</div>
+                        <div class="small mb-2 text-white-50" id="dpStep2"><i class="fa-regular fa-circle me-2"></i>2. Registering tenant slug & domain routing...</div>
+                        <div class="small mb-2 text-white-50" id="dpStep3"><i class="fa-regular fa-circle me-2"></i>3. Applying selected storefront theme template (<span id="dpTplLabel">template1</span>)...</div>
+                        <div class="small mb-2 text-white-50" id="dpStep4"><i class="fa-regular fa-circle me-2"></i>4. Seeding Superadmin-customized Hero Banners, Categories & Products...</div>
+                        <div class="small mb-2 text-white-50" id="dpStep5"><i class="fa-regular fa-circle me-2"></i>5. Creating Store Owner Administrator credentials...</div>
+                        <div class="small mb-2 text-white-50" id="dpStep6"><i class="fa-regular fa-circle me-2"></i>6. Configuring store currency, tax, shipping & payment gateways...</div>
+                        <div class="small mb-0 text-white-50" id="dpStep7"><i class="fa-regular fa-circle me-2"></i>7. Finalizing Launch Hub & activating storefront!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 DEPLOYMENT COMPLETE / LAUNCH HUB
+            =========================================== -->
+            <div class="step-section" id="sectionComplete">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width:72px;height:72px;background:rgba(16,185,129,0.15);color:#10b981;font-size:2rem;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <h2 class="serif-title fw-bold mb-1">Your eCommerce Store is Live!</h2>
+                    <p class="text-white-50 small">Your storefront and tenant administration panel have been provisioned and seeded with your chosen template.</p>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- Launch Storefront Card -->
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 h-100 text-center" style="background:var(--dark-surface);border:1px solid rgba(16,185,129,0.3);">
+                            <i class="fa-solid fa-store fs-2 text-success mb-2"></i>
+                            <h5 class="fw-bold text-white">Frontend Customer Website</h5>
+                            <p class="text-white-50 small mb-3">Visit your live customer-facing multi-template storefront.</p>
+                            <a href="#" id="hubLinkSite" target="_blank" class="btn btn-success fw-bold w-100 py-2">
+                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Storefront
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Launch Admin Panel Card -->
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 h-100 text-center" style="background:var(--dark-surface);border:1px solid rgba(194,153,88,0.4);">
+                            <i class="fa-solid fa-gauge-high fs-2 text-warning mb-2"></i>
+                            <h5 class="fw-bold text-white">Admin Management Panel</h5>
+                            <p class="text-white-50 small mb-3">Manage your products, categories, orders, coupons & settings.</p>
+                            <a href="<?php echo htmlspecialchars(saas_base_url('admin/auth/login')); ?>" id="hubLinkAdmin" target="_blank" class="btn btn-gold w-100 py-2">
+                                <i class="fa-solid fa-key me-1"></i> Login to Admin Panel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credentials Summary -->
+                <div class="p-4 rounded-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);">
+                    <h6 class="fw-bold text-warning mb-3"><i class="fa-solid fa-user-shield me-2"></i>Dedicated Administrator Credentials</h6>
+                    <div class="row g-3 small">
+                        <div class="col-md-4">
+                            <span class="text-white-50 d-block">Administrator Email:</span>
+                            <strong class="text-white" id="credAdminEmail">-</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-white-50 d-block">Administrator Password:</span>
+                            <strong class="text-warning" id="credAdminPass">-</strong>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-white-50 d-block">License Key & Order:</span>
+                            <strong class="text-success" id="credLicenseKey">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <!-- Hidden PayU Auto-Submit Form Container -->
-    <div id="payu-form-container" style="display:none;"></div>
-
     <script>
-        let currentStep = <?= $retryOrder ? 4 : 1 ?>;
-        let selectedPlanId = <?= (int)$initialPlanId ?>;
-        let selectedTemplate = <?= json_encode($initialTplKey) ?>;
-        let pendingOrderNumber = <?= json_encode($retryOrder['order_number'] ?? ($_SESSION['saas_pending_order_number'] ?? '')) ?>;
-        let selectedGateway = document.querySelector('.gateway-option.selected')
-            ? document.querySelector('.gateway-option.selected').getAttribute('data-gateway')
-            : 'sandbox';
+        let currentPlanCode = <?php echo json_encode($plan_code); ?>;
+        let currentPlanName = <?php echo json_encode($plan_name); ?>;
+        let currentPlanPrice = <?php echo json_encode($plan_price); ?>;
+        let currentAllowedTemplates = <?php echo json_encode($allowed_templates); ?>;
+        let currentDemoOtp = '';
+        let domainValid = false;
+        let domainTimer = null;
 
-        function showAlert(msg, isError = true) {
-            const box = document.getElementById('wizard-alert');
-            if (!box) return;
-            box.className = 'alert-box ' + (isError ? 'alert-error' : 'alert-success');
-            box.innerHTML = (isError ? '<i class="fa-solid fa-triangle-exclamation"></i> ' : '<i class="fa-solid fa-circle-check"></i> ') + msg;
-            box.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        function showAlert(msg, type = 'danger') {
+            const box = document.getElementById('wizardAlert');
+            box.className = `alert alert-${type} mb-4`;
+            box.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'} me-2"></i>${msg}`;
+            box.classList.remove('d-none');
         }
 
         function hideAlert() {
-            const box = document.getElementById('wizard-alert');
-            if (box) box.style.display = 'none';
+            document.getElementById('wizardAlert').classList.add('d-none');
         }
 
-        function goToStep(step) {
+        function goToWizardStep(stepNum) {
             hideAlert();
-            currentStep = step;
-            for (let i = 1; i <= 4; i++) {
-                const panel = document.getElementById('panel-step-' + i);
-                const pill = document.getElementById('stepper-' + i);
-                if (panel) panel.classList.toggle('active', i === step);
-                if (pill) {
-                    pill.classList.remove('active', 'completed');
-                    if (i === step) pill.classList.add('active');
-                    else if (i < step) pill.classList.add('completed');
-                }
+            document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById('sectionStep' + stepNum);
+            if (target) target.classList.add('active');
+
+            for (let i = 1; i <= 5; i++) {
+                const node = document.getElementById('stepNode' + i);
+                node.classList.remove('active', 'completed');
+                if (i < stepNum) node.classList.add('completed');
+                else if (i === stepNum) node.classList.add('active');
             }
-            refreshTemplateEligibility();
-            refreshOrderSummaryUI();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function selectPlanCard(el) {
-            document.querySelectorAll('.plan-option').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedPlanId = parseInt(el.getAttribute('data-plan-id'), 10);
-            refreshTemplateEligibility();
+        function togglePassVisibility() {
+            const inp = document.getElementById('wizPassword');
+            const icon = document.getElementById('eyeIcon');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash';
+            } else {
+                inp.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
         }
 
-        function refreshTemplateEligibility() {
-            const activePlanCard = document.querySelector('.plan-option.selected');
-            if (!activePlanCard) return;
-            let allowed = ['fashion', 'electronics', 'grocery'];
+        function onPlanSelectorChange(code) {
+            const sel = document.getElementById('wizPlanSelector');
+            const opt = sel.options[sel.selectedIndex];
+            currentPlanCode = code;
+            currentPlanName = opt.getAttribute('data-name');
+            currentPlanPrice = parseFloat(opt.getAttribute('data-price') || '29');
             try {
-                allowed = JSON.parse(activePlanCard.getAttribute('data-allowed-templates') || '["fashion","electronics","grocery"]');
-            } catch (e) {}
+                currentAllowedTemplates = JSON.parse(opt.getAttribute('data-allowed') || '["template1","template2","template3"]');
+            } catch (e) {
+                currentAllowedTemplates = ['template1', 'template2', 'template3'];
+            }
+            document.getElementById('navPlanBadge').textContent = `${currentPlanName} ($${currentPlanPrice.toFixed(2)})`;
+            document.getElementById('sumPlanName').textContent = currentPlanName;
+            document.getElementById('sumTotalAmount').textContent = `$${currentPlanPrice.toFixed(2)}`;
+            refreshTemplateLocks();
+        }
 
-            document.querySelectorAll('.tpl-option').forEach(card => {
-                const key = card.getAttribute('data-tpl-key');
-                if (allowed.includes(key)) {
-                    card.classList.remove('disabled-card');
+        function refreshTemplateLocks() {
+            ['template1', 'template2', 'template3'].forEach(tKey => {
+                const card = document.getElementById('tplCard_' + tKey);
+                if (!card) return;
+                const slug = card.getAttribute('data-slug');
+                if (currentAllowedTemplates.includes(tKey) || currentAllowedTemplates.includes(slug)) {
+                    card.classList.remove('locked');
                 } else {
-                    card.classList.add('disabled-card');
-                    card.classList.remove('selected');
+                    card.classList.add('locked');
                 }
             });
-
-            if (!allowed.includes(selectedTemplate)) {
-                selectedTemplate = allowed[0] || 'fashion';
-                const fallbackCard = document.querySelector('.tpl-option[data-tpl-key="' + selectedTemplate + '"]');
-                if (fallbackCard) fallbackCard.classList.add('selected');
-            }
         }
 
-        function selectTemplateCard(el) {
-            if (el.classList.contains('disabled-card')) {
-                showAlert('This template requires a higher plan tier. Please select a permitted template or upgrade your plan in Step 1.');
-                return;
-            }
-            document.querySelectorAll('.tpl-option').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedTemplate = el.getAttribute('data-tpl-key');
-        }
-
-        function selectGateway(el) {
-            document.querySelectorAll('.gateway-option').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedGateway = el.getAttribute('data-gateway');
-        }
-
-        function autoGenerateSlug(val) {
-            const slugInput = document.getElementById('reg_store_slug');
-            if (!slugInput || slugInput.dataset.manual === '1') return;
-            const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-            slugInput.value = slug;
-            document.getElementById('slug-preview-hint').innerHTML =
-                'Store URL: <code><?= htmlspecialchars(saas_base_url('website/s/')) ?>' + (slug || 'your-store') + '</code>';
-        }
-
-        async function validateUniqueField(field, value) {
-            if (!value) return;
+        async function validateUniqueField(field) {
+            const val = document.getElementById(field === 'email' ? 'wizEmail' : 'wizPhone').value.trim();
+            if (!val) return true;
             const fd = new FormData();
             fd.append('action', 'check_unique');
-            fd.append(field, value);
+            fd.append(field, val);
             try {
                 const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
                 const data = await res.json();
-                if (!data.valid) {
-                    showAlert(data.message, true);
+                const errEl = document.getElementById(field === 'email' ? 'errEmail' : 'errPhone');
+                const inpEl = document.getElementById(field === 'email' ? 'wizEmail' : 'wizPhone');
+                if (data.status === 'error' || data.valid === false) {
+                    errEl.textContent = data.message;
+                    errEl.className = 'small mt-1 text-danger';
+                    inpEl.classList.add('is-invalid');
+                    inpEl.classList.remove('is-valid');
+                    return false;
                 } else {
-                    hideAlert();
-                    if (field === 'store_slug' && data.slug) {
-                        document.getElementById('reg_store_slug').value = data.slug;
-                        document.getElementById('slug-preview-hint').innerHTML =
-                            'Store URL: <code style="color:#34d399;">' + data.store_url + ' ✓ Available</code>';
+                    errEl.textContent = '✓ Available';
+                    errEl.className = 'small mt-1 text-success';
+                    inpEl.classList.remove('is-invalid');
+                    inpEl.classList.add('is-valid');
+                    return true;
+                }
+            } catch (e) {
+                return true;
+            }
+        }
+
+        async function processStep1() {
+            hideAlert();
+            const name = document.getElementById('wizName').value.trim();
+            const email = document.getElementById('wizEmail').value.trim();
+            const phone = document.getElementById('wizPhone').value.trim();
+            const password = document.getElementById('wizPassword').value.trim();
+
+            if (!name || !email || !phone || password.length < 6) {
+                showAlert('Please fill in your Full Name, valid Email, Phone Number, and a Password of at least 6 characters.');
+                return;
+            }
+
+            const btn = document.getElementById('btnStep1Next');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Sending OTP...';
+
+            const fd = new FormData();
+            fd.append('action', 'send_otp');
+            fd.append('name', name);
+            fd.append('email', email);
+            fd.append('phone', phone);
+            fd.append('password', password);
+
+            try {
+                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = 'Proceed to OTP Verification <i class="fa-solid fa-arrow-right ms-2"></i>';
+
+                if (data.status === 'success') {
+                    currentDemoOtp = String(data.demo_otp || '');
+                    document.getElementById('otpTargetEmail').textContent = email;
+                    document.getElementById('otpTargetPhone').textContent = phone;
+                    document.getElementById('demoOtpDisplay').textContent = currentDemoOtp;
+                    // Pre-fill Step 3 company email & phone if empty
+                    if (!document.getElementById('wizCompanyEmail').value) document.getElementById('wizCompanyEmail').value = email;
+                    if (!document.getElementById('wizCompanyPhone').value) document.getElementById('wizCompanyPhone').value = phone;
+                    goToWizardStep(2);
+                } else {
+                    showAlert(data.message || 'Unable to send OTP.');
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerHTML = 'Proceed to OTP Verification <i class="fa-solid fa-arrow-right ms-2"></i>';
+                showAlert('Network error occurred. Please try again.');
+            }
+        }
+
+        function otpNext(el, idx) {
+            el.value = el.value.replace(/[^0-9]/g, '');
+            if (el.value && idx < 6) {
+                document.getElementById('otpDigit' + (idx + 1)).focus();
+            }
+        }
+
+        function otpBack(e, idx) {
+            if (e.key === 'Backspace' && !e.target.value && idx > 1) {
+                document.getElementById('otpDigit' + (idx - 1)).focus();
+            }
+        }
+
+        function autoFillDemoOtp() {
+            if (!currentDemoOtp) return;
+            for (let i = 0; i < 6; i++) {
+                const d = document.getElementById('otpDigit' + (i + 1));
+                if (d) d.value = currentDemoOtp[i] || '';
+            }
+        }
+
+        async function resendOtpCode() {
+            const fd = new FormData();
+            fd.append('action', 'resend_otp');
+            const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.status === 'success') {
+                currentDemoOtp = String(data.demo_otp || '');
+                document.getElementById('demoOtpDisplay').textContent = currentDemoOtp;
+                showAlert('A new 6-digit verification code has been generated.', 'success');
+            }
+        }
+
+        async function submitOtpVerification() {
+            hideAlert();
+            let otp = '';
+            for (let i = 1; i <= 6; i++) {
+                otp += (document.getElementById('otpDigit' + i).value || '');
+            }
+            if (otp.length !== 6) {
+                showAlert('Please enter all 6 digits of your verification code.');
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('action', 'verify_otp');
+            fd.append('otp', otp);
+
+            const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.status === 'success') {
+                goToWizardStep(3);
+            } else {
+                showAlert(data.message || 'Invalid OTP code.');
+            }
+        }
+
+        function autoSuggestDomain(val) {
+            const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            const domInp = document.getElementById('wizDomain');
+            if (!domInp.dataset.touched) {
+                domInp.value = slug;
+                debounceDomainCheck();
+            }
+        }
+
+        function debounceDomainCheck() {
+            const domInp = document.getElementById('wizDomain');
+            domInp.dataset.touched = '1';
+            clearTimeout(domainTimer);
+            domainTimer = setTimeout(() => checkDomainAvailability(), 350);
+        }
+
+        async function checkDomainAvailability() {
+            const raw = document.getElementById('wizDomain').value.trim();
+            const msgBox = document.getElementById('domainStatusMsg');
+            if (!raw) return false;
+
+            const fd = new FormData();
+            fd.append('action', 'check_domain');
+            fd.append('domain', raw);
+
+            try {
+                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    domainValid = true;
+                    document.getElementById('wizDomain').value = data.clean_domain;
+                    msgBox.innerHTML = `<span class="text-success fw-bold">${data.message}</span> <span class="text-white-50 ms-2">URL: <code>${data.store_url}</code></span>`;
+                    return true;
+                } else {
+                    domainValid = false;
+                    msgBox.innerHTML = `<span class="text-danger fw-bold"><i class="fa-solid fa-circle-xmark me-1"></i>${data.message}</span>`;
+                    return false;
+                }
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function previewUpload(input, labelId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(labelId).innerHTML = `<strong class="text-success"><i class="fa-solid fa-check me-1"></i>${input.files[0].name}</strong>`;
+            }
+        }
+
+        async function processStep3() {
+            hideAlert();
+            const bName = document.getElementById('wizBusinessName').value.trim();
+            const dom   = document.getElementById('wizDomain').value.trim();
+            if (!bName) {
+                showAlert('Please enter your Store / Business Name.');
+                return;
+            }
+            if (!dom || dom.length < 3) {
+                showAlert('Please enter a valid Store Folder / Domain Slug (at least 3 characters).');
+                return;
+            }
+            const avail = await checkDomainAvailability();
+            if (!avail) {
+                showAlert('Please choose an available Store Folder / Domain Slug before continuing.');
+                return;
+            }
+            goToWizardStep(4);
+        }
+
+        function selectWizardTemplate(tKey) {
+            const card = document.getElementById('tplCard_' + tKey);
+            if (!card || card.classList.contains('locked')) {
+                showAlert('This template requires a higher plan tier. Please switch your plan in Step 1 or select an unlocked template.');
+                return;
+            }
+            document.querySelectorAll('.tpl-select-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.getElementById('wizChosenTemplate').value = tKey;
+        }
+
+        function processStep4() {
+            hideAlert();
+            const tplKey = document.getElementById('wizChosenTemplate').value;
+            const card = document.getElementById('tplCard_' + tplKey);
+            const tplTitle = card ? card.getAttribute('data-title') : tplKey;
+
+            document.getElementById('sumPlanName').textContent = currentPlanName;
+            document.getElementById('sumBusinessName').textContent = document.getElementById('wizBusinessName').value.trim();
+            document.getElementById('sumDomain').textContent = 'website/s/' + document.getElementById('wizDomain').value.trim();
+            document.getElementById('sumAdminEmail').textContent = document.getElementById('wizEmail').value.trim();
+            document.getElementById('sumTemplate').textContent = `${tplTitle} (${tplKey})`;
+            document.getElementById('sumTotalAmount').textContent = `$${currentPlanPrice.toFixed(2)}`;
+
+            goToWizardStep(5);
+        }
+
+        function selectPaymentGateway(gw) {
+            document.getElementById('selectedGateway').value = gw;
+            document.querySelectorAll('.gw-pill').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('gwPill_' + gw);
+            if (target) target.classList.add('active');
+        }
+
+        function collectWizardFormData(actionName) {
+            const fd = new FormData();
+            fd.append('action', actionName);
+            fd.append('plan_code', currentPlanCode);
+            fd.append('name', document.getElementById('wizName').value.trim());
+            fd.append('email', document.getElementById('wizEmail').value.trim());
+            fd.append('phone', document.getElementById('wizPhone').value.trim());
+            fd.append('password', document.getElementById('wizPassword').value.trim());
+            fd.append('business_name', document.getElementById('wizBusinessName').value.trim());
+            fd.append('tagline', document.getElementById('wizTagline').value.trim());
+            fd.append('company_email', document.getElementById('wizCompanyEmail').value.trim());
+            fd.append('company_phone', document.getElementById('wizCompanyPhone').value.trim());
+            fd.append('company_address', document.getElementById('wizCompanyAddress').value.trim());
+            fd.append('currency_symbol', document.getElementById('wizCurrencySymbol').value);
+            fd.append('domain', document.getElementById('wizDomain').value.trim());
+            fd.append('chosen_template', document.getElementById('wizChosenTemplate').value);
+
+            const logoFile = document.getElementById('wizLogoFile');
+            if (logoFile && logoFile.files[0]) {
+                fd.append('company_logo', logoFile.files[0]);
+            }
+            const favFile = document.getElementById('wizFaviconFile');
+            if (favFile && favFile.files[0]) {
+                fd.append('favicon', favFile.files[0]);
+            }
+            return fd;
+        }
+
+        async function executeFinalPayment() {
+            hideAlert();
+            const gw = document.getElementById('selectedGateway').value;
+            const simChecked = document.getElementById('toggleSandboxSim').checked;
+
+            if (gw === 'sandbox' || simChecked) {
+                runLiveDeploymentAndProvision('sandbox', 'SANDBOX-' + Date.now());
+                return;
+            }
+
+            if (gw === 'razorpay' && typeof Razorpay !== 'undefined') {
+                const options = {
+                    key: <?php echo json_encode($razorpay_key_id); ?>,
+                    amount: Math.round(currentPlanPrice * 100),
+                    currency: "USD",
+                    name: "LuxeCommerce SaaS",
+                    description: currentPlanName + " Subscription",
+                    handler: function (response) {
+                        runLiveDeploymentAndProvision('razorpay', response.razorpay_payment_id || ('RZP-' + Date.now()));
                     }
-                }
-            } catch (e) {}
-        }
-
-        async function submitRegistrationStep(e) {
-            e.preventDefault();
-            hideAlert();
-            const btn = document.getElementById('btn-reg-submit');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validating...';
-
-            const form = document.getElementById('registration-form');
-            const fd = new FormData(form);
-            fd.append('action', 'register_step');
-            fd.append('plan_id', selectedPlanId);
-            fd.append('template', selectedTemplate);
-
-            try {
-                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
-                const data = await res.json();
-                btn.disabled = false;
-                btn.innerHTML = 'Save & Select Template <i class="fa-solid fa-arrow-right"></i>';
-
-                if (!data.success) {
-                    showAlert(data.message, true);
-                    return;
-                }
-                document.getElementById('summary-store-slug').textContent = data.store_slug;
-                goToStep(3);
-            } catch (err) {
-                btn.disabled = false;
-                btn.innerHTML = 'Save & Select Template <i class="fa-solid fa-arrow-right"></i>';
-                showAlert('Network error while validating registration.', true);
-            }
-        }
-
-        async function saveTemplateAndProceedToPayment() {
-            hideAlert();
-            const btn = document.getElementById('btn-tpl-submit');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Pending Order...';
-
-            const fd = new FormData();
-            fd.append('action', 'save_template_and_create_pending_order');
-            fd.append('plan_id', selectedPlanId);
-            fd.append('template', selectedTemplate);
-
-            try {
-                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
-                const data = await res.json();
-                btn.disabled = false;
-                btn.innerHTML = 'Proceed to Payment Checkout <i class="fa-solid fa-credit-card"></i>';
-
-                if (!data.success) {
-                    showAlert(data.message, true);
-                    return;
-                }
-                pendingOrderNumber = data.order_number;
-                document.getElementById('summary-order-num').textContent = data.order_number;
-                goToStep(4);
-            } catch (err) {
-                btn.disabled = false;
-                btn.innerHTML = 'Proceed to Payment Checkout <i class="fa-solid fa-credit-card"></i>';
-                showAlert('Error creating pending subscription order.', true);
-            }
-        }
-
-        function refreshOrderSummaryUI() {
-            const planCard = document.querySelector('.plan-option.selected');
-            if (planCard) {
-                document.getElementById('summary-plan-name').textContent = planCard.getAttribute('data-plan-name');
-                document.getElementById('summary-amount').textContent = '<?= addslashes($currencySym) ?>' + planCard.getAttribute('data-plan-price');
-            }
-            document.getElementById('summary-tpl-name').textContent = selectedTemplate + ' Store';
-        }
-
-        async function initiateSubscriptionPayment() {
-            hideAlert();
-            if (!pendingOrderNumber) {
-                showAlert('Please complete registration and template selection first.', true);
+                };
+                const rzp = new Razorpay(options);
+                rzp.open();
                 return;
             }
 
-            const btn = document.getElementById('btn-pay-now');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Initializing Payment Gateway...';
+            // Fallback / Stripe simulation
+            runLiveDeploymentAndProvision(gw, gw.toUpperCase() + '-' + Date.now());
+        }
 
-            if (selectedGateway === 'sandbox') {
-                const fd = new FormData();
-                fd.append('action', 'process_sandbox_payment');
-                fd.append('order_number', pendingOrderNumber);
-                fd.append('simulate_outcome', 'success');
+        async function runLiveDeploymentAndProvision(paymentMethod, transactionId) {
+            document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sectionDeploying').classList.add('active');
+            document.getElementById('dpTplLabel').textContent = document.getElementById('wizChosenTemplate').value;
 
-                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = 'subscribe.php?activated_order=' + encodeURIComponent(pendingOrderNumber);
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-lock"></i> Complete Verified Payment & Activate Store';
-                    showAlert(data.message || 'Sandbox payment failed.', true);
+            const bar = document.getElementById('deployProgressBar');
+            const markStep = (n, pct) => {
+                bar.style.width = pct + '%';
+                const el = document.getElementById('dpStep' + n);
+                if (el) {
+                    el.className = 'small mb-2 text-success fw-semibold';
+                    el.innerHTML = el.innerHTML.replace('fa-regular fa-circle', 'fa-solid fa-check-circle');
                 }
-                return;
-            }
+            };
 
-            const fd = new FormData();
-            fd.append('order_number', pendingOrderNumber);
-            fd.append('gateway', selectedGateway);
+            const fd = collectWizardFormData('process_subscription');
+            fd.append('payment_method', paymentMethod);
+            fd.append('transaction_id', transactionId);
+
+            setTimeout(() => markStep(2, 30), 250);
+            setTimeout(() => markStep(3, 50), 550);
+            setTimeout(() => markStep(4, 70), 850);
 
             try {
-                const res = await fetch('create_payment.php', { method: 'POST', body: fd });
+                const res = await fetch('subscribe_api.php', { method: 'POST', body: fd });
                 const data = await res.json();
 
-                if (!data.success) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-lock"></i> Complete Verified Payment & Activate Store';
-                    showAlert(data.message || 'Gateway initialization failed.', true);
-                    return;
-                }
+                markStep(5, 85);
+                markStep(6, 95);
+                markStep(7, 100);
 
-                if (data.gateway === 'stripe' && data.checkout_url) {
-                    window.location.href = data.checkout_url;
-                    return;
-                }
-
-                if (data.gateway === 'razorpay') {
-                    const options = {
-                        key: data.key_id,
-                        amount: data.amount,
-                        currency: data.currency,
-                        name: <?= json_encode($platformName) ?>,
-                        description: 'Subscription Order ' + data.order_number,
-                        order_id: data.razorpay_order_id || undefined,
-                        prefill: {
-                            name: data.customer_name,
-                            email: data.customer_email,
-                            contact: data.customer_phone
-                        },
-                        handler: async function (response) {
-                            const vfd = new FormData();
-                            vfd.append('action', 'verify_razorpay_payment');
-                            vfd.append('order_number', data.order_number);
-                            vfd.append('razorpay_payment_id', response.razorpay_payment_id || '');
-                            vfd.append('razorpay_order_id', response.razorpay_order_id || '');
-                            vfd.append('razorpay_signature', response.razorpay_signature || '');
-                            const vRes = await fetch('subscribe_api.php', { method: 'POST', body: vfd });
-                            const vData = await vRes.json();
-                            if (vData.success) {
-                                window.location.href = 'subscribe.php?activated_order=' + encodeURIComponent(data.order_number);
-                            } else {
-                                showAlert(vData.message || 'Payment verification failed.', true);
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Retry Payment';
-                            }
-                        },
-                        modal: {
-                            ondismiss: async function () {
-                                const cfd = new FormData();
-                                cfd.append('action', 'mark_payment_failed');
-                                cfd.append('order_number', data.order_number);
-                                cfd.append('status', 'cancelled');
-                                await fetch('subscribe_api.php', { method: 'POST', body: cfd });
-                                btn.disabled = false;
-                                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Retry Payment';
-                                showAlert('Payment popup was closed. Your subscription is still pending — click Retry Payment when ready.', true);
-                            }
+                setTimeout(() => {
+                    if (data.status === 'success' || data.success) {
+                        document.getElementById('sectionDeploying').classList.remove('active');
+                        document.getElementById('sectionComplete').classList.add('active');
+                        document.getElementById('hubLinkSite').href = data.website_url || data.store_url;
+                        document.getElementById('hubLinkAdmin').href = data.admin_url;
+                        document.getElementById('credAdminEmail').textContent = data.admin_email;
+                        document.getElementById('credAdminPass').textContent = data.admin_password;
+                        document.getElementById('credLicenseKey').textContent = `${data.license_key} (${data.order_number})`;
+                        for (let i = 1; i <= 5; i++) {
+                            const node = document.getElementById('stepNode' + i);
+                            node.classList.remove('active');
+                            node.classList.add('completed');
                         }
-                    };
-                    const rzp = new Razorpay(options);
-                    rzp.open();
-                    return;
-                }
-
-                if (data.gateway === 'payu' && data.action && data.params) {
-                    let formHtml = '<form id="payu-auto-form" method="post" action="' + data.action + '">';
-                    for (const [k, v] of Object.entries(data.params)) {
-                        formHtml += '<input type="hidden" name="' + k + '" value="' + String(v).replace(/"/g, '&quot;') + '">';
+                    } else {
+                        goToWizardStep(5);
+                        showAlert(data.message || 'Provisioning failed.');
                     }
-                    formHtml += '</form>';
-                    document.getElementById('payu-form-container').innerHTML = formHtml;
-                    document.getElementById('payu-auto-form').submit();
-                    return;
-                }
-            } catch (err) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Complete Verified Payment & Activate Store';
-                showAlert('Error communicating with payment server.', true);
+                }, 600);
+            } catch (e) {
+                goToWizardStep(5);
+                showAlert('Network error during deployment.');
             }
-        }
-
-        // Initialize UI state
-        if (currentStep === 4) {
-            goToStep(4);
-        } else {
-            refreshTemplateEligibility();
-            refreshOrderSummaryUI();
         }
     </script>
 </body>

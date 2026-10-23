@@ -20,7 +20,7 @@ class page extends MY_Controller {
     public function contact()
     {
         if ($this->input->method() === 'post') {
-            $this->session->set_flashdata('success', 'Thank you! Your message has been sent to our customer support team.');
+            $this->session->set_flashdata('success', 'Thank you! Your message has been sent (Template Demo Mode).');
             redirect('contact');
         }
 
@@ -69,30 +69,11 @@ class page extends MY_Controller {
 
     public function subscribe_newsletter()
     {
-        $email = trim($this->input->post('email', TRUE));
-        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $tid = (int) ($this->tenant_id ?? 1);
-            $existing = $this->db->where('tenant_id', $tid)->where('email', $email)->get('newsletter_subscribers')->row_array();
-            if (!$existing) {
-                $this->db->insert('newsletter_subscribers', [
-                    'tenant_id' => $tid,
-                    'email'     => $email,
-                    'status'    => 'subscribed'
-                ]);
-            }
-            if ($this->input->is_ajax_request()) {
-                $this->json_response(['success' => true, 'message' => 'Thank you for subscribing to our newsletter!']);
-                return;
-            }
-            $this->session->set_flashdata('success', 'Thank you for subscribing to our newsletter!');
-        } else {
-            if ($this->input->is_ajax_request()) {
-                $this->json_response(['success' => false, 'message' => 'Please provide a valid email address.'], 400);
-                return;
-            }
-            $this->session->set_flashdata('error', 'Please provide a valid email address.');
+        if ($this->input->is_ajax_request()) {
+            $this->json_response(['success' => true, 'message' => 'Thank you for subscribing to our newsletter (Template Demo Mode)!']);
+            return;
         }
-
+        $this->session->set_flashdata('success', 'Thank you for subscribing to our newsletter (Template Demo Mode)!');
         redirect($_SERVER['HTTP_REFERER'] ?? 'home');
     }
 }

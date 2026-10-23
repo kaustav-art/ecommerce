@@ -154,19 +154,7 @@
             }
         }
 
-        // Fallback: Check user's saved addresses in user_addresses
-        if ($addr_type === 'HOME' && !empty($order['user_id'])) {
-            $db_inst = isset($this->db) ? $this->db : (function_exists('get_instance') ? get_instance()->db : null);
-            if ($db_inst) {
-                $saved_work = $db_inst->where('user_id', (int)$order['user_id'])
-                                      ->where('company', 'WORK')
-                                      ->get('user_addresses')
-                                      ->row_array();
-                if ($saved_work) {
-                    $addr_type = 'WORK';
-                }
-            }
-        }
+        // Static template mode: no database query needed for address type
 
         // Clean & Format Address
         $raw_address = trim($order['shipping_address'] ?? '');

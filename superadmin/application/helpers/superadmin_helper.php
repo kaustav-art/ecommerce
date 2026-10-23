@@ -221,3 +221,70 @@ if (!function_exists('superadmin_favicon_url')) {
         return main_site_url(ltrim($fav, '/\\'));
     }
 }
+
+if (!function_exists('get_tpl_setting')) {
+    function get_tpl_setting($template_key, $layout_number, $section_key, $setting_key, $default = '') {
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('template_layout_settings')) {
+            return $default;
+        }
+        $row = $CI->db->where('template_key', $template_key)
+                      ->where('layout_number', (int)$layout_number)
+                      ->where('section_key', $section_key)
+                      ->where('setting_key', $setting_key)
+                      ->get('template_layout_settings')
+                      ->row();
+        return ($row && $row->setting_value !== null && $row->setting_value !== '') ? $row->setting_value : $default;
+    }
+}
+
+if (!function_exists('set_tpl_setting')) {
+    function set_tpl_setting($template_key, $layout_number, $section_key, $setting_key, $value) {
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('template_layout_settings')) {
+            return false;
+        }
+        $existing = $CI->db->where('template_key', $template_key)
+                           ->where('layout_number', (int)$layout_number)
+                           ->where('section_key', $section_key)
+                           ->where('setting_key', $setting_key)
+                           ->get('template_layout_settings')
+                           ->row();
+        if ($existing) {
+            $CI->db->where('id', $existing->id)->update('template_layout_settings', array(
+                'setting_value' => (string)$value
+            ));
+        } else {
+            $CI->db->insert('template_layout_settings', array(
+                'template_key'  => $template_key,
+                'layout_number' => (int)$layout_number,
+                'section_key'   => $section_key,
+                'setting_key'   => $setting_key,
+                'setting_value' => (string)$value
+            ));
+        }
+        return true;
+    }
+}
+
+if (!function_exists('resolve_tpl_image_url')) {
+    function resolve_tpl_image_url($path, $default = 'website/assets/images/slider/slider-women1.jpg') {
+        $root_url  = rtrim(main_site_url(), '/') . '/';
+        $web_url   = rtrim(tenant_site_url(), '/') . '/';
+        if (empty($path)) {
+            return $root_url . ltrim($default, '/');
+        }
+        if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+            return $path;
+        }
+        $clean = ltrim($path, '/\\');
+        if (strpos($clean, 'website/') === 0) {
+            return $root_url . $clean;
+        }
+        if (strpos($clean, 'assets/') === 0 || strpos($clean, 'uploads/') === 0) {
+            return $web_url . $clean;
+        }
+        return $web_url . 'assets/images/' . $clean;
+    }
+}
+

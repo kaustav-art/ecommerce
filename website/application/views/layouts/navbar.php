@@ -20,76 +20,54 @@
                         <!-- Right Actions (Login / User Account, Wishlist & Cart) -->
                         <div class="store-actions-col flex-shrink-0 d-flex align-items-center gap-3 gap-md-4 order-2 order-md-3">
                             
-                            <!-- User Account / Login -->
+                            <!-- User Account (Always shows After-Login Dropdown Menu in Template Mode) -->
                             <div class="store-nav-account position-relative">
-                                <?php if ($this->is_logged_in()): 
-                                    $u_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
-                                    if (empty($u_name)) $u_name = 'Account';
-                                    $u_email = $current_user['email'] ?? '';
-                                    $u_avatar = (!empty($current_user['avatar']) && $current_user['avatar'] !== 'default-user.png' && file_exists(FCPATH . $current_user['avatar'])) ? base_url($current_user['avatar']) : null;
+                                <?php
+                                    $u_first = $current_user['first_name'] ?? 'Alex';
+                                    $u_name  = trim(($current_user['first_name'] ?? 'Alex') . ' ' . ($current_user['last_name'] ?? 'Morgan'));
+                                    $u_email = $current_user['email'] ?? 'alex.morgan@example.com';
                                 ?>
-                                    <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
-                                        <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline"><?= html_escape($current_user['first_name'] ?? 'Account'); ?></span>
-                                        <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
-                                    </a>
+                                <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
+                                    <i class="fa-regular fa-circle-user store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline"><?= html_escape($u_first); ?></span>
+                                    <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
+                                </a>
 
-                                    <!-- User Account Drawer Menu (Opens on hover) -->
-                                    <div class="after-login-drawer-menu shadow-lg">
-                                        <div class="drawer-user-header p-3 border-bottom d-flex align-items-center">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden me-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 16px; font-weight: bold;">
-                                                <?php if (!empty($u_avatar)): ?>
-                                                    <img src="<?= $u_avatar; ?>" alt="<?= html_escape($u_name); ?>" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                                                    <span class="d-none"><?= strtoupper(substr($u_name, 0, 1)); ?></span>
-                                                <?php else: ?>
-                                                    <?= strtoupper(substr($current_user['first_name'] ?? 'U', 0, 1)); ?>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="overflow-hidden" style="min-width: 0;">
-                                                <div class="text-muted text-uppercase" style="font-size: 10.5px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
-                                                <div class="fw-bold text-dark text-truncate" style="font-size: 14px;" title="<?= html_escape($u_name); ?>">
-                                                    <?= html_escape($u_name); ?>
-                                                </div>
-                                                <div class="text-muted small text-truncate" style="font-size: 11.5px;" title="<?= html_escape($u_email); ?>">
-                                                    <?= html_escape($u_email); ?>
-                                                </div>
-                                            </div>
+                                <!-- User Account Drawer Menu (Opens on hover) -->
+                                <div class="after-login-drawer-menu shadow-lg">
+                                    <div class="drawer-user-header p-3 border-bottom d-flex align-items-center">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden me-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 16px; font-weight: bold;">
+                                            <?= strtoupper(substr($u_first, 0, 1)); ?>
                                         </div>
-                                        <div class="py-2">
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/profile'); ?>"><i class="fa-regular fa-user text-primary me-3" style="width: 16px;"></i>My Profile</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive text-primary me-3" style="width: 16px;"></i>Orders</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a>
-                                            <hr class="dropdown-divider my-2" style="border-color: #f0f0f0;">
-                                            <a class="dropdown-item py-2 px-3 text-danger d-flex align-items-center" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>Logout</a>
+                                        <div class="overflow-hidden" style="min-width: 0;">
+                                            <div class="text-muted text-uppercase" style="font-size: 10.5px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
+                                            <div class="fw-bold text-dark text-truncate" style="font-size: 14px;" title="<?= html_escape($u_name); ?>">
+                                                <?= html_escape($u_name); ?>
+                                            </div>
+                                            <div class="text-muted small text-truncate" style="font-size: 11.5px;" title="<?= html_escape($u_email); ?>">
+                                                <?= html_escape($u_email); ?>
+                                            </div>
                                         </div>
                                     </div>
-                                <?php else: ?>
-                                    <a href="#loginModal" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="Login">
-                                        <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline">Login</span>
-                                        <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
-                                    </a>
-                                <?php endif; ?>
+                                    <div class="py-2">
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/profile'); ?>"><i class="fa-regular fa-user text-primary me-3" style="width: 16px;"></i>My Profile</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive text-primary me-3" style="width: 16px;"></i>Orders</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Wishlist -->
                             <div class="store-nav-wishlist">
-                                <?php if ($this->is_logged_in()): ?>
-                                    <a href="<?= site_url('wishlist'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
-                                        <i class="fa-regular fa-heart store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline">Wishlist</span>
-                                        <?php if (!empty($wishlist_count) && $wishlist_count > 0): ?>
-                                            <span class="store-cart-badge" id="wishlist-counter"><?= $wishlist_count; ?></span>
-                                        <?php endif; ?>
-                                    </a>
-                                <?php else: ?>
-                                    <a href="#loginModal" data-bs-toggle="modal" data-redirect-to="<?= site_url('wishlist'); ?>" data-login-message="Please sign in to access your wishlist." onclick="if(typeof openLoginModal==='function'){openLoginModal('<?= site_url('wishlist'); ?>', 'Please sign in to access your wishlist.'); return false;}" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
-                                        <i class="fa-regular fa-heart store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline">Wishlist</span>
-                                    </a>
-                                <?php endif; ?>
+                                <a href="<?= site_url('wishlist'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
+                                    <i class="fa-regular fa-heart store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline">Wishlist</span>
+                                    <?php if (!empty($wishlist_count) && $wishlist_count > 0): ?>
+                                        <span class="store-cart-badge" id="wishlist-counter"><?= $wishlist_count; ?></span>
+                                    <?php endif; ?>
+                                </a>
                             </div>
 
                             <!-- Cart -->
@@ -147,17 +125,17 @@
                     <!-- Scroll Track -->
                     <div class="store-cat-track" id="catSlideTrack">
                         <?php 
-                        if (!empty($category_tree)): 
+                        $header_categories = !empty($category_tree) ? array_slice($category_tree, 0, 10) : [];
+                        if (!empty($header_categories)): 
                             $c_idx = 1;
-                            foreach ($category_tree as $root_c): 
+                            foreach ($header_categories as $root_c): 
                                 $fallback_circle = 'collections/collection-circle/cls-circle' . (($c_idx % 17) ?: 1) . '.jpg';
                                 $c_idx++;
                                 $cat_img = !empty($root_c['image']) 
                                     ? base_url('assets/images/' . $root_c['image']) 
                                     : base_url('assets/images/' . $fallback_circle);
-                                $has_subs = !empty($root_c['children']);
                         ?>
-                            <div class="store-cat-item <?= $has_subs ? 'has-subcategories' : ''; ?>" data-cat-id="<?= $root_c['id']; ?>">
+                            <div class="store-cat-item" data-cat-id="<?= $root_c['id']; ?>">
                                 <a href="<?= site_url('shop/' . $root_c['slug']); ?>" class="store-cat-card">
                                     <div class="store-cat-thumb-outer">
                                         <img src="<?= $cat_img; ?>" 
@@ -167,9 +145,6 @@
                                     </div>
                                     <div class="store-cat-name-row">
                                         <span class="store-cat-name-text"><?= html_escape($root_c['name']); ?></span>
-                                        <?php if ($has_subs): ?>
-                                            <i class="fa-solid fa-chevron-down store-cat-arrow-icon"></i>
-                                        <?php endif; ?>
                                     </div>
                                 </a>
                             </div>
@@ -183,44 +158,6 @@
                     <button type="button" class="store-cat-slide-btn store-cat-slide-next" id="catSlideNext" aria-label="Next categories">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
-
-                    <!-- Multi-Column Category Drawers (Matching category_drawer.png) -->
-                    <div class="store-cat-drawers-container" id="catDrawersContainer">
-                        <?php 
-                        if (!empty($category_tree)): 
-                            foreach ($category_tree as $root_c): 
-                                if (!empty($root_c['children'])):
-                        ?>
-                            <div class="store-cat-drawer shadow-lg" id="catDrawer-<?= $root_c['id']; ?>" data-cat-id="<?= $root_c['id']; ?>">
-                                <div class="store-cat-drawer-inner">
-                                    <?php foreach ($root_c['children'] as $sub_c): 
-                                        $sub_children = $sub_c['children'] ?? [];
-                                    ?>
-                                        <div class="store-drawer-col">
-                                            <a href="<?= site_url('shop/' . $sub_c['slug']); ?>" class="store-drawer-col-title">
-                                                <?= html_escape($sub_c['name']); ?>
-                                            </a>
-                                            <?php if (!empty($sub_children)): ?>
-                                                <ul class="store-drawer-list">
-                                                    <?php foreach ($sub_children as $child_c): ?>
-                                                        <li class="store-drawer-item">
-                                                            <a href="<?= site_url('shop/' . $child_c['slug']); ?>" class="store-drawer-link">
-                                                                <?= html_escape($child_c['name']); ?>
-                                                            </a>
-                                                        </li>
-                                                    <?php endforeach; ?>
-                                                </ul>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        <?php 
-                                endif;
-                            endforeach; 
-                        endif; 
-                        ?>
-                    </div>
                 </div>
             </div>
             <?php endif; ?>
