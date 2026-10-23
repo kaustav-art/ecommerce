@@ -55,9 +55,9 @@ if (!function_exists('elt_resolve_img')) {
    <link rel="stylesheet" href="<?= $bazaro; ?>css/spacing.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/main.css">
 
+   <link rel="stylesheet" type="text/css" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
    <?php if (!in_array(($active_page ?? 'home'), ['home', 'shop', 'product'], true)): ?>
    <!-- Inner-page storefront styles for shared cart/checkout/account views -->
-   <link rel="stylesheet" type="text/css" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
    <link rel="stylesheet" type="text/css" href="<?= base_url('assets/css/styles.css'); ?>">
    <?php endif; ?>
 

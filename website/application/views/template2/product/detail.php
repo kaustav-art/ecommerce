@@ -1,7 +1,693 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/templates/bazaro/');
+$currency_symbol = isset($currency_symbol) ? $currency_symbol : '₹';
+
+// Collect all images (main image first, followed by gallery images)
+$all_images = [];
+if (!empty($product['main_image'])) {
+    $all_images[] = $product['main_image'];
+}
+if (!empty($product['gallery_images_decoded']) && is_array($product['gallery_images_decoded'])) {
+    foreach ($product['gallery_images_decoded'] as $g_img) {
+        if (!empty($g_img) && !in_array($g_img, $all_images)) {
+            $all_images[] = $g_img;
+        }
+    }
+}
+if (empty($all_images)) {
+    $all_images[] = 'products/womens/women-1.jpg';
+}
+$total_images = count($all_images);
+
+// Price & discount calculations
+$regular_price = (float) ($product['price'] ?? 89.00);
+$sale_price = !empty($product['sale_price']) ? (float) $product['sale_price'] : null;
+$current_price = $sale_price ?: $regular_price;
+$discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular_price)
+    ? round((($regular_price - $sale_price) / $regular_price) * 100)
+    : 0;
+
+// Dynamic Reviews & Rating Calculation
+$actual_reviews = !empty($product['reviews']) ? $product['reviews'] : [];
+$total_review_count = count($actual_reviews);
+$rating_counts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+$sum_rating = 0;
+foreach ($actual_reviews as $r) {
+    $r_score = (int)($r['rating'] ?? 0);
+    if ($r_score >= 1 && $r_score <= 5) {
+        $rating_counts[$r_score]++;
+        $sum_rating += $r_score;
+    }
+}
+$computed_avg = $total_review_count > 0 ? round($sum_rating / $total_review_count, 1) : 0.0;
+$display_review_count = $total_review_count;
+
+// Variant configuration
+$has_variants = !empty($product['variants']);
+$has_color = !empty($product['attributes']['color']);
+
+// Detect secondary option attribute (e.g., Size, Storage, or any active multiple_select attribute)
+$multi_attr      = null;
+$multi_attr_slug = '';
+$multi_attr_name = 'Option';
+
+if (!empty($product['attributes'])) {
+    foreach ($product['attributes'] as $slug => $attr_info) {
+        if ($slug === 'color') continue;
+        if (!empty($attr_info['values']) && (!empty($attr_info['type']) && $attr_info['type'] === 'multiple_select')) {
+            $multi_attr      = $attr_info;
+            $multi_attr_slug = $slug;
+            $multi_attr_name = $attr_info['name'];
+            break;
+        }
+    }
+    if (empty($multi_attr)) {
+        foreach ($product['attributes'] as $slug => $attr_info) {
+            if ($slug === 'color') continue;
+            if (!empty($attr_info['values'])) {
+                $multi_attr      = $attr_info;
+                $multi_attr_slug = $slug;
+                $multi_attr_name = $attr_info['name'];
+                break;
+            }
+        }
+    }
+}
+$has_size = !empty($multi_attr);
+
+// Color map with variant photos & size/option inventory
+$color_map = [];
+$initial_color = '';
+$initial_size = '';
+$initial_variant_id = 0;
+$initial_sku = $product['sku'] ?? 'MOD-W-001-BG-S';
+
+if ($has_color && !empty($product['attributes']['color']['values'])) {
+    foreach ($product['attributes']['color']['values'] as $idx => $c_val) {
+        $c_name = $c_val['value'];
+        if ($idx === 0) {
+            $initial_color = $c_name;
+        }
+
+        $c_photo = '';
+        $c_gallery = [];
+        if ($has_variants) {
+            foreach ($product['variants'] as $pv) {
+                $matches_color = false;
+                if (!empty($pv['values'])) {
+                    foreach ($pv['values'] as $val) {
+                        if ($val['attribute_slug'] === 'color' && strcasecmp($val['attribute_value'], $c_name) === 0) {
+                            $matches_color = true;
+                            break;
+                        }
+                    }
+                }
+                if ($matches_color) {
+                    if (empty($c_photo) && !empty($pv['image'])) {
+                        $c_photo = $pv['image'];
+                    }
+                    if (empty($c_gallery) && !empty($pv['gallery_images'])) {
+                        $decoded_g = is_string($pv['gallery_images']) ? json_decode($pv['gallery_images'], true) : $pv['gallery_images'];
+                        if (is_array($decoded_g) && !empty($decoded_g)) {
+                            $c_gallery = array_values(array_filter($decoded_g));
+                        }
+                    }
+                    if (!empty($c_photo) && !empty($c_gallery)) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (empty($c_photo)) {
+            $c_photo = $product['main_image'] ?? 'products/womens/women-1.jpg';
+        }
+
+        $c_images = [];
+        if (!empty($c_photo)) {
+            $c_images[] = $c_photo;
+        }
+        if (!empty($c_gallery)) {
+            foreach ($c_gallery as $g) {
+                if (!in_array($g, $c_images)) {
+                    $c_images[] = $g;
+                }
+            }
+        } else {
+            if (!empty($product['gallery_images_decoded']) && is_array($product['gallery_images_decoded'])) {
+                foreach ($product['gallery_images_decoded'] as $g_img) {
+                    if (!empty($g_img) && !in_array($g_img, $c_images)) {
+                        $c_images[] = $g_img;
+                    }
+                }
+            }
+        }
+        if (empty($c_images)) {
+            $c_images = $all_images;
+        }
+
+        $color_map[$c_name] = [
+            'id'         => $c_val['id'],
+            'name'       => $c_name,
+            'color_code' => $c_val['color_code'] ?? '#333333',
+            'image'      => $c_photo,
+            'gallery'    => $c_gallery,
+            'images'     => $c_images,
+            'sizes'      => []
+        ];
+    }
+}
+
+$size_variant_map = [];
+$initial_variant  = null;
+
+if ($has_variants) {
+    foreach ($product['variants'] as $pv) {
+        $v_color = '';
+        $v_size  = '';
+        if (!empty($pv['values'])) {
+            foreach ($pv['values'] as $val) {
+                if (strcasecmp($val['attribute_slug'], 'color') === 0 || strcasecmp($val['attribute_name'], 'color') === 0) {
+                    $v_color = $val['attribute_value'];
+                }
+                if ($multi_attr_slug && (strcasecmp($val['attribute_slug'], $multi_attr_slug) === 0 || strcasecmp($val['attribute_name'], $multi_attr_name) === 0)) {
+                    $v_size = $val['attribute_value'];
+                } elseif (strcasecmp($val['attribute_slug'], 'size') === 0 || strcasecmp($val['attribute_name'], 'size') === 0 || strcasecmp($val['attribute_slug'], 'storage') === 0 || strcasecmp($val['attribute_name'], 'storage') === 0) {
+                    $v_size = $val['attribute_value'];
+                }
+            }
+        }
+
+        $v_highlights = !empty($pv['highlights']) ? (is_array($pv['highlights']) ? $pv['highlights'] : (json_decode($pv['highlights'], true) ?: [])) : [];
+        $v_specs = !empty($pv['specifications']) ? (is_array($pv['specifications']) ? $pv['specifications'] : (json_decode($pv['specifications'], true) ?: [])) : [];
+
+        $var_entry = [
+            'variant_id'     => (int) $pv['id'],
+            'sku'            => $pv['sku'],
+            'price'          => (float) $pv['price'],
+            'sale_price'     => (isset($pv['sale_price']) && $pv['sale_price'] !== null && $pv['sale_price'] !== '') ? (float) $pv['sale_price'] : null,
+            'stock'          => (int) $pv['stock_quantity'],
+            'image'          => !empty($pv['image']) ? $pv['image'] : null,
+            'color'          => $v_color,
+            'size'           => $v_size,
+            'highlights'     => $v_highlights,
+            'specifications' => $v_specs
+        ];
+
+        if ($v_color && $v_size && isset($color_map[$v_color])) {
+            $color_map[$v_color]['sizes'][$v_size] = $var_entry;
+            if ($v_color === $initial_color && empty($initial_size) && (int) $pv['stock_quantity'] > 0) {
+                $initial_size       = $v_size;
+                $initial_variant_id = (int) $pv['id'];
+                $initial_sku        = $pv['sku'];
+                $initial_variant    = $var_entry;
+            }
+        }
+        if ($v_size) {
+            $size_variant_map[$v_size] = $var_entry;
+            if (empty($initial_size) && (int) $pv['stock_quantity'] > 0 && empty($initial_color)) {
+                $initial_size       = $v_size;
+                $initial_variant_id = (int) $pv['id'];
+                $initial_sku        = $pv['sku'];
+                $initial_variant    = $var_entry;
+            }
+        }
+    }
+}
+
+if (empty($initial_size) && $has_size && !empty($multi_attr['values'])) {
+    $initial_size = $multi_attr['values'][0]['value'];
+}
+if ($has_variants && empty($initial_variant_id) && !empty($product['variants'])) {
+    $initial_variant_id = (int) $product['variants'][0]['id'];
+    $initial_sku        = $product['variants'][0]['sku'];
+}
+
+if (empty($initial_variant) && $has_variants) {
+    if (!empty($initial_color) && !empty($color_map[$initial_color]['sizes'][$initial_size])) {
+        $initial_variant = $color_map[$initial_color]['sizes'][$initial_size];
+    } elseif (!empty($size_variant_map[$initial_size])) {
+        $initial_variant = $size_variant_map[$initial_size];
+    } elseif (!empty($product['variants'])) {
+        $first_v = $product['variants'][0];
+        $initial_variant = [
+            'variant_id'     => (int) $first_v['id'],
+            'sku'            => $first_v['sku'],
+            'price'          => (float) $first_v['price'],
+            'sale_price'     => (isset($first_v['sale_price']) && $first_v['sale_price'] !== null && $first_v['sale_price'] !== '') ? (float) $first_v['sale_price'] : null,
+            'stock'          => (int) $first_v['stock_quantity'],
+            'image'          => !empty($first_v['image']) ? $first_v['image'] : null,
+            'color'          => $initial_color,
+            'size'           => $initial_size,
+            'highlights'     => !empty($first_v['highlights']) ? (is_array($first_v['highlights']) ? $first_v['highlights'] : (json_decode($first_v['highlights'], true) ?: [])) : [],
+            'specifications' => !empty($first_v['specifications']) ? (is_array($first_v['specifications']) ? $first_v['specifications'] : (json_decode($first_v['specifications'], true) ?: [])) : []
+        ];
+    }
+}
+
+if (!empty($initial_variant)) {
+    $regular_price = (float) $initial_variant['price'];
+    $sale_price    = ($initial_variant['sale_price'] !== null) ? (float) $initial_variant['sale_price'] : null;
+    $current_price = ($sale_price !== null && $sale_price > 0) ? $sale_price : $regular_price;
+    $discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular_price)
+        ? round((($regular_price - $sale_price) / $regular_price) * 100)
+        : 0;
+}
 ?>
+
+<style>
+/* ==========================================================================
+   PRODUCT DETAILS RIGHT COLUMN STYLES (Variants, Accordions, Action Buttons)
+   ========================================================================== */
+.tf-product-info-wrap {
+    font-family: inherit;
+}
+.product-variant-loader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.product-variant-loader-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+    display: flex !important;
+}
+.variant-loader-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.variant-loader-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #212121;
+    letter-spacing: 0.1px;
+}
+
+/* Pricing Header Section */
+.product-price-block {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.product-discount-rate {
+    color: #007600;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+}
+.product-current-price {
+    font-size: 30px;
+    font-weight: 700;
+    color: #0F1111;
+    line-height: 1;
+}
+.product-mrp-price {
+    color: #565959;
+    font-size: 14px;
+    text-decoration: line-through;
+}
+.product-tax-note {
+    color: #565959;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+/* Color Badge Selection */
+.color-badge-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.color-badge-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.2px;
+}
+.color-badge-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.color-variant-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.color-slider-track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 4px 2px;
+}
+.color-slider-track::-webkit-scrollbar {
+    display: none;
+}
+.color-thumb-card {
+    flex: 0 0 auto;
+    width: 70px;
+    height: 80px;
+    border: 1px solid #dcdfe4;
+    border-radius: 12px;
+    padding: 3.5px;
+    cursor: pointer;
+    background: #ffffff;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    user-select: none;
+}
+.color-thumb-card:hover {
+    border-color: #6b7280;
+    transform: translateY(-1px);
+}
+.color-thumb-card.active {
+    border: 2px solid #1a1a1a;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.color-thumb-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    display: block;
+    pointer-events: none;
+}
+.color-slider-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+    transition: all 0.2s ease;
+    color: #1a1a1a;
+    font-size: 13px;
+    padding: 0;
+    line-height: 1;
+}
+.color-slider-arrow:hover {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    transform: translateY(-50%) scale(1.05);
+}
+.color-slider-arrow.prev { left: -4px; }
+.color-slider-arrow.next { right: -4px; }
+
+/* Size Chips */
+.variant-size-chip {
+    min-width: 50px;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid #d5d9d9;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #0F1111;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.variant-size-chip:hover:not(.is-out-of-stock) {
+    border-color: #007185;
+    background: #f7fafa;
+}
+.variant-size-chip.active {
+    border: 2px solid #007185;
+    background: #f0f8ff;
+    color: #007185;
+    font-weight: 700;
+    box-shadow: 0 0 0 1px #007185;
+}
+.variant-size-chip.is-out-of-stock {
+    position: relative;
+    color: #888888 !important;
+    background-color: #fafafa !important;
+    border: 1.5px dashed #cccccc !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+    overflow: hidden;
+}
+.variant-size-chip.is-out-of-stock::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top right, transparent calc(50% - 1px), #c0392b calc(50% - 1px), #c0392b calc(50% + 1px), transparent calc(50% + 1px));
+    pointer-events: none;
+}
+
+/* Brand Link */
+.brand-store-link {
+    font-size: 14px;
+    color: #007185;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.brand-store-link:hover {
+    color: #c7511f;
+    text-decoration: underline !important;
+}
+
+/* Typography & Info List Scoped Rules */
+.text-caption-1 {
+    font-size: 14px;
+    line-height: 22px;
+}
+.text-btn-uppercase {
+    font-size: 12px;
+    line-height: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.tf-product-info-list .tf-product-info-heading {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+}
+.tf-product-info-list .tf-product-info-name {
+    margin-bottom: 20px;
+}
+.tf-product-info-list .tf-product-info-name .name {
+    margin-bottom: 12px;
+    color: #181818;
+}
+.tf-product-info-list .tf-product-info-name > .sub {
+    display: flex;
+    align-items: center;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+}
+.tf-product-info-list .tf-product-info-rate {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.tf-product-info-list .tf-product-info-desc {
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+}
+.tf-product-info-list .tf-product-info-choose-option {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.tf-product-info-list .tf-product-info-help {
+    padding-bottom: 19px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-extra-link {
+    display: flex;
+    gap: 15px 34px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-extra-link .tf-product-extra-icon {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    position: relative;
+    color: #181818;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-extra-link .tf-product-extra-icon:hover {
+    color: #e43131;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-extra-link .tf-product-extra-icon .icon {
+    font-size: 20px;
+    line-height: 20px;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-extra-link .tf-product-extra-icon:not(:last-child)::after {
+    position: absolute;
+    content: "";
+    width: 1px;
+    height: 20px;
+    right: -18px;
+    top: 1px;
+    background-color: #e5e7eb;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-return,
+.tf-product-info-list .tf-product-info-help .tf-product-info-time {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-return .icon,
+.tf-product-info-list .tf-product-info-help .tf-product-info-time .icon {
+    font-size: 20px;
+    line-height: 20px;
+    color: #181818;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-return p,
+.tf-product-info-list .tf-product-info-help .tf-product-info-time p {
+    color: #565959;
+}
+.tf-product-info-list .tf-product-info-help .tf-product-info-return p span,
+.tf-product-info-list .tf-product-info-help .tf-product-info-time p span {
+    color: #181818;
+    font-weight: 600;
+}
+.tf-product-info-list ul.tf-product-info-sku {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 19px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.tf-product-info-list ul.tf-product-info-sku li {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Action Buttons (Add to cart & Buy now) */
+.btn-style-2 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 15px;
+    border-radius: 999px;
+    background-color: #181818;
+    color: #ffffff;
+    letter-spacing: 0.1em;
+    border: 1px solid #181818 !important;
+    transition: all 0.25s ease;
+}
+.btn-style-2:hover {
+    background-color: #e43131;
+    color: #ffffff;
+    border-color: #e43131 !important;
+}
+.btn-style-3 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 15px;
+    border-radius: 999px;
+    background-color: #e43131;
+    color: #ffffff;
+    letter-spacing: 0.1em;
+    border: 1px solid #e43131;
+    transition: all 0.25s ease;
+}
+.btn-style-3:hover {
+    background-color: #181818;
+    color: #ffffff;
+    border-color: #181818;
+}
+
+/* Mobile Action Buttons */
+@media (max-width: 767.98px) {
+    .mobile-bottom-action-bar-attached {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 0 4px 0;
+        margin-top: 10px;
+    }
+    .btn-mobile-action {
+        flex: 1;
+        height: 48px;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-transform: none;
+        letter-spacing: 0.1px;
+        transition: opacity 0.15s ease, transform 0.1s ease;
+        outline: none;
+        text-decoration: none;
+    }
+    .btn-mobile-atc {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #1e2022;
+    }
+    .btn-mobile-buy {
+        background: #ffc200;
+        border: none;
+        color: #1e2022;
+    }
+}
+</style>
+
 
    <!-- Question Modal (#exampleModalToggle4) -->
    <div class="aq-login-modal-style">
@@ -250,215 +936,433 @@ $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/
                   </div>
                </div>
                <div class="col-lg-6 order-lg-2 order-1">
-                  <div class="aq-product-details-wrap pt-25 ml-30">
+                  <div class="tf-product-info-wrap position-relative ml-30">
+                     <!-- Variant Loader Overlay -->
+                     <div id="product-variant-loader" class="product-variant-loader-overlay" style="display: none;">
+                        <div class="variant-loader-card">
+                           <div class="spinner-border text-primary mb-2" role="status" style="width: 2.2rem; height: 2.2rem; border-width: 3px;">
+                              <span class="visually-hidden">Loading...</span>
+                           </div>
+                           <div class="variant-loader-label">Updating product details...</div>
+                        </div>
+                     </div>
 
-                     <!-- product info  -->
-                     <div class="aq-product-details-category"><span>Girls Clothes</span></div>
-                     <h3 class="aq-product-details-title mb-10">Osette backpack Bags</h3>
+                     <div class="tf-product-info-list">
+                        
+                        <!-- ALL PRODUCT VARIANTS (Color, Size / Storage / Option) - Top of Product Name -->
+                        <?php if (($has_color && !empty($color_map)) || ($has_size && !empty($multi_attr['values']))): ?>
+                           <div class="tf-product-info-variants mb-2">
+                              <!-- 1. COLOR SELECTION WITH SLIDER & PRODUCT PHOTOS -->
+                              <?php if ($has_color && !empty($color_map)): ?>
+                                 <div class="variant-picker-item mb-2">
+                                    <div class="color-badge-heading mb-2">
+                                       <span class="color-badge-title">Selected Color:</span>
+                                       <span class="color-badge-name" id="selected-color-name"><?= ucwords(html_escape($initial_color)); ?></span>
+                                    </div>
 
-                     <!-- inventory details  -->
-                     <div class="tp-product-details-inventory">
-                        <div class="aq-product-details-rating-wrapper d-flex align-items-center">
-                           <div class="aq-product-details-rating-box d-flex align-items-center mb-10">
-                              <div class="aq-product-details-rating">
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                       <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                    </svg>
+                                    <!-- Horizontal color slider with navigation arrows -->
+                                    <div class="color-variant-container">
+                                       <button type="button" class="color-slider-arrow prev" id="color-arrow-prev" onclick="slideColorTrack(-1)" aria-label="Previous Color" style="display: none;">
+                                          <i class="fa-solid fa-chevron-left"></i>
+                                       </button>
+                                       
+                                       <div class="color-slider-track" id="color-slider-track" onscroll="updateColorSliderArrows()">
+                                          <?php foreach ($color_map as $c_name => $c_info): 
+                                             $is_active_color = ($c_name === $initial_color);
+                                             $c_img = !empty($c_info['image']) ? $c_info['image'] : ($product['main_image'] ?? 'products/womens/women-1.jpg');
+                                          ?>
+                                             <div class="color-thumb-card <?= $is_active_color ? 'active' : ''; ?>" 
+                                                  data-color="<?= html_escape($c_name); ?>"
+                                                  data-image="<?= base_url('assets/images/' . $c_img); ?>"
+                                                  onclick="selectColor('<?= html_escape($c_name); ?>', this)"
+                                                  title="<?= html_escape($c_name); ?>">
+                                                <img src="<?= base_url('assets/images/' . $c_img); ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= base_url('assets/images/' . ($product['main_image'] ?? 'products/womens/women-1.jpg')); ?>'">
+                                             </div>
+                                          <?php endforeach; ?>
+                                       </div>
+
+                                       <button type="button" class="color-slider-arrow next" id="color-arrow-next" onclick="slideColorTrack(1)" aria-label="Next Color" style="display: none;">
+                                          <i class="fa-solid fa-chevron-right"></i>
+                                       </button>
+                                    </div>
+                                 </div>
+                              <?php endif; ?>
+
+                              <!-- 2. SIZE / STORAGE / OPTION SELECTION WITH OUT-OF-STOCK STYLING -->
+                              <?php if ($has_size && !empty($multi_attr['values'])): ?>
+                                 <div class="variant-picker-item mb-2">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                       <div class="variant-picker-label">
+                                          <span class="text-dark fw-bold" style="font-size: 15px;">Select <?= html_escape($multi_attr_name); ?></span>
+                                          <span class="text-secondary ms-1 small" id="selected-size-name-wrap">(<strong id="selected-size-name" class="text-dark"><?= html_escape($initial_size); ?></strong>)</span>
+                                       </div>
+                                       <?php if (strcasecmp($multi_attr_slug, 'size') === 0 || strcasecmp($multi_attr_name, 'size') === 0): ?>
+                                          <a href="#exampleModalToggle7" data-bs-toggle="modal" class="text-decoration-none fw-semibold" style="color: #2874f0 !important; font-size: 14px;">
+                                             Size Chart <i class="fa-solid fa-chevron-right ms-1" style="font-size: 11px;"></i>
+                                          </a>
+                                       <?php endif; ?>
+                                    </div>
+
+                                    <div class="d-flex flex-wrap gap-2" id="size-chips-wrapper">
+                                       <?php 
+                                       foreach ($multi_attr['values'] as $s_val): 
+                                          $s_name = $s_val['value'];
+                                          $is_active_size = ($s_name === $initial_size);
+                                          $in_stock = true;
+                                          if (!empty($color_map[$initial_color]['sizes'][$s_name])) {
+                                             $in_stock = ($color_map[$initial_color]['sizes'][$s_name]['stock'] > 0);
+                                          }
+                                       ?>
+                                          <button type="button" 
+                                                  class="variant-size-chip <?= $is_active_size ? 'active' : ''; ?> <?= !$in_stock ? 'is-out-of-stock' : ''; ?>" 
+                                                  data-size="<?= html_escape($s_name); ?>"
+                                                  onclick="selectSize('<?= html_escape($s_name); ?>', this)"
+                                                  title="<?= !$in_stock ? 'Out of stock' : html_escape($multi_attr_name) . ' ' . html_escape($s_name); ?>">
+                                             <?= html_escape($s_name); ?>
+                                          </button>
+                                       <?php endforeach; ?>
+                                    </div>
+                                 </div>
+                              <?php endif; ?>
+                           </div>
+                        <?php endif; ?>
+
+                        <!-- Heading / Brand / Rating -->
+                        <div class="tf-product-info-heading">
+                           <div class="tf-product-info-name">
+                              
+                              <!-- Brand Store Link -->
+                              <?php if (!empty($product['brand_name']) || !empty($product['category_name'])): ?>
+                                 <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                    <?php if (!empty($product['brand_name'])): ?>
+                                       <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '') . '&preview_tpl=electronics'); ?>" class="brand-store-link fw-semibold">
+                                          Visit the <?= html_escape($product['brand_name']); ?> Store
+                                       </a>
+                                       <?php if (!empty($product['category_name'])): ?>
+                                          <span class="text-secondary" style="font-size: 11px;">&bull;</span>
+                                       <?php endif; ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($product['category_name'])): ?>
+                                       <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . '?preview_tpl=electronics'); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                    <?php endif; ?>
+                                 </div>
+                              <?php endif; ?>
+
+                              <h3 class="name fw-bold mb-2" style="font-size: 26px !important; line-height: 1.35;"><?= html_escape($product['title'] ?? 'V-neck Linen Blend Summer Dress'); ?></h3>
+
+                              <!-- Rating & Review Count -->
+                              <div class="sub d-flex align-items-center gap-2 mt-1">
+                                 <?php if ($total_review_count > 0): ?>
+                                    <div class="tf-product-info-rate d-flex align-items-center gap-1">
+                                       <span class="fw-bold me-1"><?= number_format($computed_avg, 1); ?></span>
+                                       <div class="list-star text-warning">
+                                          <?php
+                                          $r_score = round($computed_avg * 2) / 2;
+                                          for ($s = 1; $s <= 5; $s++):
+                                             if ($s <= $r_score): ?>
+                                                <i class="fa-solid fa-star"></i>
+                                             <?php elseif ($s - 0.5 == $r_score): ?>
+                                                <i class="fa-solid fa-star-half-stroke"></i>
+                                             <?php else: ?>
+                                                <i class="fa-regular fa-star"></i>
+                                             <?php endif;
+                                          endfor;
+                                          ?>
+                                       </div>
+                                       <div class="text text-caption-1 text-secondary ms-1">(<?= number_format($total_review_count); ?> <?= ($total_review_count == 1) ? 'rating' : 'ratings'; ?>)</div>
+                                    </div>
+                                    <span class="text-secondary">|</span>
+                                    <a href="#navPresentationTab" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">See reviews</a>
+                                 <?php else: ?>
+                                    <div class="tf-product-info-rate d-flex align-items-center gap-1">
+                                       <div class="list-star text-muted" style="font-size: 13px;">
+                                          <?php for ($s = 1; $s <= 5; $s++): ?>
+                                             <i class="fa-regular fa-star text-secondary" style="opacity: 0.35;"></i>
+                                          <?php endfor; ?>
+                                       </div>
+                                       <div class="text text-caption-1 text-secondary ms-1">(No reviews yet)</div>
+                                    </div>
+                                    <span class="text-secondary">|</span>
+                                    <a href="#navPresentationTab" class="text-primary small text-decoration-none fw-semibold" onclick="activateReviewTab()">Write a review</a>
+                                 <?php endif; ?>
+                              </div>
+
+                           </div>
+
+                           <!-- Pricing Block -->
+                           <div class="tf-product-info-desc mt-2">
+                              <div class="product-price-block">
+                                 <div class="product-discount-rate" id="display-discount-rate" style="<?= ($discount_percent > 0) ? 'display: inline-flex;' : 'display: none;'; ?>">
+                                    <i class="fa-solid fa-arrow-down-long me-1"></i><?= $discount_percent; ?>%
+                                 </div>
+
+                                 <span class="product-current-price" id="display-sale-price">
+                                    <?= $currency_symbol . number_format($current_price, 2); ?>
                                  </span>
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                       <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                    </svg>
-                                 </span>
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                       <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                    </svg>
-                                 </span>
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                       <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                    </svg>
-                                 </span>
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                       <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                    </svg>
+
+                                 <span class="product-mrp-price" id="display-mrp-price" style="<?= ($sale_price && $sale_price < $regular_price) ? 'display: inline;' : 'display: none;'; ?>">
+                                    M.R.P.: <?= $currency_symbol . number_format($regular_price, 2); ?>
                                  </span>
                               </div>
-                              <div class="aq-product-details-reviews">
-                                 <span>( 1 review )</span>
-                              </div>
+                              
+                              <?php if (!empty($store_settings['tax_inclusive']) || !isset($store_settings['tax_inclusive'])): ?>
+                                 <div class="product-tax-note">Inclusive of all taxes</div>
+                              <?php elseif (!empty($store_settings['tax_enabled'])): ?>
+                                 <div class="product-tax-note text-secondary" style="font-size: 12px;">Exclusive of taxes (calculated at checkout)</div>
+                              <?php endif; ?>
+
+                              <?php if (!empty($product['short_description'])): ?>
+                                 <p class="text-secondary mb-2"><?= nl2br(html_escape($product['short_description'])); ?></p>
+                              <?php endif; ?>
+
                            </div>
                         </div>
-                     </div>
 
-                     <!-- price info  -->
-                     <div class="aq-product-details-price-wrap mb-20">
-                        <ins><span class="aq-product-details-price new-price">$160.00</span></ins>
-                     </div>
+                        <!-- Product Options & Specifications Accordions -->
+                        <div class="tf-product-info-choose-option mt-2">
 
-                     <div class="aq-product-color aq-product-color-large mb-25">
-                        <h4 class="aq-product-details-title-sm mb-15"><label>Color:</label> Chestnut</h4>
-                        <ul>
-                           <li class="aq-product-color-item aq-tooltip-top aq-color-swatch active">
-                              <span class="aq-tooltip-item">Brown</span>
-                              <span class="aq-product-color-value" data-bg-color="#8D694A" style="background-color: rgb(141, 105, 74);"></span>
-                           </li>
-                           <li class="aq-product-color-item aq-tooltip-top aq-color-swatch">
-                              <span class="aq-tooltip-item">Iridium</span>
-                              <span class="aq-product-color-value" data-bg-color="#3A3F32" style="background-color: rgb(58, 63, 50);"></span>
-                           </li>
-                           <li class="aq-product-color-item aq-tooltip-top aq-color-swatch">
-                              <span class="aq-tooltip-item">Darb</span>
-                              <span class="aq-product-color-value" data-bg-color="#7B7C4C" style="background-color: rgb(123, 124, 76);"></span>
-                           </li>
-                        </ul>
-                     </div>
+                           <!-- PRODUCT HIGHLIGHTS & SPECIFICATIONS ACCORDIONS -->
+                           <?php
+                           $merged_specs = [];
+                           $seen_spec_keys = [];
 
-                     <!-- product-size -->
-                     <div class="aq-product-details-size mb-30">
-                        <div class="aq-product-details-size d-flex justify-content-between">
-                           <h4 class="aq-product-details-title-sm mb-15">Laptop Ram</h4>
-                           <button type="button" class="product-details-size-guide d-flex align-items-center mb-15" data-bs-target="#exampleModalToggle7" data-bs-toggle="modal">
-                              <i>
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="21" height="13" viewBox="0 0 21 13" fill="none">
-                                    <path d="M1.75 12.25C1.35 12.25 1 12.1 0.7 11.8C0.4 11.5 0.25 11.15 0.25 10.75V1.75C0.25 1.36667 0.4 1.02083 0.7 0.7125C1 0.404167 1.35 0.25 1.75 0.25H18.75C19.15 0.25 19.5 0.404167 19.8 0.7125C20.1 1.02083 20.25 1.36667 20.25 1.75V10.75C20.25 11.15 20.1 11.5 19.8 11.8C19.5 12.1 19.15 12.25 18.75 12.25H1.75ZM1.75 10.75H18.75V1.75H15.5V6.25H14V1.75H11V6.25H9.5V1.75H6.5V6.25H5V1.75H1.75V10.75Z" fill="#DA3F3F" stroke="white" stroke-width="0.5"/>
-                                 </svg>
-                              </i>
-                              Size Guide
-                           </button>
-                        </div>
-                        <div class="aq-product-details-color-select">
-                           <div class="aqf-bundle-select aq-select">
-                              <select>
-                                 <option>32GB</option>
-                                 <option>64GB</option>
-                                 <option>128GB</option>
-                                 <option>256GB</option>
-                              </select>
+                           $spec_brand = !empty($product['brand_name']) ? trim($product['brand_name']) : '';
+                           if (!empty($spec_brand)) {
+                              $merged_specs[] = ['name' => 'Brand', 'value' => $spec_brand];
+                              $seen_spec_keys['brand'] = true;
+                           }
+
+                           $spec_cat = !empty($product['category_name']) ? trim($product['category_name']) : '';
+                           if (!empty($spec_cat)) {
+                              $merged_specs[] = ['name' => 'Category', 'value' => $spec_cat];
+                              $seen_spec_keys['category'] = true;
+                           }
+
+                           $spec_multi_vals = [];
+                           if (!empty($initial_size)) {
+                              $spec_multi_vals[] = $initial_size;
+                           } elseif (!empty($multi_attr['values'])) {
+                              foreach ($multi_attr['values'] as $sv) {
+                                 if (!empty($sv['value'])) $spec_multi_vals[] = $sv['value'];
+                              }
+                           }
+                           if (!empty($spec_multi_vals)) {
+                              $merged_specs[] = ['name' => $multi_attr_name, 'value' => implode(', ', array_unique($spec_multi_vals))];
+                              $seen_spec_keys[strtolower($multi_attr_name)] = true;
+                              $seen_spec_keys['size'] = true;
+                           }
+
+                           $spec_colors = [];
+                           if (!empty($initial_color)) {
+                              $spec_colors[] = $initial_color;
+                           } elseif (!empty($color_map)) {
+                              $spec_colors = array_keys($color_map);
+                           } elseif (!empty($product['attributes']['color']['values'])) {
+                              foreach ($product['attributes']['color']['values'] as $cv) {
+                                 if (!empty($cv['value'])) $spec_colors[] = $cv['value'];
+                              }
+                           }
+                           if (!empty($spec_colors)) {
+                              $merged_specs[] = ['name' => 'Color', 'value' => implode(', ', array_map('ucfirst', array_unique($spec_colors)))];
+                              $seen_spec_keys['color'] = true;
+                           }
+
+                           if (!empty($product['specifications']) && is_array($product['specifications'])) {
+                              foreach ($product['specifications'] as $csp) {
+                                 $cn = trim($csp['spec_name'] ?? '');
+                                 $cv = trim($csp['spec_value'] ?? '');
+                                 $ckey = strtolower($cn);
+                                 if ($cn !== '' && $cv !== '' && !isset($seen_spec_keys[$ckey])) {
+                                    $seen_spec_keys[$ckey] = true;
+                                    $merged_specs[] = ['name' => $cn, 'value' => $cv];
+                                 }
+                              }
+                           }
+
+                           if (!empty($initial_variant['specifications'])) {
+                              $v_specs = is_array($initial_variant['specifications']) ? $initial_variant['specifications'] : (json_decode($initial_variant['specifications'], true) ?: []);
+                              foreach ($v_specs as $vsp) {
+                                 $vn = trim($vsp['name'] ?? $vsp['spec_name'] ?? $vsp['spec_key'] ?? '');
+                                 $vv = trim($vsp['value'] ?? $vsp['spec_value'] ?? '');
+                                 $vkey = strtolower($vn);
+                                 if ($vn !== '' && $vv !== '' && !isset($seen_spec_keys[$vkey])) {
+                                    $seen_spec_keys[$vkey] = true;
+                                    $merged_specs[] = ['name' => $vn, 'value' => $vv];
+                                 }
+                              }
+                           }
+
+                           $product_highlights = !empty($product['highlights_decoded']) ? $product['highlights_decoded'] : [];
+                           if (empty($product_highlights) && !empty($product['highlights'])) {
+                              $product_highlights = is_array($product['highlights']) ? $product['highlights'] : (json_decode($product['highlights'], true) ?: []);
+                           }
+                           if (!empty($initial_variant['highlights'])) {
+                              $v_hl = is_array($initial_variant['highlights']) ? $initial_variant['highlights'] : (json_decode($initial_variant['highlights'], true) ?: []);
+                              if (!empty($v_hl)) {
+                                 $product_highlights = $v_hl;
+                              }
+                           }
+
+                           if (!function_exists('is_spec_full_width_check')) {
+                              function is_spec_full_width_check($name, $val) {
+                                 $v_len = mb_strlen(trim($val ?? ''));
+                                 $n_len = mb_strlen(trim($name ?? ''));
+                                 return ($v_len > 35 || $n_len > 28 || ($v_len + $n_len) > 45);
+                              }
+                           }
+                           ?>
+
+                           <div class="product-highlights-specifications my-2">
+                              
+                              <!-- Product Highlights (Always Open by Default) -->
+                              <div class="product-highlights-block mb-2" id="product-highlights-block" style="<?= empty($product_highlights) ? 'display: none;' : 'display: block;'; ?>">
+                                 <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" onclick="toggleProductHighlights()" style="cursor: pointer;">
+                                    <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Product highlights</h4>
+                                    <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" aria-label="Toggle Product Highlights">
+                                       <i class="fa-solid fa-chevron-up" id="highlights-arrow-icon" style="font-size: 11px;"></i>
+                                    </button>
+                                 </div>
+                                 
+                                 <div id="product-highlights-collapse" class="pt-2" style="display: block;">
+                                    <div class="specs-grid-layout" id="highlights-grid-container" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
+                                       <?php foreach ($product_highlights as $hl): 
+                                          $hl_k = trim($hl['key'] ?? $hl['name'] ?? '');
+                                          $hl_v = trim($hl['value'] ?? '');
+                                          if ($hl_k === '' && $hl_v === '') continue;
+                                          $hl_is_full = is_spec_full_width_check($hl_k, $hl_v);
+                                       ?>
+                                          <div class="spec-grid-item <?= $hl_is_full ? 'spec-full-width' : ''; ?>" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $hl_is_full ? 'grid-column: 1 / -1;' : ''; ?>">
+                                             <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($hl_k); ?></div>
+                                             <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($hl_v); ?></div>
+                                          </div>
+                                       <?php endforeach; ?>
+                                    </div>
+                                 </div>
+                                 
+                                 <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
+                              </div>
+
+                              <!-- Product Specifications (Collapsed by Default, 14 items limit) -->
+                              <div class="product-specifications-block mb-2" id="product-specifications-block" style="<?= empty($merged_specs) ? 'display: none;' : 'display: block;'; ?>">
+                                 <div class="d-flex justify-content-between align-items-center cursor-pointer py-1 user-select-none" onclick="toggleProductSpecifications()" style="cursor: pointer;">
+                                    <h4 class="m-0" style="font-size: 22px; font-weight: 700; color: #212121; letter-spacing: -0.2px;">Specifications</h4>
+                                    <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #f1f3f6; border-radius: 8px; border: none; padding: 0; color: #212121;" aria-label="Toggle Specifications">
+                                       <i class="fa-solid fa-chevron-down" id="specs-arrow-icon" style="font-size: 11px;"></i>
+                                    </button>
+                                 </div>
+                                 
+                                 <div id="product-specs-collapse" class="pt-2" style="display: none;">
+                                    <div class="specs-grid-layout" id="specs-grid-container" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 8px;">
+                                       <?php 
+                                       $s_idx = 0;
+                                       foreach ($merged_specs as $sp): 
+                                          $s_idx++;
+                                          $is_extra = ($s_idx > 14);
+                                          $is_full_width = is_spec_full_width_check($sp['name'], $sp['value']);
+                                       ?>
+                                          <div class="spec-grid-item <?= $is_extra ? 'spec-overflow-item' : ''; ?> <?= $is_full_width ? 'spec-full-width' : ''; ?>" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; <?= $is_full_width ? 'grid-column: 1 / -1;' : ''; ?> <?= $is_extra ? 'display: none;' : ''; ?>">
+                                             <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;"><?= html_escape($sp['name']); ?></div>
+                                             <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;"><?= html_escape($sp['value']); ?></div>
+                                          </div>
+                                       <?php endforeach; ?>
+                                    </div>
+
+                                    <div class="text-center mt-2 pt-2" id="specs-see-more-wrap" style="<?= (count($merged_specs) > 14) ? 'display: block;' : 'display: none;'; ?>">
+                                       <button type="button" class="btn btn-sm px-4 py-1 fw-semibold d-inline-flex align-items-center gap-1" id="btn-see-more-specs" onclick="toggleSeeMoreSpecs(event)" style="font-size: 13px; border-radius: 20px; border: 1px solid #d1d5db; color: #374151; background: #ffffff;">
+                                          <span id="btn-see-more-text">See More</span>
+                                          <i class="fa-solid fa-chevron-down ms-1" id="btn-see-more-icon" style="font-size: 10px;"></i>
+                                       </button>
+                                    </div>
+                                 </div>
+
+                                 <div class="section-divider" style="border-bottom: 1px solid #f0f0f0; margin-top: 10px; margin-bottom: 10px;"></div>
+                              </div>
+
                            </div>
-                        </div>
-                     </div>
 
-                     <!-- product-variation -->
-                     <div class="aq-product-color aq-product-color-large mb-30">
-                        <h4 class="aq-product-details-title-sm mb-15">Laptop storage</h4>
-                        <div class="aq-product-details-radio-select">
-                           <label class="aq-radio-item">
-                              <input type="radio" name="storage">
-                              <span class="aq-radio"></span>
-                              <span class="aq-label">500GB</span>
-                           </label>
+                           <!-- Extra Links & Delivery Info -->
+                           <div class="tf-product-info-help mt-2">
+                              <div class="tf-product-info-extra-link d-flex justify-content-between">
+                                 <a href="#exampleModalToggle5" data-bs-toggle="modal" class="tf-product-extra-icon d-flex align-items-center gap-2 text-decoration-none">
+                                    <div class="icon"><i class="icon-shipping"></i></div>
+                                    <p class="text-caption-1 mb-0">Delivery &amp; Return</p>
+                                 </a>
+                                 <a href="#exampleModalToggle4" data-bs-toggle="modal" class="tf-product-extra-icon d-flex align-items-center gap-2 text-decoration-none">
+                                    <div class="icon"><i class="icon-question"></i></div>
+                                    <p class="text-caption-1 mb-0">Ask A Question</p>
+                                 </a>
+                                 <a href="#exampleModalToggle6" data-bs-toggle="modal" class="tf-product-extra-icon d-flex align-items-center gap-2 text-decoration-none">
+                                    <div class="icon"><i class="icon-share"></i></div>
+                                    <p class="text-caption-1 mb-0">Share</p>
+                                 </a>
+                              </div>
 
-                           <label class="aq-radio-item">
-                              <input type="radio" name="storage" checked>
-                              <span class="aq-radio"></span>
-                              <span class="aq-label">1TB</span>
-                           </label>
-
-                           <label class="aq-radio-item">
-                              <input type="radio" name="storage">
-                              <span class="aq-radio"></span>
-                              <span class="aq-label">2TB</span>
-                           </label>
-                        </div>
-
-                     </div>
-
-                     <!-- product-action -->
-                     <div class="aq-product-details-action-wrapper mb-25">
-                        <div class="aq-product-details-action-item-wrapper d-sm-flex align-items-center">
-                           <div class="aq-product-details-quantity">
-                              <div class="aq-product-quantity mb-10 mr-10">
-                                 <span class="aq-cart-minus">
-                                    <svg width="11" height="2" viewBox="0 0 11 2" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                       <path d="M1 1H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                 </span>
-                                 <input class="aq-cart-input" type="text" value="1">
-                                 <span class="aq-cart-plus">
-                                    <svg width="11" height="12" viewBox="0 0 11 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                       <path d="M1 6H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                       <path d="M5.5 10.5V1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                 </span>
+                              <div class="tf-product-info-time d-flex align-items-center gap-2 mt-2">
+                                 <div class="icon"><i class="icon-timer"></i></div>
+                                 <p class="text-caption-1 mb-0">Estimated Delivery:&nbsp;&nbsp;<span>3-6 business days</span></p>
+                              </div>
+                              <div class="tf-product-info-return d-flex align-items-center gap-2 mt-1">
+                                 <div class="icon"><i class="icon-arrowClockwise"></i></div>
+                                 <p class="text-caption-1 mb-0">Return within <span>30 days</span> of purchase. Hassle-free refunds.</p>
                               </div>
                            </div>
-                           <div class="aq-product-details-add-to-cart d-flex align-items-center mb-10 w-100">
-                              <div class="aq-product-details-add-to-cart-btn w-100">
-                                 <button type="button" class="aq-btn-black btn-square w-100" onclick="bazaroAddToCart(1, 1, true)">Add To Cart</button>
-                              </div>
-                              <button type="button" class="aq-product-action-btn action-btn-2 aq-wishlist-btn aq-tooltip-top" onclick="bazaroToggleWishlist(1, this)">
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none">
-                                    <path d="M14.7197 1.52347C12.5744 0.244089 10.7019 0.759666 9.57712 1.58092C9.11591 1.91766 8.88531 2.08602 8.74963 2.08602C8.61396 2.08602 8.38336 1.91766 7.92215 1.58092C6.79733 0.759666 4.9249 0.244089 2.77958 1.52347C-0.0359114 3.20253 -0.67299 8.7418 5.82126 13.4151C7.05821 14.3052 7.67668 14.7502 8.74963 14.7502C9.82258 14.7502 10.4411 14.3052 11.678 13.4151C18.1723 8.7418 17.5352 3.20253 14.7197 1.52347Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round"/>
-                                 </svg>                                                                               
-                                 <span class="aq-tooltip-item">Wishlist</span>
+
+                           <!-- SKU / Metadata -->
+                           <ul class="tf-product-info-sku list-unstyled border-top pt-2 mt-2 mb-0">
+                              <li class="d-flex gap-2 py-1">
+                                 <p class="text-caption-1 mb-0 text-secondary">SKU:</p>
+                                 <p class="text-caption-1 mb-0 fw-semibold" id="display-sku"><?= html_escape($initial_sku); ?></p>
+                              </li>
+                              <?php if (!empty($product['brand_name'])): ?>
+                                 <li class="d-flex gap-2 py-1">
+                                    <p class="text-caption-1 mb-0 text-secondary">Brand:</p>
+                                    <p class="text-caption-1 mb-0 fw-semibold"><?= html_escape($product['brand_name']); ?></p>
+                                 </li>
+                              <?php endif; ?>
+                              <li class="d-flex gap-2 py-1">
+                                 <p class="text-caption-1 mb-0 text-secondary">Availability:</p>
+                                 <p class="text-caption-1 mb-0 fw-bold text-success" id="display-stock-status">In Stock (<?= !empty($initial_variant['stock']) ? (int)$initial_variant['stock'] : 15; ?> available)</p>
+                              </li>
+                              <li class="d-flex gap-2 py-1">
+                                 <p class="text-caption-1 mb-0 text-secondary">Cash on Delivery:</p>
+                                 <?php if (isset($product['is_cod_allowed']) && (int)$product['is_cod_allowed'] === 0): ?>
+                                    <p class="text-caption-1 mb-0 fw-semibold text-danger"><i class="fa-solid fa-ban me-1"></i>Not Available</p>
+                                 <?php else: ?>
+                                    <p class="text-caption-1 mb-0 fw-semibold text-success"><i class="fa-solid fa-circle-check me-1"></i>Available</p>
+                                 <?php endif; ?>
+                              </li>
+                              <li class="d-flex gap-2 py-1">
+                                 <p class="text-caption-1 mb-0 text-secondary">Category:</p>
+                                 <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . '?preview_tpl=electronics'); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name'] ?? 'Womens Fashion'); ?></a></p>
+                              </li>
+                           </ul>
+
+                           <!-- QUANTITY (Hidden input default = 1 for cart / checkout) -->
+                           <input type="hidden" id="product-qty-input" name="number" value="1">
+
+                           <!-- DESKTOP ACTION BUTTONS (Side by Side) -->
+                           <div class="product-action-buttons-wrap d-none d-md-flex gap-2 gap-sm-3 align-items-center mt-3 pt-1">
+                              <button type="button" class="btn-style-2 flex-grow-1 text-btn-uppercase fw-bold btn-add-to-cart py-3" id="main-btn-atc" onclick="addToCartAjax(event)" style="width: 50%; flex: 1 1 0; min-width: 0;">
+                                 <span>Add to cart</span>
                               </button>
-                              <button type="button" class="aq-product-action-btn action-btn-2 aq-compare-btn aq-tooltip-top">
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="14" viewBox="0 0 16 14" fill="none">
-                                    <path d="M11.6755 5.91828L14.2612 3.33412M14.2612 3.33412L11.6755 0.75M14.2612 3.33412L1.74999 3.33374M3.33562 8.07153L0.75 10.6557L3.33562 13.2398M13.7724 10.75H1.26122" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>                                                                          
-                                 <span class="aq-tooltip-item">Compare</span>
+
+                              <button type="button" class="btn-style-3 flex-grow-1 text-btn-uppercase fw-bold py-3" id="btn-buy-now" onclick="buyNow()" style="width: 50%; flex: 1 1 0; min-width: 0;">
+                                 Buy now
                               </button>
                            </div>
+
+                           <!-- MOBILE ATTACHED ACTION BUTTONS -->
+                           <div class="mobile-bottom-action-bar-attached d-md-none" id="in-page-action-buttons">
+                              <button type="button" class="btn-mobile-action btn-mobile-atc" onclick="addToCartAjax(event)">
+                                 Add to cart
+                              </button>
+                              <button type="button" class="btn-mobile-action btn-mobile-buy" onclick="buyNow()">
+                                 Buy now
+                              </button>
+                           </div>
+
                         </div>
-                        <div class="aq-product-details-buy-now-btn">
-                           <button type="button" class="aq-btn-black btn-red-bg btn-square w-100" onclick="bazaroAddToCart(1, 1, false); window.location.href='<?= site_url('checkout?preview_tpl=electronics'); ?>';">Buy Now</button>
-                        </div>
-                     </div>
 
-                     <!-- product-action -->
-                     <div class="aq-product-details-action-sm">
-                        <button type="button" class="aq-product-details-action-sm-btn" data-bs-target="#exampleModalToggle5" data-bs-toggle="modal">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="19" height="16" viewBox="0 0 19 16" fill="none">
-                              <path d="M18.1509 6.77558H18.8009C18.8009 6.668 18.7742 6.5621 18.7232 6.46738L18.1509 6.77558ZM9.77434 0.778871L9.9752 0.160685V0.160684L9.77434 0.778871ZM11.4597 2.46428L10.8416 2.66514V2.66514L11.4597 2.46428ZM11.6739 5.56632L11.0557 5.76718V5.76718L11.6739 5.56632ZM12.7975 6.68992L12.5966 7.30811V7.30811L12.7975 6.68992ZM3.24311 13.5259C3.60165 13.5437 3.90679 13.2676 3.92466 12.909C3.94254 12.5505 3.66637 12.2453 3.30783 12.2275L3.27547 12.8767L3.24311 13.5259ZM1.29111 12.26L0.831495 12.7197H0.831495L1.29111 12.26ZM6.77553 12.2508C6.41654 12.2508 6.12555 12.5418 6.12558 12.9008C6.12561 13.2598 6.41664 13.5508 6.77563 13.5508L6.77558 12.9008L6.77553 12.2508ZM15.4935 12.2275C15.1349 12.2453 14.8588 12.5505 14.8767 12.909C14.8945 13.2676 15.1997 13.5437 15.5582 13.5259L15.5258 12.8767L15.4935 12.2275ZM0.650391 0.000390649C0.291406 0.000390649 0.000390649 0.291406 0.000390649 0.650391C0.000390649 1.00938 0.291406 1.30039 0.650391 1.30039V0.650391V0.000390649ZM1.32369 10.2433C1.30582 9.88478 1.00068 9.60862 0.642138 9.62649C0.283598 9.64436 0.00743204 9.9495 0.0253041 10.308L0.674498 10.2757L1.32369 10.2433ZM0.650569 3.5004C0.291584 3.5004 0.000568688 3.79142 0.000568688 4.1504C0.000568688 4.50939 0.291584 4.8004 0.650569 4.8004V4.1504V3.5004ZM5.90073 4.8004C6.25971 4.8004 6.55073 4.50939 6.55073 4.1504C6.55073 3.79142 6.25971 3.5004 5.90073 3.5004V4.1504V4.8004ZM0.650569 6.12516C0.291584 6.12516 0.000568688 6.41618 0.000568688 6.77516C0.000568688 7.13415 0.291584 7.42516 0.650569 7.42516V6.77516V6.12516ZM4.15068 7.42516C4.50966 7.42516 4.80068 7.13415 4.80068 6.77516C4.80068 6.41618 4.50966 6.12516 4.15068 6.12516V6.77516V7.42516ZM11.5881 1.7504C11.2291 1.7504 10.9381 2.04142 10.9381 2.4004C10.9381 2.75939 11.2291 3.0504 11.5881 3.0504V2.4004V1.7504ZM17.0339 4.70128L16.4616 5.00945L16.4616 5.00948L17.0339 4.70128ZM15.6101 2.70991L15.9434 2.15187V2.15187L15.6101 2.70991ZM15.5265 12.9003H14.8765C14.8765 13.5079 14.3839 14.0004 13.7764 14.0004V14.6504V15.3004C15.1019 15.3004 16.1764 14.2259 16.1764 12.9003H15.5265ZM13.7764 14.6504V14.0004C13.1689 14.0004 12.6763 13.5079 12.6763 12.9003H12.0263H11.3763C11.3763 14.2259 12.4509 15.3004 13.7764 15.3004V14.6504ZM12.0263 12.9003H12.6763C12.6763 12.2928 13.1689 11.8003 13.7764 11.8003V11.1503V10.5003C12.4509 10.5003 11.3763 11.5748 11.3763 12.9003H12.0263ZM13.7764 11.1503V11.8003C14.3839 11.8003 14.8765 12.2928 14.8765 12.9003H15.5265H16.1764C16.1764 11.5748 15.1019 10.5003 13.7764 10.5003V11.1503ZM6.77665 12.9005H6.12665C6.12665 13.508 5.63414 14.0005 5.0266 14.0005V14.6505V15.3005C6.35211 15.3005 7.42665 14.226 7.42665 12.9005H6.77665ZM5.0266 14.6505V14.0005C4.41906 14.0005 3.92655 13.508 3.92655 12.9005H3.27655H2.62655C2.62655 14.226 3.70109 15.3005 5.0266 15.3005V14.6505ZM3.27655 12.9005H3.92655C3.92655 12.2929 4.41906 11.8004 5.0266 11.8004V11.1504V10.5004C3.70109 10.5004 2.62655 11.5749 2.62655 12.9005H3.27655ZM5.0266 11.1504V11.8004C5.63414 11.8004 6.12665 12.2929 6.12665 12.9005H6.77665H7.42665C7.42665 11.5749 6.35211 10.5004 5.0266 10.5004V11.1504ZM18.1509 6.77558H17.5009V8.52563H18.1509H18.8009V6.77558H18.1509ZM14.0383 6.77558V7.42558H18.1509V6.77558V6.12558H14.0383V6.77558ZM18.1509 8.52563H17.5009C17.5009 9.57524 17.4995 10.297 17.4266 10.8394C17.3562 11.363 17.23 11.621 17.0506 11.8004L17.5102 12.26L17.9698 12.7197C18.4311 12.2584 18.6253 11.6804 18.715 11.0126C18.8023 10.3635 18.8009 9.53848 18.8009 8.52563H18.1509ZM7.91311 0.650391V1.30039C8.94091 1.30039 9.30065 1.30841 9.57348 1.39706L9.77434 0.778871L9.9752 0.160684C9.45718 -0.00762862 8.83972 0.000390649 7.91311 0.000390649V0.650391ZM11.5882 4.3255H12.2382C12.2382 3.39889 12.2462 2.78143 12.0779 2.26341L11.4597 2.46428L10.8416 2.66514C10.9302 2.93797 10.9382 3.29771 10.9382 4.3255H11.5882ZM9.77434 0.778871L9.57348 1.39706C10.1748 1.59243 10.6462 2.06385 10.8416 2.66514L11.4597 2.46428L12.0779 2.26342C11.754 1.26636 10.9723 0.484649 9.9752 0.160685L9.77434 0.778871ZM11.5882 4.3255H10.9382C10.9382 4.92638 10.9302 5.38097 11.0557 5.76718L11.6739 5.56632L12.2921 5.36546C12.2462 5.22444 12.2382 5.02756 12.2382 4.3255H11.5882ZM14.0383 6.77558V6.12558C13.3362 6.12558 13.1394 6.11756 12.9983 6.07174L12.7975 6.68992L12.5966 7.30811C12.9828 7.4336 13.4374 7.42558 14.0383 7.42558V6.77558ZM11.6739 5.56632L11.0557 5.76718C11.2931 6.49785 11.866 7.0707 12.5966 7.30811L12.7975 6.68992L12.9983 6.07174C12.6634 5.96292 12.4009 5.70036 12.2921 5.36546L11.6739 5.56632ZM3.27547 12.8767L3.30783 12.2275C2.36654 12.1805 1.9913 12.041 1.75073 11.8004L1.29111 12.26L0.831495 12.7197C1.44298 13.3311 2.26508 13.4771 3.24311 13.5259L3.27547 12.8767ZM12.0263 12.9003L12.0263 12.2503L6.77553 12.2508L6.77558 12.9008L6.77563 13.5508L12.0264 13.5503L12.0263 12.9003ZM15.5258 12.8767L15.5582 13.5259C16.5362 13.4771 17.3583 13.3311 17.9698 12.7197L17.5102 12.26L17.0506 11.8004C16.81 12.041 16.4348 12.1805 15.4935 12.2275L15.5258 12.8767ZM0.650391 0.650391V1.30039H7.91311V0.650391V0.000390649H0.650391V0.650391ZM0.674498 10.2757L0.0253041 10.308C0.0740557 11.2861 0.220013 12.1082 0.831495 12.7197L1.29111 12.26L1.75073 11.8004C1.51017 11.5599 1.37061 11.1846 1.32369 10.2433L0.674498 10.2757ZM0.650569 4.1504V4.8004H5.90073V4.1504V3.5004H0.650569V4.1504ZM0.650569 6.77516V7.42516H4.15068V6.77516V6.12516H0.650569V6.77516ZM11.5881 2.4004V3.0504H13.1817V2.4004V1.7504H11.5881V2.4004ZM17.0339 4.70128L16.4616 5.00948L17.5786 7.08377L18.1509 6.77558L18.7232 6.46738L17.6062 4.39309L17.0339 4.70128ZM13.1817 2.4004V3.0504C13.8314 3.0504 14.2708 3.05116 14.6138 3.0858C14.9422 3.11896 15.1281 3.17913 15.2768 3.26794L13.473 2.70991L15.9434 2.15187C15.5739 1.93117 15.1823 1.83659 14.7444 1.79238C14.3211 1.74964 13.8054 1.7504 13.1817 1.7504V2.4004ZM17.0339 4.70128L17.6062 4.39312C17.3105 3.84393 17.0666 3.3895 16.8283 3.03709C16.5818 2.67251 16.3129 2.37257 15.9434 2.15187L15.6101 2.70991L15.2768 3.26794C15.4254 3.35675 15.5665 3.49187 15.7514 3.7653C15.9445 4.05088 16.1535 4.43739 16.4616 5.00945L17.0339 4.70128Z" fill="#141414" fill-opacity="0.8"/>
-                           </svg>
-                           Delivery & Return
-                        </button>
-                        <button type="button" class="aq-product-details-action-sm-btn" data-bs-target="#exampleModalToggle6" data-bs-toggle="modal">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
-                              <path d="M11.2504 4.95C12.4102 4.95 13.3504 4.0098 13.3504 2.85C13.3504 1.6902 12.4102 0.75 11.2504 0.75C10.0906 0.75 9.15039 1.6902 9.15039 2.85C9.15039 4.0098 10.0906 4.95 11.2504 4.95Z" stroke="#141414" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                              <path d="M2.85 9.85039C4.0098 9.85039 4.95 8.91019 4.95 7.75039C4.95 6.59059 4.0098 5.65039 2.85 5.65039C1.6902 5.65039 0.75 6.59059 0.75 7.75039C0.75 8.91019 1.6902 9.85039 2.85 9.85039Z" stroke="#141414" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                              <path d="M11.2504 14.7498C12.4102 14.7498 13.3504 13.8096 13.3504 12.6498C13.3504 11.49 12.4102 10.5498 11.2504 10.5498C10.0906 10.5498 9.15039 11.49 9.15039 12.6498C9.15039 13.8096 10.0906 14.7498 11.2504 14.7498Z" stroke="#141414" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                              <path d="M4.66309 8.80664L9.44409 11.5926" stroke="#141414" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                              <path d="M9.43709 3.90723L4.66309 6.69323" stroke="#141414" stroke-opacity="0.8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                           </svg>
-                           Share
-                        </button>
-                     </div>
-
-                     <!-- product-message -->
-                     <div class="aq-product-details-mesg-wrap">
-                        <ul>
-                           <li>
-                              <div class="aq-product-details-mesg d-flex align-items-center">
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22" fill="none">
-                                       <path d="M22.2581 20.2907C22.0349 20.0702 21.5886 20.0702 21.3655 20.2907C20.8077 20.8421 19.8035 20.8421 19.2457 20.2907C19.0226 20.0702 18.7994 19.9599 18.4647 19.7393L21.1423 12.6817C21.4771 11.9098 21.1423 11.0276 20.473 10.5865L16.7912 7.93987V4.0802C16.7912 3.6391 16.568 3.19799 16.2333 2.86716C15.8986 2.53634 15.4524 2.31579 15.0061 2.31579H14.1135V1.76441C14.1135 0.771929 13.3325 0 12.3284 0H10.3202C9.31604 0 8.53508 0.771929 8.53508 1.76441V2.31579H7.64253C7.19622 2.31579 6.74993 2.53634 6.41523 2.86716C5.85739 3.19799 5.74581 3.6391 5.74581 4.0802V7.93987L1.84089 10.5865C1.17148 11.0276 0.948342 11.9098 1.17148 12.6817L3.84914 19.8496C3.626 19.9599 3.40286 20.1805 3.17972 20.2907C2.62187 20.8421 1.61775 20.8421 1.05991 20.2907C0.83677 20.0702 0.390492 20.0702 0.167354 20.2907C-0.0557846 20.5113 -0.0557846 20.9524 0.167354 21.1729C1.28304 22.2757 3.06815 22.2757 4.18385 21.1729C4.74169 20.6215 5.74581 20.6215 6.30366 21.1729C7.41935 22.2757 9.20445 22.2757 10.3202 21.1729C10.878 20.6215 11.8821 20.6215 12.44 21.1729C13.5557 22.2757 15.3408 22.2757 16.4565 21.1729C17.0143 20.6215 18.0184 20.6215 18.5763 21.1729C19.1341 21.7243 19.8035 21.9449 20.5846 21.9449C21.3655 21.9449 22.0349 21.614 22.5927 21.1729C22.5927 20.9524 22.5927 20.6216 22.2581 20.2907ZM9.76231 1.76441C9.76231 1.54386 9.98541 1.32331 10.2086 1.32331H12.2169C12.44 1.32331 12.6631 1.54386 12.6631 1.76441V2.31579H9.65072V1.76441H9.76231ZM7.08464 4.0802C7.08464 3.96992 7.08464 3.85965 7.19622 3.74937C7.30778 3.6391 7.41935 3.6391 7.53094 3.6391H15.0061C15.1176 3.6391 15.2292 3.6391 15.3408 3.74937C15.4524 3.85965 15.4524 3.96992 15.4524 4.0802V6.94736L11.659 4.41103C11.4358 4.30075 11.1011 4.30075 10.878 4.41103L7.08464 7.05764V4.0802ZM2.62187 11.6892L11.2127 5.84461L19.8035 11.7995C19.9151 11.9098 20.0267 12.1304 19.9151 12.3509L19.0226 14.777L11.659 9.70427C11.4358 9.59398 11.1011 9.59398 10.878 9.70427L3.40286 14.6667L2.51031 12.1304C2.39874 12.0201 2.39874 11.7995 2.62187 11.6892ZM15.2292 20.2907C14.6713 20.8421 13.6673 20.8421 13.1094 20.2907C11.9937 19.188 10.2086 19.188 9.09286 20.2907C8.53508 20.8421 7.53094 20.8421 6.97308 20.2907C6.41523 19.7394 5.74581 19.5188 4.96483 19.5188L3.626 15.99L11.2127 11.0276L18.5763 16.1003L17.2375 19.6291C16.4564 19.5188 15.787 19.7394 15.2292 20.2907Z" fill="currentcolor"/>
-                                    </svg>
-                                 </span>
-                                 <span><label>Estimate delivery times:</label> 5-7 days International.</span>
-                              </div>
-                           </li>
-                           <li>
-                              <div class="aq-product-details-mesg d-flex align-items-center">
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewBox="0 0 18 20" fill="none">
-                                       <path d="M12.7023 7.23009L4.63379 2.57715M0.84082 5.04395L8.66728 9.57137L16.4937 5.04395M8.66797 18.5996V9.56268M16.7366 13.1491V5.97689C16.7363 5.66246 16.6533 5.35364 16.496 5.08142C16.3386 4.80919 16.1124 4.58313 15.8401 4.42591L9.56463 0.839831C9.29205 0.682459 8.98286 0.599609 8.66812 0.599609C8.35339 0.599609 8.04419 0.682459 7.77162 0.839831L1.49611 4.42591C1.22381 4.58313 0.997638 4.80919 0.840286 5.08142C0.682933 5.35364 0.599932 5.66246 0.599609 5.97689V13.1491C0.599932 13.4635 0.682933 13.7723 0.840286 14.0445C0.997638 14.3168 1.22381 14.5428 1.49611 14.7L7.77162 18.2861C8.04419 18.4435 8.35339 18.5263 8.66812 18.5263C8.98286 18.5263 9.29205 18.4435 9.56463 18.2861L15.8401 14.7C16.1124 14.5428 16.3386 14.3168 16.496 14.0445C16.6533 13.7723 16.7363 13.4635 16.7366 13.1491Z" stroke="currentcolor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                 </span>
-                                 <span><label>Free shipping & returns:</label> On all orders over $150.</span>
-                              </div>
-                           </li>
-                        </ul>
-                     </div>
-
-                     <!-- product-message -->
-                     <div class="aq-product-details-payment d-flex align-items-center justify-content-between">
-                        <p>Guaranteed safe <br> and secure checkout</p>
-                        <img src="<?= $bazaro; ?>img/payment/payment.png" alt="">
                      </div>
                   </div>
                </div>
@@ -1064,3 +1968,520 @@ $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/
       <!-- Content -->
 
    </main>
+
+<script>
+(function() {
+    'use strict';
+
+    var productId          = <?= (int) ($product['id'] ?? 1); ?>;
+    var currencySymbol     = "<?= $currency_symbol; ?>";
+    var colorMap           = <?= json_encode($color_map); ?>;
+    var sizeVariantMap     = <?= json_encode($size_variant_map); ?>;
+    var baseHighlights     = <?= json_encode($product_highlights); ?>;
+    var baseSpecifications = <?= json_encode(!empty($product['specifications']) ? $product['specifications'] : []); ?>;
+    var baseBrand          = <?= json_encode(!empty($product['brand_name']) ? $product['brand_name'] : ''); ?>;
+    var baseCategory       = <?= json_encode(!empty($product['category_name']) ? $product['category_name'] : ''); ?>;
+    var hasVariants        = <?= $has_variants ? 'true' : 'false'; ?>;
+    var hasColor           = <?= $has_color ? 'true' : 'false'; ?>;
+    var hasSize            = <?= $has_size ? 'true' : 'false'; ?>;
+    var multiAttrName      = "<?= !empty($multi_attr_name) ? addslashes($multi_attr_name) : 'Size'; ?>";
+
+    var selectedColor      = "<?= addslashes($initial_color); ?>";
+    var selectedSize       = "<?= addslashes($initial_size); ?>";
+    var selectedVariantId  = <?= (int) $initial_variant_id; ?>;
+    var currentPrice       = <?= (float) $current_price; ?>;
+    var regularPrice       = <?= (float) $regular_price; ?>;
+    var loaderTimeout      = null;
+
+    function showVariantLoader() {
+        var loader = document.getElementById('product-variant-loader');
+        if (loader) {
+            loader.style.display = 'flex';
+            void loader.offsetHeight;
+            loader.classList.add('active');
+        }
+    }
+
+    function hideVariantLoader(delay) {
+        if (loaderTimeout) clearTimeout(loaderTimeout);
+        loaderTimeout = setTimeout(function() {
+            var loader = document.getElementById('product-variant-loader');
+            if (loader) {
+                loader.classList.remove('active');
+                setTimeout(function() {
+                    if (!loader.classList.contains('active')) {
+                        loader.style.display = 'none';
+                    }
+                }, 200);
+            }
+        }, (typeof delay === 'number' ? delay : 220));
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function parseJsonSafe(val) {
+        if (!val) return [];
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'object') return val;
+        try {
+            var parsed = JSON.parse(val);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function isSpecFullWidth(name, value, containerWidth) {
+        var valStr = String(value || '').trim();
+        var nameStr = String(name || '').trim();
+        if (valStr.length > 35 || nameStr.length > 28 || (valStr.length + nameStr.length) > 45) {
+            return true;
+        }
+        try {
+            var gridEl = document.getElementById('specs-grid-container') || document.getElementById('highlights-grid-container');
+            var gridW = containerWidth || (gridEl ? gridEl.clientWidth : 0);
+            if (gridW > 0) {
+                var halfCol = (gridW - 20) / 2;
+                var canvas = isSpecFullWidth.canvas || (isSpecFullWidth.canvas = document.createElement("canvas"));
+                var ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.font = "500 14px sans-serif";
+                    if (ctx.measureText(valStr).width > (halfCol - 15)) return true;
+                    ctx.font = "400 13px sans-serif";
+                    if (ctx.measureText(nameStr).width > (halfCol - 15)) return true;
+                }
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    window.evaluateSpecsGridFullWidth = function() {
+        var containers = document.querySelectorAll('#specs-grid-container, #highlights-grid-container');
+        containers.forEach(function(grid) {
+            if (!grid || grid.offsetParent === null) return;
+            var gridW = grid.clientWidth;
+            if (!gridW) return;
+            var items = grid.querySelectorAll('.spec-grid-item');
+            items.forEach(function(item) {
+                var keyEl = item.querySelector('.spec-item-key');
+                var valEl = item.querySelector('.spec-item-val');
+                var keyText = keyEl ? keyEl.textContent.trim() : '';
+                var valText = valEl ? valEl.textContent.trim() : '';
+                if (isSpecFullWidth(keyText, valText, gridW)) {
+                    item.classList.add('spec-full-width');
+                    item.style.gridColumn = '1 / -1';
+                } else {
+                    item.classList.remove('spec-full-width');
+                    item.style.gridColumn = '';
+                }
+            });
+        });
+    };
+
+    window.slideColorTrack = function(direction) {
+        var track = document.getElementById('color-slider-track');
+        if (track) {
+            track.scrollBy({ left: direction * 160, behavior: 'smooth' });
+            setTimeout(updateColorSliderArrows, 250);
+        }
+    };
+
+    window.updateColorSliderArrows = function() {
+        var track = document.getElementById('color-slider-track');
+        var prevBtn = document.getElementById('color-arrow-prev');
+        var nextBtn = document.getElementById('color-arrow-next');
+        if (!track || !prevBtn || !nextBtn) return;
+
+        var scrollLeft = track.scrollLeft;
+        var maxScroll = track.scrollWidth - track.clientWidth;
+
+        if (maxScroll <= 4) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = scrollLeft > 6 ? 'flex' : 'none';
+            nextBtn.style.display = scrollLeft < (maxScroll - 6) ? 'flex' : 'none';
+        }
+    };
+
+    function updateVariantHighlights(variantData) {
+        var container = document.getElementById('highlights-grid-container');
+        var block = document.getElementById('product-highlights-block');
+        if (!container || !block) return;
+
+        var hlList = [];
+        var vHl = variantData ? parseJsonSafe(variantData.highlights) : [];
+        if (vHl && vHl.length > 0) {
+            hlList = vHl;
+        } else if (baseHighlights && baseHighlights.length > 0) {
+            hlList = baseHighlights;
+        }
+
+        var validHl = [];
+        hlList.forEach(function(item) {
+            var k = (item.key || item.name || '').trim();
+            var v = (item.value || '').trim();
+            if (k !== '' || v !== '') {
+                validHl.push({ key: k, value: v });
+            }
+        });
+
+        if (validHl.length === 0) {
+            block.style.display = 'none';
+            return;
+        }
+
+        block.style.display = 'block';
+        var html = '';
+        var hlGridW = container.clientWidth || 0;
+        validHl.forEach(function(item) {
+            var isFullWidth = isSpecFullWidth(item.key, item.value, hlGridW);
+            var fullWidthClass = isFullWidth ? ' spec-full-width' : '';
+            var fullWidthStyle = isFullWidth ? 'grid-column: 1 / -1;' : '';
+            html += '<div class="spec-grid-item' + fullWidthClass + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + fullWidthStyle + '">' +
+                    '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.key) + '</div>' +
+                    '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
+                    '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function updateVariantSpecifications(variantData) {
+        var specsGrid = document.getElementById('specs-grid-container');
+        var specsBlock = document.getElementById('product-specifications-block');
+        var seeMoreWrap = document.getElementById('specs-see-more-wrap');
+
+        var mergedSpecs = [];
+        var seenKeys = {};
+
+        if (baseBrand) {
+            mergedSpecs.push({ name: 'Brand', value: baseBrand });
+            seenKeys['brand'] = true;
+        }
+        if (baseCategory) {
+            mergedSpecs.push({ name: 'Category', value: baseCategory });
+            seenKeys['category'] = true;
+        }
+        var curSize = (variantData && variantData.size) ? variantData.size : selectedSize;
+        if (curSize) {
+            var optSpecLabel = multiAttrName || 'Option';
+            mergedSpecs.push({ name: optSpecLabel, value: curSize });
+            seenKeys[optSpecLabel.toLowerCase()] = true;
+            seenKeys['size'] = true;
+        }
+        var curColor = (variantData && variantData.color) ? variantData.color : selectedColor;
+        if (curColor) {
+            var formattedColor = curColor.charAt(0).toUpperCase() + curColor.slice(1);
+            mergedSpecs.push({ name: 'Color', value: formattedColor });
+            seenKeys['color'] = true;
+        }
+
+        var customSpecs = [];
+        var vSpecs = variantData ? parseJsonSafe(variantData.specifications) : [];
+        if (vSpecs && vSpecs.length > 0) {
+            customSpecs = vSpecs;
+        } else if (baseSpecifications && baseSpecifications.length > 0) {
+            customSpecs = baseSpecifications;
+        }
+
+        customSpecs.forEach(function(sp) {
+            var n = (sp.name || sp.spec_name || sp.spec_key || '').trim();
+            var v = (sp.value || sp.spec_value || '').trim();
+            var k = n.toLowerCase();
+            if (n !== '' && v !== '' && !seenKeys[k]) {
+                seenKeys[k] = true;
+                mergedSpecs.push({ name: n, value: v });
+            }
+        });
+
+        if (mergedSpecs.length === 0) {
+            if (specsBlock) specsBlock.style.display = 'none';
+            return;
+        }
+
+        if (specsBlock) specsBlock.style.display = 'block';
+
+        if (specsGrid) {
+            var gridHtml = '';
+            var count = mergedSpecs.length;
+            var isExpanded = window.areSpecsExpanded || false;
+            var specsGridW = specsGrid.clientWidth || 0;
+
+            mergedSpecs.forEach(function(item, idx) {
+                var isExtra = (idx >= 14);
+                var displayStyle = (isExtra && !isExpanded) ? 'display: none;' : '';
+                var isFullWidth = isSpecFullWidth(item.name, item.value, specsGridW);
+                var fullWidthClass = isFullWidth ? ' spec-full-width' : '';
+                var fullWidthStyle = isFullWidth ? 'grid-column: 1 / -1;' : '';
+
+                gridHtml += '<div class="spec-grid-item ' + (isExtra ? 'spec-overflow-item' : '') + fullWidthClass + '" style="border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; ' + fullWidthStyle + ' ' + displayStyle + '">' +
+                            '  <div class="spec-item-key" style="font-size: 13px; color: #717478; margin-bottom: 2px; font-weight: 400;">' + escapeHtml(item.name) + '</div>' +
+                            '  <div class="spec-item-val" style="font-size: 14px; color: #212121; font-weight: 500; line-height: 1.3;">' + escapeHtml(item.value) + '</div>' +
+                            '</div>';
+            });
+            specsGrid.innerHTML = gridHtml;
+
+            if (seeMoreWrap) {
+                seeMoreWrap.style.display = (count > 14) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function updateSizeAvailability() {
+        if (!hasSize) return;
+        var chips = document.querySelectorAll('.variant-size-chip');
+        var colorSizes = (colorMap[selectedColor] && colorMap[selectedColor].sizes) ? colorMap[selectedColor].sizes : {};
+        var firstInStockSize = '';
+
+        chips.forEach(function(ch) {
+            var s = ch.getAttribute('data-size');
+            var sizeData = colorSizes[s];
+            var inStock = sizeData ? (sizeData.stock > 0) : true;
+            if (!inStock) {
+                ch.classList.add('is-out-of-stock');
+                ch.title = 'Out of stock';
+            } else {
+                ch.classList.remove('is-out-of-stock');
+                ch.title = multiAttrName + ' ' + s;
+                if (!firstInStockSize) firstInStockSize = s;
+            }
+        });
+
+        var currentSizeData = colorSizes[selectedSize];
+        if (currentSizeData && currentSizeData.stock <= 0 && firstInStockSize) {
+            chips.forEach(function(ch) {
+                if (ch.getAttribute('data-size') === firstInStockSize) {
+                    selectSize(firstInStockSize, ch);
+                }
+            });
+        }
+    }
+
+    function syncCurrentVariant() {
+        var variantData = null;
+        if (hasVariants && colorMap[selectedColor] && colorMap[selectedColor].sizes && colorMap[selectedColor].sizes[selectedSize]) {
+            variantData = colorMap[selectedColor].sizes[selectedSize];
+        } else if (hasVariants && sizeVariantMap && sizeVariantMap[selectedSize]) {
+            variantData = sizeVariantMap[selectedSize];
+        } else if (hasVariants && colorMap[selectedColor] && colorMap[selectedColor].sizes) {
+            var firstS = Object.keys(colorMap[selectedColor].sizes)[0];
+            if (firstS) variantData = colorMap[selectedColor].sizes[firstS];
+        }
+
+        if (variantData) {
+            selectedVariantId = variantData.variant_id;
+            var regularP = (typeof variantData.price !== 'undefined' && variantData.price !== null) ? parseFloat(variantData.price) : regularPrice;
+            var saleP = (typeof variantData.sale_price !== 'undefined' && variantData.sale_price !== null && variantData.sale_price !== '') ? parseFloat(variantData.sale_price) : null;
+            var effectivePrice = (saleP !== null && saleP > 0) ? saleP : regularP;
+
+            currentPrice = effectivePrice;
+            regularPrice = regularP;
+
+            var salePriceEl = document.getElementById('display-sale-price');
+            if (salePriceEl) {
+                salePriceEl.textContent = currencySymbol + effectivePrice.toFixed(2);
+            }
+
+            var discountBadgeEl = document.getElementById('display-discount-rate');
+            var mrpEl = document.getElementById('display-mrp-price');
+
+            if (saleP !== null && saleP > 0 && regularP > saleP) {
+                var discountPct = Math.round(((regularP - saleP) / regularP) * 100);
+                if (discountBadgeEl) {
+                    discountBadgeEl.innerHTML = '<i class="fa-solid fa-arrow-down-long me-1"></i>' + discountPct + '%';
+                    discountBadgeEl.style.display = 'inline-flex';
+                }
+                if (mrpEl) {
+                    mrpEl.textContent = 'M.R.P.: ' + currencySymbol + regularP.toFixed(2);
+                    mrpEl.style.display = 'inline';
+                }
+            } else {
+                if (discountBadgeEl) discountBadgeEl.style.display = 'none';
+                if (mrpEl) mrpEl.style.display = 'none';
+            }
+
+            var skuEl = document.getElementById('display-sku');
+            if (skuEl && variantData.sku) {
+                skuEl.textContent = variantData.sku;
+            }
+
+            var stockEl = document.getElementById('display-stock-status');
+            var atcBtn = document.getElementById('main-btn-atc');
+            if (stockEl) {
+                if (variantData.stock > 0) {
+                    stockEl.textContent = 'In Stock (' + variantData.stock + ' available)';
+                    stockEl.className = 'text-caption-1 mb-0 fw-bold text-success';
+                    if (atcBtn) atcBtn.disabled = false;
+                } else {
+                    stockEl.textContent = 'Out of Stock';
+                    stockEl.className = 'text-caption-1 mb-0 fw-bold text-danger';
+                    if (atcBtn) atcBtn.disabled = true;
+                }
+            }
+
+            updateVariantHighlights(variantData);
+            updateVariantSpecifications(variantData);
+        }
+    }
+
+    window.selectColor = function(colorName, cardEl) {
+        if (selectedColor === colorName) return;
+        showVariantLoader();
+        selectedColor = colorName;
+
+        var label = document.getElementById('selected-color-name');
+        if (label) {
+            label.textContent = colorName.charAt(0).toUpperCase() + colorName.slice(1);
+        }
+
+        var cards = document.querySelectorAll('.color-thumb-card');
+        cards.forEach(function(c) { c.classList.remove('active'); });
+        if (cardEl) {
+            cardEl.classList.add('active');
+            if (cardEl.scrollIntoView) {
+                cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                setTimeout(updateColorSliderArrows, 250);
+            }
+        }
+
+        updateSizeAvailability();
+        syncCurrentVariant();
+        hideVariantLoader(250);
+    };
+
+    window.selectSize = function(sizeName, chipEl) {
+        if (chipEl && chipEl.classList.contains('is-out-of-stock')) {
+            alert(multiAttrName + ' ' + sizeName + ' is currently out of stock for color ' + selectedColor + '.');
+            return;
+        }
+        showVariantLoader();
+        selectedSize = sizeName;
+
+        var label = document.getElementById('selected-size-name');
+        if (label) label.textContent = sizeName;
+
+        var chips = document.querySelectorAll('.variant-size-chip');
+        chips.forEach(function(ch) { ch.classList.remove('active'); });
+        if (chipEl) chipEl.classList.add('active');
+
+        syncCurrentVariant();
+        hideVariantLoader(250);
+    };
+
+    window.addToCartAjax = function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        var qtyInput = document.getElementById('product-qty-input');
+        var qty = parseInt(qtyInput ? qtyInput.value : '1', 10) || 1;
+        if (typeof bazaroAddToCart === 'function') {
+            bazaroAddToCart(productId, qty, true);
+            return;
+        }
+        var payload = new URLSearchParams();
+        payload.append('product_id', productId);
+        payload.append('quantity', qty);
+        if (selectedVariantId) payload.append('variant_id', selectedVariantId);
+        fetch('<?= site_url("cart/add"); ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: payload.toString()
+        }).then(function() {
+            var cartDrawer = document.querySelector('.cartmini__area');
+            if (cartDrawer) cartDrawer.classList.add('cartmini-opened');
+        });
+    };
+
+    window.buyNow = function() {
+        var qty = parseInt(document.getElementById('product-qty-input')?.value || '1', 10) || 1;
+        var payload = new URLSearchParams();
+        payload.append('product_id', productId);
+        payload.append('quantity', qty);
+        if (selectedVariantId) payload.append('variant_id', selectedVariantId);
+
+        fetch('<?= site_url("cart/add"); ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: payload.toString()
+        }).finally(function() {
+            window.location.href = '<?= site_url("checkout?preview_tpl=electronics"); ?>';
+        });
+    };
+
+    window.activateReviewTab = function() {
+        var revTab = document.getElementById('nav-review-tab');
+        if (revTab) {
+            revTab.click();
+            revTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    updateSizeAvailability();
+    syncCurrentVariant();
+    updateColorSliderArrows();
+    window.addEventListener('resize', updateColorSliderArrows);
+})();
+
+window.toggleProductHighlights = function() {
+    var body = document.getElementById('product-highlights-collapse');
+    var icon = document.getElementById('highlights-arrow-icon');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (icon) icon.className = 'fa-solid fa-chevron-up';
+    } else {
+        body.style.display = 'none';
+        if (icon) icon.className = 'fa-solid fa-chevron-down';
+    }
+};
+
+window.toggleProductSpecifications = function() {
+    var body = document.getElementById('product-specs-collapse');
+    var icon = document.getElementById('specs-arrow-icon');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (icon) icon.className = 'fa-solid fa-chevron-up';
+    } else {
+        body.style.display = 'none';
+        if (icon) icon.className = 'fa-solid fa-chevron-down';
+    }
+};
+
+window.areSpecsExpanded = false;
+window.toggleSeeMoreSpecs = function(e) {
+    if (e) e.stopPropagation();
+    window.areSpecsExpanded = !window.areSpecsExpanded;
+    var extras = document.querySelectorAll('.spec-overflow-item');
+    var btnText = document.getElementById('btn-see-more-text');
+    var btnIcon = document.getElementById('btn-see-more-icon');
+
+    extras.forEach(function(el) {
+        el.style.display = window.areSpecsExpanded ? 'block' : 'none';
+    });
+
+    if (window.areSpecsExpanded) {
+        if (btnText) btnText.textContent = 'See Less';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-up ms-1';
+    } else {
+        if (btnText) btnText.textContent = 'See More';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-chevron-down ms-1';
+    }
+};
+</script>
+
