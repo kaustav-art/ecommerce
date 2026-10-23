@@ -452,10 +452,10 @@ if (!function_exists('elt_resolve_img')) {
    </div>
    <!-- bottom menu area end -->
 
-   <header>
+   <header class="elt-site-header">
 
       <!-- header area start -->
-      <div class="aq-header-area p-relative py-3">
+      <div class="aq-header-area elt-sticky-top-bar p-relative py-3">
          <div class="container">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
                <!-- Logo -->
@@ -612,10 +612,26 @@ if (!function_exists('elt_resolve_img')) {
          $fallback_cat_idx = (($idx) % 7) + 1;
          $c_img = elt_resolve_img($hc['image'] ?? '', 'img/electronics/category/cat-' . $fallback_cat_idx . '.jpg');
 
+         $elt_icon = 'fa-microchip';
+         if (strpos($c_key_lower, 'headphone') !== false || strpos($c_key_lower, 'audio') !== false) {
+            $elt_icon = 'fa-headphones-simple';
+         } elseif (strpos($c_key_lower, 'watch') !== false || strpos($c_key_lower, 'wearable') !== false) {
+            $elt_icon = 'fa-clock';
+         } elseif (strpos($c_key_lower, 'phone') !== false || strpos($c_key_lower, 'mobile') !== false) {
+            $elt_icon = 'fa-mobile-screen-button';
+         } elseif (strpos($c_key_lower, 'laptop') !== false || strpos($c_key_lower, 'macbook') !== false || strpos($c_key_lower, 'pc') !== false) {
+            $elt_icon = 'fa-laptop';
+         } elseif (strpos($c_key_lower, 'camera') !== false || strpos($c_key_lower, 'drone') !== false) {
+            $elt_icon = 'fa-camera';
+         } elseif (strpos($c_key_lower, 'gaming') !== false || strpos($c_key_lower, 'console') !== false) {
+            $elt_icon = 'fa-gamepad';
+         }
+
          $elt_prepared_cats[] = [
             'id'       => (int)($hc['id'] ?? ($idx + 1)),
             'name'     => $c_name,
             'slug'     => $c_slug,
+            'icon'     => $elt_icon,
             'image'    => $c_img,
             'fallback' => $bazaro . 'img/electronics/category/cat-' . $fallback_cat_idx . '.jpg',
             'subs'     => $subs,
@@ -625,200 +641,497 @@ if (!function_exists('elt_resolve_img')) {
 
       <?php if (!empty($elt_prepared_cats)): ?>
       <style>
-         .elt-cat-subcat-wrapper {
-            background: #ffffff;
-            border-top: 1px solid #eff1f5;
-            border-bottom: 1px solid #e5e8ef;
+         /* =========================================================
+            Dark Tech Bar + All-Departments Split Flyout
+            + Floating Hover Subcategory Popover Cards
+            ========================================================= */
+         .elt-v2-navbar {
+            background: #0B0D0E;
+            color: #ffffff;
             position: relative;
-            z-index: 1015;
+            z-index: 1025;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
          }
-         /* Row 1: Main Categories Row */
-         .elt-cat-row {
+         .elt-v2-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 50px;
+         }
+         /* Left All Departments Trigger & Split Mega Dropdown */
+         .elt-v2-dept-wrap {
+            position: relative;
+            flex-shrink: 0;
+         }
+         .elt-v2-dept-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #E1EEB7;
+            color: #0B0D0E;
+            font-size: 13.5px;
+            font-weight: 700;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+         }
+         .elt-v2-dept-btn:hover {
+            background: #d4e798;
+         }
+         .elt-v2-dept-flyout {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 660px;
+            max-width: 92vw;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 14px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
+            border: 1px solid #e5e7eb;
+            display: flex;
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+            z-index: 1100;
+         }
+         .elt-v2-dept-wrap::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 12px;
+         }
+         .elt-v2-dept-wrap:hover .elt-v2-dept-flyout {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+         }
+         .elt-v2-dept-sidebar {
+            width: 235px;
+            background: #f8fafc;
+            border-right: 1px solid #eef1f6;
+            padding: 10px 8px;
+            flex-shrink: 0;
+         }
+         .elt-v2-dept-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 8px 0;
-         }
-         .elt-cat-row::-webkit-scrollbar {
-            display: none;
-         }
-         .elt-cat-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            padding: 6px 14px 6px 8px;
-            border-radius: 50px;
-            text-decoration: none;
-            color: #111827;
+            padding: 10px 12px;
+            border-radius: 8px;
             font-size: 13.5px;
             font-weight: 600;
-            white-space: nowrap;
-            background: #f8fafc;
-            border: 1px solid #eef1f6;
-            transition: all 0.18s ease;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.15s ease;
             cursor: pointer;
-            flex-shrink: 0;
          }
-         .elt-cat-pill:hover,
-         .elt-cat-pill.is-active {
+         .elt-v2-dept-item i.dept-icon {
+            width: 20px;
+            text-align: center;
+            color: #64748b;
+            transition: color 0.15s ease;
+         }
+         .elt-v2-dept-item:hover,
+         .elt-v2-dept-item.is-active {
             background: #0B0D0E;
             color: #ffffff;
-            border-color: #0B0D0E;
-            box-shadow: 0 4px 12px rgba(11, 13, 14, 0.12);
          }
-         .elt-cat-pill-img {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            object-fit: cover;
+         .elt-v2-dept-item:hover i.dept-icon,
+         .elt-v2-dept-item.is-active i.dept-icon {
+            color: #E1EEB7;
+         }
+         .elt-v2-dept-content {
+            flex: 1;
+            padding: 20px 22px;
             background: #ffffff;
-            border: 1px solid #e5e7eb;
-            flex-shrink: 0;
          }
-         .elt-cat-pill-chevron {
-            font-size: 10px;
+         .elt-v2-dept-pane {
+            display: none;
+         }
+         .elt-v2-dept-pane.is-active {
+            display: block;
+         }
+         .elt-v2-pane-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+         }
+         .elt-v2-pane-header h5 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0B0D0E;
+         }
+         .elt-v2-sub-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 14px;
+         }
+         .elt-v2-sub-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+            text-decoration: none;
+            background: #f8fafc;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+         }
+         .elt-v2-sub-item:hover {
+            background: #f0f5ff;
+            border-color: #cbd5e1;
+            color: #0B0D0E;
+            transform: translateX(2px);
+         }
+
+         /* Horizontal Category Tabs with Floating Subcategory Popover */
+         .elt-v2-nav-list {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            flex-grow: 1;
+            justify-content: center;
+         }
+         .elt-v2-nav-item {
+            position: relative;
+         }
+         .elt-v2-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 14px;
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 13.5px;
+            font-weight: 500;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.18s ease;
+            position: relative;
+         }
+         .elt-v2-nav-link i.cat-tab-icon {
+            color: #E1EEB7;
+            font-size: 13px;
+         }
+         .elt-v2-nav-link .cat-tab-arrow {
+            font-size: 9px;
             opacity: 0.65;
-            transition: transform 0.2s ease, opacity 0.2s ease;
+            transition: transform 0.2s ease;
          }
-         .elt-cat-pill:hover .elt-cat-pill-chevron,
-         .elt-cat-pill.is-active .elt-cat-pill-chevron {
+         .elt-v2-nav-item:hover .elt-v2-nav-link {
+            color: #E1EEB7;
+         }
+         .elt-v2-nav-item:hover .elt-v2-nav-link .cat-tab-arrow {
             transform: rotate(180deg);
             opacity: 1;
          }
+         .elt-v2-nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 14px;
+            right: 14px;
+            height: 2.5px;
+            background: #E1EEB7;
+            transform: scaleX(0);
+            transition: transform 0.2s ease;
+         }
+         .elt-v2-nav-item:hover .elt-v2-nav-link::after {
+            transform: scaleX(1);
+         }
 
-         /* Row 2: Simple Subcategory Row */
-         .elt-subcat-bar {
-            background: #f8fafc;
-            border-top: 1px solid #edf0f5;
-            padding: 7px 0;
-         }
-         .elt-subcat-group {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-         }
-         .elt-subcat-group::-webkit-scrollbar {
-            display: none;
-         }
-         .elt-subcat-group.is-active {
+         /* Floating Subcategory Popover under each Horizontal Tab */
+         .elt-v2-popover {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 390px;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 0 0 14px 14px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+            border: 1px solid #e5e7eb;
+            border-top: 2px solid #E1EEB7;
+            padding: 16px;
             display: flex;
+            gap: 16px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: all 0.18s ease;
+            z-index: 1100;
          }
-         .elt-subcat-label {
-            font-size: 11.5px;
+         .elt-v2-nav-item:nth-last-child(-n+2) .elt-v2-popover {
+            left: auto;
+            right: 0;
+         }
+         .elt-v2-nav-item:hover .elt-v2-popover {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+         }
+         .elt-v2-pop-card {
+            width: 125px;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid #eef1f6;
+         }
+         .elt-v2-pop-card img {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 8px;
+            background: #fff;
+            border: 2px solid #E1EEB7;
+         }
+         .elt-v2-pop-card span {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0B0D0E;
+            line-height: 1.25;
+            margin-bottom: 8px;
+         }
+         .elt-v2-pop-card a {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0B0D0E;
+            background: #E1EEB7;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-decoration: none;
+         }
+         .elt-v2-pop-links {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+         }
+         .elt-v2-pop-title {
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: #64748b;
-            white-space: nowrap;
-            margin-right: 4px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            padding-left: 8px;
          }
-         .elt-subcat-link {
-            display: inline-flex;
+         .elt-v2-pop-link {
+            display: flex;
             align-items: center;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12.5px;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: 500;
             color: #334155;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
             text-decoration: none;
-            white-space: nowrap;
             transition: all 0.15s ease;
-            flex-shrink: 0;
          }
-         .elt-subcat-link:hover {
-            color: #2874f0;
-            border-color: #2874f0;
-            background: #f0f5ff;
-         }
-         .elt-subcat-viewall {
-            font-size: 12px;
-            font-weight: 600;
+         .elt-v2-pop-link i {
+            font-size: 10px;
+            opacity: 0;
+            transform: translateX(-4px);
+            transition: all 0.15s ease;
             color: #0B0D0E;
-            text-decoration: none;
-            white-space: nowrap;
-            margin-left: auto;
-            padding-left: 10px;
-            flex-shrink: 0;
          }
-         .elt-subcat-viewall:hover {
-            color: #2874f0;
-            text-decoration: underline;
+         .elt-v2-pop-link:hover {
+            background: #f1f5f9;
+            color: #0B0D0E;
+            font-weight: 600;
+         }
+         .elt-v2-pop-link:hover i {
+            opacity: 1;
+            transform: translateX(0);
+         }
+         @media (max-width: 991.98px) {
+            .elt-v2-nav-list {
+               overflow-x: auto;
+               justify-content: flex-start;
+               scrollbar-width: none;
+            }
+            .elt-v2-nav-list::-webkit-scrollbar {
+               display: none;
+            }
+            .elt-v2-popover {
+               display: none !important;
+            }
+         }
+         /* Sticky Top Header Row (Logo + Search Bar + Icons ONLY) */
+         header.elt-site-header {
+            position: relative !important;
+            padding-top: 74px;
+         }
+         .aq-header-area.elt-sticky-top-bar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 1050 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+         }
+         @media (max-width: 767.98px) {
+            header.elt-site-header {
+               padding-top: 122px;
+            }
          }
       </style>
 
-      <!-- Simple Category & Subcategory Row -->
-      <div class="elt-cat-subcat-wrapper" id="eltCatSubcatNav">
-         <!-- Category Row -->
+      <!-- Dark Tech Bar + All Departments Split Flyout + Hover Subcategory Popover Cards -->
+      <div class="elt-v2-navbar" id="eltCatSubcatNavV2">
          <div class="container">
-            <div class="elt-cat-row">
-               <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
-                  <a href="<?= site_url('shop/' . $cat_item['slug']); ?>"
-                     class="elt-cat-pill <?= $c_idx === 0 ? 'is-active' : ''; ?>"
-                     data-elt-cat-target="eltSubGroup-<?= $cat_item['id']; ?>">
-                     <img src="<?= $cat_item['image']; ?>"
-                          alt="<?= html_escape($cat_item['name']); ?>"
-                          class="elt-cat-pill-img"
-                          onerror="this.src='<?= $cat_item['fallback']; ?>'">
-                     <span><?= html_escape($cat_item['name']); ?></span>
-                     <i class="fa-solid fa-chevron-down elt-cat-pill-chevron"></i>
-                  </a>
-               <?php endforeach; ?>
-            </div>
-         </div>
+            <div class="elt-v2-inner">
+               <!-- Left: All Departments Split Flyout -->
+               <div class="elt-v2-dept-wrap">
+                  <button type="button" class="elt-v2-dept-btn">
+                     <i class="fa-solid fa-bars-staggered"></i>
+                     <span>All Categories</span>
+                     <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+                  </button>
 
-         <!-- Subcategory Row -->
-         <div class="elt-subcat-bar">
-            <div class="container">
-               <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
-                  <div class="elt-subcat-group <?= $c_idx === 0 ? 'is-active' : ''; ?>" id="eltSubGroup-<?= $cat_item['id']; ?>">
-                     <span class="elt-subcat-label">
-                        <i class="fa-solid fa-layer-group"></i> <?= html_escape($cat_item['name']); ?>:
-                     </span>
-                     <?php foreach ($cat_item['subs'] as $sub): ?>
-                        <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-subcat-link">
-                           <?= html_escape($sub['name']); ?>
-                        </a>
-                     <?php endforeach; ?>
-                     <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="elt-subcat-viewall d-none d-md-inline-block">
-                        All <?= html_escape($cat_item['name']); ?> <i class="fa-solid fa-arrow-right ms-1"></i>
-                     </a>
+                  <div class="elt-v2-dept-flyout">
+                     <!-- Left Category List -->
+                     <div class="elt-v2-dept-sidebar">
+                        <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
+                           <a href="<?= site_url('shop/' . $cat_item['slug']); ?>"
+                              class="elt-v2-dept-item <?= $c_idx === 0 ? 'is-active' : ''; ?>"
+                              data-v2-pane="eltV2Pane-<?= $cat_item['id']; ?>">
+                              <span class="d-flex align-items-center gap-2">
+                                 <i class="fa-solid <?= $cat_item['icon']; ?> dept-icon"></i>
+                                 <?= html_escape($cat_item['name']); ?>
+                              </span>
+                              <i class="fa-solid fa-chevron-right" style="font-size:10px;opacity:0.6;"></i>
+                           </a>
+                        <?php endforeach; ?>
+                     </div>
+
+                     <!-- Right Subcategories Panel -->
+                     <div class="elt-v2-dept-content">
+                        <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
+                           <div class="elt-v2-dept-pane <?= $c_idx === 0 ? 'is-active' : ''; ?>" id="eltV2Pane-<?= $cat_item['id']; ?>">
+                              <div class="elt-v2-pane-header">
+                                 <div class="d-flex align-items-center gap-2">
+                                    <img src="<?= $cat_item['image']; ?>"
+                                         alt="<?= html_escape($cat_item['name']); ?>"
+                                         style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;"
+                                         onerror="this.src='<?= $cat_item['fallback']; ?>'">
+                                    <h5><?= html_escape($cat_item['name']); ?></h5>
+                                 </div>
+                                 <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="small fw-bold text-decoration-none" style="color:#2874f0;">
+                                    Explore All <i class="fa-solid fa-arrow-right ms-1"></i>
+                                 </a>
+                              </div>
+                              <div class="elt-v2-sub-grid">
+                                 <?php foreach ($cat_item['subs'] as $sub): ?>
+                                    <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-v2-sub-item">
+                                       <i class="fa-solid fa-angle-right text-muted" style="font-size:11px;"></i>
+                                       <span><?= html_escape($sub['name']); ?></span>
+                                    </a>
+                                 <?php endforeach; ?>
+                              </div>
+                           </div>
+                        <?php endforeach; ?>
+                     </div>
                   </div>
-               <?php endforeach; ?>
+               </div>
+
+               <!-- Center/Right: Horizontal Category Tabs with Floating Subcategory Popover -->
+               <ul class="elt-v2-nav-list">
+                  <?php foreach ($elt_prepared_cats as $cat_item): ?>
+                     <li class="elt-v2-nav-item">
+                        <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="elt-v2-nav-link">
+                           <i class="fa-solid <?= $cat_item['icon']; ?> cat-tab-icon"></i>
+                           <span><?= html_escape($cat_item['name']); ?></span>
+                           <i class="fa-solid fa-chevron-down cat-tab-arrow"></i>
+                        </a>
+                        <!-- Floating Subcategory Card -->
+                        <div class="elt-v2-popover">
+                           <div class="elt-v2-pop-card">
+                              <img src="<?= $cat_item['image']; ?>"
+                                   alt="<?= html_escape($cat_item['name']); ?>"
+                                   onerror="this.src='<?= $cat_item['fallback']; ?>'">
+                              <span><?= html_escape($cat_item['name']); ?></span>
+                              <a href="<?= site_url('shop/' . $cat_item['slug']); ?>">Shop All</a>
+                           </div>
+                           <div class="elt-v2-pop-links">
+                              <div class="elt-v2-pop-title">Subcategories</div>
+                              <?php foreach ($cat_item['subs'] as $sub): ?>
+                                 <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-v2-pop-link">
+                                    <span><?= html_escape($sub['name']); ?></span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                 </a>
+                              <?php endforeach; ?>
+                           </div>
+                        </div>
+                     </li>
+                  <?php endforeach; ?>
+               </ul>
             </div>
          </div>
       </div>
-      <!-- /Simple Category & Subcategory Row -->
       <?php endif; ?>
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
-         // 1. Category & Subcategory Row Hover Switching
-         var catPills = document.querySelectorAll('.elt-cat-pill[data-elt-cat-target]');
-         var subGroups = document.querySelectorAll('.elt-subcat-group');
+         // 0. Sync Sticky Top Bar (Logo + Search Bar) Height with Header Padding
+         var stickyTopBar = document.querySelector('.aq-header-area.elt-sticky-top-bar');
+         var siteHeader = document.querySelector('header.elt-site-header');
+         function syncStickyHeaderOffset() {
+            if (stickyTopBar && siteHeader) {
+               var h = stickyTopBar.offsetHeight;
+               if (h > 0) {
+                  siteHeader.style.setProperty('padding-top', h + 'px', 'important');
+               }
+            }
+         }
+         syncStickyHeaderOffset();
+         window.addEventListener('resize', syncStickyHeaderOffset);
+         window.addEventListener('load', syncStickyHeaderOffset);
 
-         if (catPills.length > 0 && subGroups.length > 0) {
-            catPills.forEach(function(pill) {
-               pill.addEventListener('mouseenter', function() {
-                  var targetId = this.getAttribute('data-elt-cat-target');
-                  catPills.forEach(function(p) { p.classList.remove('is-active'); });
-                  subGroups.forEach(function(g) { g.classList.remove('is-active'); });
-
+         // 1. All Categories Split Flyout Hover Switching
+         var deptItems = document.querySelectorAll('.elt-v2-dept-item[data-v2-pane]');
+         var deptPanes = document.querySelectorAll('.elt-v2-dept-pane');
+         if (deptItems.length > 0 && deptPanes.length > 0) {
+            deptItems.forEach(function(item) {
+               item.addEventListener('mouseenter', function() {
+                  var paneId = this.getAttribute('data-v2-pane');
+                  deptItems.forEach(function(i) { i.classList.remove('is-active'); });
+                  deptPanes.forEach(function(p) { p.classList.remove('is-active'); });
                   this.classList.add('is-active');
-                  var targetEl = document.getElementById(targetId);
-                  if (targetEl) {
-                     targetEl.classList.add('is-active');
+                  var targetPane = document.getElementById(paneId);
+                  if (targetPane) {
+                     targetPane.classList.add('is-active');
                   }
                });
             });

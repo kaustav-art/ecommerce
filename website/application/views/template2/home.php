@@ -87,6 +87,39 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
 
    <main>
 
+      <style>
+         .elt-slider-content .aq-section-title {
+            width: 650px;
+            max-width: 100%;
+         }
+         .elt-slider-content .aq-section-subtitle,
+         .elt-slider-content .elt-slider-price {
+            display: block;
+            width: 650px;
+            max-width: 100%;
+            line-height: 30px !important;
+         }
+         @media (max-width: 991.98px) {
+            .elt-slider-content .aq-section-title,
+            .elt-slider-content .aq-section-subtitle,
+            .elt-slider-content .elt-slider-price {
+               width: 100% !important;
+               max-width: 100% !important;
+            }
+         }
+         @media (max-width: 767.98px) {
+            .elt-slider-content .aq-section-title {
+               font-size: 30px !important;
+               line-height: 1.25 !important;
+            }
+            .elt-slider-content .aq-section-subtitle,
+            .elt-slider-content .elt-slider-price {
+               font-size: 15px !important;
+               line-height: 26px !important;
+            }
+         }
+      </style>
+
       <!-- slider area start -->
       <div class="elt-slider-area p-relative mb-60 fix">
          <div class="elt-slider-arrow">
