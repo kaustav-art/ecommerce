@@ -318,6 +318,19 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
            sEl.textContent = s < 10 ? '0' + s : s;
        }, 1000);
    })();
+
+   // Propagate ?preview_tpl=grocery across all internal storefront links on Template 3
+   document.addEventListener('DOMContentLoaded', function() {
+       var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+       document.querySelectorAll('a[href]').forEach(function(a) {
+           var href = a.getAttribute('href');
+           if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+           if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+               var sep = href.indexOf('?') === -1 ? '?' : '&';
+               a.setAttribute('href', href + sep + 'preview_tpl=grocery');
+           }
+       });
+   });
    </script>
 
 </body>

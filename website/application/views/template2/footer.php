@@ -141,6 +141,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    <script src="<?= $bazaro; ?>js/vendor/jquery.js"></script>
    <script src="<?= $bazaro; ?>js/bootstrap-bundle.js"></script>
    <script src="<?= $bazaro; ?>js/swiper-bundle.js"></script>
+   <script src="<?= $bazaro; ?>js/slick.min.js"></script>
    <script src="<?= $bazaro; ?>js/magnific-popup.js"></script>
    <script src="<?= $bazaro; ?>js/nice-select.js"></script>
    <script src="<?= $bazaro; ?>js/purecounter.js"></script>
@@ -151,7 +152,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    <script src="<?= $bazaro; ?>js/ajax-form.js"></script>
    <script src="<?= $bazaro; ?>js/main.js"></script>
 
-   <?php if (($active_page ?? 'home') !== 'home'): ?>
+   <?php if (!in_array(($active_page ?? 'home'), ['home', 'shop', 'product'], true)): ?>
    <script src="<?= base_url('assets/js/main.js'); ?>"></script>
    <?php endif; ?>
 

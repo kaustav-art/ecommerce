@@ -48,23 +48,13 @@ class MY_Controller extends CI_Controller {
 
     protected function _resolve_tenant_and_template()
     {
-        if ($this->input->get('exit_preview')) {
+        if ($this->session->userdata('preview_tpl')) {
             $this->session->unset_userdata('preview_tpl');
         }
 
         $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
         if ($preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
-            $this->session->set_userdata('preview_tpl', $preview_param);
-        } else {
-            $uri_seg1 = strtolower((string) $this->uri->segment(1));
-            if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($uri_seg1 === '' || $uri_seg1 === 'home') && $preview_param === '') {
-                $this->session->unset_userdata('preview_tpl');
-            }
-        }
-
-        $active_preview = $this->session->userdata('preview_tpl');
-        if (!empty($active_preview) && $this->template_registry->is_valid($active_preview)) {
-            $canonical_tpl         = $this->template_registry->get_canonical_key($active_preview);
+            $canonical_tpl         = $this->template_registry->get_canonical_key($preview_param);
             $this->is_preview_mode = TRUE;
             $this->active_template = $canonical_tpl;
             $this->tenant_id       = 1;

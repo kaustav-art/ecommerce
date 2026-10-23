@@ -11,9 +11,18 @@ class shop extends MY_Controller {
     public function index($category_slug = NULL)
     {
         $raw_category_slug = $category_slug ?: $this->input->get('category');
-        $all_categories    = Static_template_data::get('all_categories');
-        $root_categories   = Static_template_data::get('root_categories');
-        $all_products      = Static_template_data::get('products');
+        $tpl_key           = $this->template_registry->get_tpl_key($this->active_template);
+
+        if ($this->active_template !== 'fashion') {
+            $dyn_cats       = $this->get_dynamic_template_categories($tpl_key);
+            $all_categories = $dyn_cats;
+            $root_categories= $dyn_cats;
+            $all_products   = $this->get_dynamic_template_products($tpl_key);
+        } else {
+            $all_categories  = Static_template_data::get('all_categories');
+            $root_categories = Static_template_data::get('root_categories');
+            $all_products    = Static_template_data::get('products');
+        }
         $brands            = Static_template_data::get('brands');
         $filter_sizes      = Static_template_data::get('filter_sizes');
         $filter_colors     = Static_template_data::get('filter_colors');
@@ -29,13 +38,21 @@ class shop extends MY_Controller {
                     break;
                 }
             }
+            if (!$selected_category && $this->active_template !== 'fashion') {
+                $selected_category = [
+                    'id'            => 0,
+                    'name'          => ucwords(str_replace('-', ' ', $raw_category_slug)),
+                    'slug'          => $raw_category_slug,
+                    'product_count' => count($all_products),
+                ];
+            }
         }
 
         if ($selected_category) {
             $breadcrumbs[] = $selected_category;
             $subcats = [];
             foreach ($all_categories as $cat) {
-                if ((int)($cat['parent_id'] ?? 0) === (int)$selected_category['id']) {
+                if ((int)($cat['parent_id'] ?? 0) === (int)($selected_category['id'] ?? -1) && !empty($selected_category['id'])) {
                     $subcats[] = $cat;
                 }
             }
@@ -89,10 +106,12 @@ class shop extends MY_Controller {
         usort($products, function($a, $b) use ($current_sort) {
             $pa = !empty($a['sale_price']) ? (float)$a['sale_price'] : (float)$a['price'];
             $pb = !empty($b['sale_price']) ? (float)$b['sale_price'] : (float)$b['price'];
+            $ta = $a['title'] ?? ($a['name'] ?? '');
+            $tb = $b['title'] ?? ($b['name'] ?? '');
             if ($current_sort === 'price-low-high') return $pa <=> $pb;
             if ($current_sort === 'price-high-low') return $pb <=> $pa;
-            if ($current_sort === 'z-a') return strcasecmp($b['title'], $a['title']);
-            return strcasecmp($a['title'], $b['title']);
+            if ($current_sort === 'z-a') return strcasecmp($tb, $ta);
+            return strcasecmp($ta, $tb);
         });
 
         $filters = [
@@ -131,6 +150,7 @@ class shop extends MY_Controller {
             'active_page'       => 'shop',
             'currency_symbol'   => $this->store_settings['currency_symbol'] ?? '$',
             'products'          => $products,
+            'all_categories'    => $all_categories,
             'total_products'    => $total_products,
             'has_more'          => $has_more,
             'offset'            => $offset,

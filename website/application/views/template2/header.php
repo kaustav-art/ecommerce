@@ -46,6 +46,7 @@ if (!function_exists('elt_resolve_img')) {
    <!-- CSS here (Exact Bazaro Electronics stack) -->
    <link rel="stylesheet" href="<?= $bazaro; ?>css/bootstrap.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/animate.css">
+   <link rel="stylesheet" href="<?= $bazaro; ?>css/slick.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/nice-select.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/custom-animation.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/swiper-bundle.css">
@@ -54,8 +55,8 @@ if (!function_exists('elt_resolve_img')) {
    <link rel="stylesheet" href="<?= $bazaro; ?>css/spacing.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/main.css">
 
-   <?php if (($active_page ?? 'home') !== 'home'): ?>
-   <!-- Inner-page storefront styles for shared cart/checkout/account/product views -->
+   <?php if (!in_array(($active_page ?? 'home'), ['home', 'shop', 'product'], true)): ?>
+   <!-- Inner-page storefront styles for shared cart/checkout/account views -->
    <link rel="stylesheet" type="text/css" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
    <link rel="stylesheet" type="text/css" href="<?= base_url('assets/css/styles.css'); ?>">
    <?php endif; ?>
@@ -460,7 +461,7 @@ if (!function_exists('elt_resolve_img')) {
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
                <!-- Logo -->
                <div class="aq-header-logo d-flex align-items-center">
-                  <a href="<?= site_url('home'); ?>" class="d-inline-flex align-items-center">
+                  <a href="<?= site_url('home?preview_tpl=electronics'); ?>" class="d-inline-flex align-items-center">
                      <img data-width="120" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
                   </a>
                </div>
@@ -468,6 +469,7 @@ if (!function_exists('elt_resolve_img')) {
                <!-- Centered Wide Search Box (Matches Fashion Template, wraps to 2nd row on mobile) -->
                <div class="store-search-col flex-grow-1 order-3 order-md-2 position-relative">
                   <form action="<?= site_url('shop'); ?>" method="GET" class="store-search-form" id="storeNavSearchForm">
+                     <input type="hidden" name="preview_tpl" value="electronics">
                      <div class="store-search-input-wrap">
                         <button type="submit" class="store-search-icon-btn" aria-label="Search">
                            <i class="fa-solid fa-magnifying-glass"></i>
@@ -1024,7 +1026,7 @@ if (!function_exists('elt_resolve_img')) {
                      <!-- Left Category List -->
                      <div class="elt-v2-dept-sidebar">
                         <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
-                           <a href="<?= site_url('shop/' . $cat_item['slug']); ?>"
+                           <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>"
                               class="elt-v2-dept-item <?= $c_idx === 0 ? 'is-active' : ''; ?>"
                               data-v2-pane="eltV2Pane-<?= $cat_item['id']; ?>">
                               <span class="d-flex align-items-center gap-2">
@@ -1048,13 +1050,13 @@ if (!function_exists('elt_resolve_img')) {
                                          onerror="this.src='<?= $cat_item['fallback']; ?>'">
                                     <h5><?= html_escape($cat_item['name']); ?></h5>
                                  </div>
-                                 <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="small fw-bold text-decoration-none" style="color:#2874f0;">
+                                 <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>" class="small fw-bold text-decoration-none" style="color:#2874f0;">
                                     Explore All <i class="fa-solid fa-arrow-right ms-1"></i>
                                  </a>
                               </div>
                               <div class="elt-v2-sub-grid">
                                  <?php foreach ($cat_item['subs'] as $sub): ?>
-                                    <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-v2-sub-item">
+                                    <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . '?preview_tpl=electronics'); ?>" class="elt-v2-sub-item">
                                        <i class="fa-solid fa-angle-right text-muted" style="font-size:11px;"></i>
                                        <span><?= html_escape($sub['name']); ?></span>
                                     </a>
@@ -1070,7 +1072,7 @@ if (!function_exists('elt_resolve_img')) {
                <ul class="elt-v2-nav-list">
                   <?php foreach ($elt_prepared_cats as $cat_item): ?>
                      <li class="elt-v2-nav-item">
-                        <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="elt-v2-nav-link">
+                        <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>" class="elt-v2-nav-link">
                            <i class="fa-solid <?= $cat_item['icon']; ?> cat-tab-icon"></i>
                            <span><?= html_escape($cat_item['name']); ?></span>
                            <i class="fa-solid fa-chevron-down cat-tab-arrow"></i>
@@ -1082,12 +1084,12 @@ if (!function_exists('elt_resolve_img')) {
                                    alt="<?= html_escape($cat_item['name']); ?>"
                                    onerror="this.src='<?= $cat_item['fallback']; ?>'">
                               <span><?= html_escape($cat_item['name']); ?></span>
-                              <a href="<?= site_url('shop/' . $cat_item['slug']); ?>">Shop All</a>
+                              <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>">Shop All</a>
                            </div>
                            <div class="elt-v2-pop-links">
                               <div class="elt-v2-pop-title">Subcategories</div>
                               <?php foreach ($cat_item['subs'] as $sub): ?>
-                                 <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-v2-pop-link">
+                                 <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . '?preview_tpl=electronics'); ?>" class="elt-v2-pop-link">
                                     <span><?= html_escape($sub['name']); ?></span>
                                     <i class="fa-solid fa-arrow-right"></i>
                                  </a>
@@ -1104,6 +1106,17 @@ if (!function_exists('elt_resolve_img')) {
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
+         // Propagate ?preview_tpl=electronics across all internal storefront links on Template 2
+         var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+         document.querySelectorAll('a[href]').forEach(function(a) {
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+            if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+               var sep = href.indexOf('?') === -1 ? '?' : '&';
+               a.setAttribute('href', href + sep + 'preview_tpl=electronics');
+            }
+         });
+
          // 0. Sync Sticky Top Bar (Logo + Search Bar) Height with Header Padding
          var stickyTopBar = document.querySelector('.aq-header-area.elt-sticky-top-bar');
          var siteHeader = document.querySelector('header.elt-site-header');
@@ -1153,13 +1166,17 @@ if (!function_exists('elt_resolve_img')) {
                }
 
                autoTimer = setTimeout(function() {
-                  fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query))
+                  fetch('<?= site_url("shop/autocomplete"); ?>?preview_tpl=electronics&q=' + encodeURIComponent(query))
                      .then(function(res) { return res.json(); })
                      .then(function(data) {
                         if (data.results && data.results.length > 0) {
                            var html = '';
                            data.results.forEach(function(item) {
-                              html += '<a href="' + item.url + '" class="store-auto-item">';
+                              var itemUrl = item.url || '#';
+                              if (itemUrl.indexOf('preview_tpl=') === -1 && itemUrl !== '#') {
+                                 itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=electronics';
+                              }
+                              html += '<a href="' + itemUrl + '" class="store-auto-item">';
                               html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= $bazaro; ?>img/electronics/arrival-product/product-1/product-1.jpg\'">';
                               html += '  <div class="flex-grow-1 overflow-hidden">';
                               html += '    <div class="store-auto-title">' + item.title + '</div>';
@@ -1168,7 +1185,7 @@ if (!function_exists('elt_resolve_img')) {
                               html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                               html += '</a>';
                            });
-                           html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                           html += '<a href="<?= site_url("shop"); ?>?preview_tpl=electronics&q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
                            html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                            html += '</a>';
 
