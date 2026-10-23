@@ -524,8 +524,307 @@ if (!function_exists('elt_resolve_img')) {
       </div>
       <!-- header area end -->
 
+      <?php
+      // Build clean Electronics Categories & Subcategories for the Header Row
+      $elt_header_cats = !empty($nav_categories) ? $nav_categories : (!empty($category_tree) ? $category_tree : []);
+      $elt_subcat_map = [
+         'headphones' => [
+            ['name' => 'Wireless Earbuds',     'slug' => 'wireless-earbuds'],
+            ['name' => 'Noise Cancelling',     'slug' => 'noise-cancelling-headphones'],
+            ['name' => 'Over-Ear Studio',      'slug' => 'over-ear-studio'],
+            ['name' => 'Bluetooth Speakers',   'slug' => 'bluetooth-speakers'],
+            ['name' => 'Home Soundbars',       'slug' => 'home-soundbars'],
+            ['name' => 'Gaming Headsets',      'slug' => 'gaming-headsets'],
+         ],
+         'watch' => [
+            ['name' => 'AMOLED Smartwatches',  'slug' => 'amoled-smartwatches'],
+            ['name' => 'Fitness & Sport Bands','slug' => 'fitness-trackers'],
+            ['name' => 'Luxury Titanium',      'slug' => 'luxury-smartwatches'],
+            ['name' => 'Outdoor & GPS',        'slug' => 'outdoor-gps-watches'],
+            ['name' => 'Kids Smartwatches',    'slug' => 'kids-smartwatches'],
+            ['name' => 'Straps & Chargers',    'slug' => 'watch-straps-chargers'],
+         ],
+         'phone' => [
+            ['name' => 'Flagship 5G Phones',   'slug' => 'flagship-5g-phones'],
+            ['name' => 'Foldable Phones',      'slug' => 'foldable-smartphones'],
+            ['name' => 'Gaming Smartphones',   'slug' => 'gaming-smartphones'],
+            ['name' => 'Pro Camera Phones',    'slug' => 'camera-phones'],
+            ['name' => 'Mid-Range 5G',         'slug' => 'mid-range-5g'],
+            ['name' => 'Cases & MagSafe',      'slug' => 'phone-accessories'],
+         ],
+         'laptop' => [
+            ['name' => 'MacBook Air & Pro',    'slug' => 'macbooks'],
+            ['name' => 'RTX Gaming Laptops',   'slug' => 'gaming-laptops'],
+            ['name' => 'Ultrabooks & 2-in-1',  'slug' => 'ultrabooks'],
+            ['name' => 'Creator Workstations', 'slug' => 'creator-laptops'],
+            ['name' => '4K Monitors',          'slug' => 'monitors-displays'],
+            ['name' => 'USB-C Hubs & Docks',   'slug' => 'laptop-docks-hubs'],
+         ],
+         'camera' => [
+            ['name' => 'Mirrorless Cameras',   'slug' => 'mirrorless-cameras'],
+            ['name' => '4K Camera Drones',     'slug' => 'camera-drones'],
+            ['name' => 'Action & Vlog Cams',   'slug' => 'action-cameras'],
+            ['name' => 'Prime & Zoom Lenses',  'slug' => 'camera-lenses'],
+            ['name' => 'Gimbals & Stabilizers','slug' => 'gimbals-stabilizers'],
+            ['name' => 'SD Cards & Lighting',  'slug' => 'camera-accessories'],
+         ],
+         'gaming' => [
+            ['name' => 'PlayStation 5',        'slug' => 'playstation-5'],
+            ['name' => 'Xbox Series X|S',      'slug' => 'xbox-series'],
+            ['name' => 'Handheld Consoles',    'slug' => 'handheld-consoles'],
+            ['name' => 'Pro Controllers',      'slug' => 'pro-controllers'],
+            ['name' => 'VR Headsets',          'slug' => 'vr-headsets'],
+            ['name' => 'Mechanical Keyboards', 'slug' => 'gaming-keyboards-mice'],
+         ],
+      ];
+
+      $elt_prepared_cats = [];
+      foreach ($elt_header_cats as $idx => $hc) {
+         $c_name = $hc['name'] ?? 'Electronics';
+         $c_slug = $hc['slug'] ?? 'electronics';
+         $c_key_lower = strtolower($c_name . ' ' . $c_slug);
+         $subs = !empty($hc['children']) ? $hc['children'] : [];
+
+         if (empty($subs)) {
+            if (strpos($c_key_lower, 'headphone') !== false || strpos($c_key_lower, 'audio') !== false) {
+               $subs = $elt_subcat_map['headphones'];
+            } elseif (strpos($c_key_lower, 'watch') !== false || strpos($c_key_lower, 'wearable') !== false) {
+               $subs = $elt_subcat_map['watch'];
+            } elseif (strpos($c_key_lower, 'phone') !== false || strpos($c_key_lower, 'mobile') !== false) {
+               $subs = $elt_subcat_map['phone'];
+            } elseif (strpos($c_key_lower, 'laptop') !== false || strpos($c_key_lower, 'macbook') !== false || strpos($c_key_lower, 'pc') !== false) {
+               $subs = $elt_subcat_map['laptop'];
+            } elseif (strpos($c_key_lower, 'camera') !== false || strpos($c_key_lower, 'drone') !== false) {
+               $subs = $elt_subcat_map['camera'];
+            } elseif (strpos($c_key_lower, 'gaming') !== false || strpos($c_key_lower, 'console') !== false) {
+               $subs = $elt_subcat_map['gaming'];
+            } else {
+               $subs = [
+                  ['name' => 'New Releases',    'slug' => $c_slug],
+                  ['name' => 'Best Sellers',    'slug' => $c_slug],
+                  ['name' => 'Top Rated',       'slug' => $c_slug],
+                  ['name' => 'Deals & Offers',  'slug' => $c_slug],
+                  ['name' => 'Accessories',     'slug' => $c_slug],
+               ];
+            }
+         }
+
+         $fallback_cat_idx = (($idx) % 7) + 1;
+         $c_img = elt_resolve_img($hc['image'] ?? '', 'img/electronics/category/cat-' . $fallback_cat_idx . '.jpg');
+
+         $elt_prepared_cats[] = [
+            'id'       => (int)($hc['id'] ?? ($idx + 1)),
+            'name'     => $c_name,
+            'slug'     => $c_slug,
+            'image'    => $c_img,
+            'fallback' => $bazaro . 'img/electronics/category/cat-' . $fallback_cat_idx . '.jpg',
+            'subs'     => $subs,
+         ];
+      }
+      ?>
+
+      <?php if (!empty($elt_prepared_cats)): ?>
+      <style>
+         .elt-cat-subcat-wrapper {
+            background: #ffffff;
+            border-top: 1px solid #eff1f5;
+            border-bottom: 1px solid #e5e8ef;
+            position: relative;
+            z-index: 1015;
+         }
+         /* Row 1: Main Categories Row */
+         .elt-cat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 8px 0;
+         }
+         .elt-cat-row::-webkit-scrollbar {
+            display: none;
+         }
+         .elt-cat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 6px 14px 6px 8px;
+            border-radius: 50px;
+            text-decoration: none;
+            color: #111827;
+            font-size: 13.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            background: #f8fafc;
+            border: 1px solid #eef1f6;
+            transition: all 0.18s ease;
+            cursor: pointer;
+            flex-shrink: 0;
+         }
+         .elt-cat-pill:hover,
+         .elt-cat-pill.is-active {
+            background: #0B0D0E;
+            color: #ffffff;
+            border-color: #0B0D0E;
+            box-shadow: 0 4px 12px rgba(11, 13, 14, 0.12);
+         }
+         .elt-cat-pill-img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            flex-shrink: 0;
+         }
+         .elt-cat-pill-chevron {
+            font-size: 10px;
+            opacity: 0.65;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+         }
+         .elt-cat-pill:hover .elt-cat-pill-chevron,
+         .elt-cat-pill.is-active .elt-cat-pill-chevron {
+            transform: rotate(180deg);
+            opacity: 1;
+         }
+
+         /* Row 2: Simple Subcategory Row */
+         .elt-subcat-bar {
+            background: #f8fafc;
+            border-top: 1px solid #edf0f5;
+            padding: 7px 0;
+         }
+         .elt-subcat-group {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+         }
+         .elt-subcat-group::-webkit-scrollbar {
+            display: none;
+         }
+         .elt-subcat-group.is-active {
+            display: flex;
+         }
+         .elt-subcat-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #64748b;
+            white-space: nowrap;
+            margin-right: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+         }
+         .elt-subcat-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+         }
+         .elt-subcat-link:hover {
+            color: #2874f0;
+            border-color: #2874f0;
+            background: #f0f5ff;
+         }
+         .elt-subcat-viewall {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0B0D0E;
+            text-decoration: none;
+            white-space: nowrap;
+            margin-left: auto;
+            padding-left: 10px;
+            flex-shrink: 0;
+         }
+         .elt-subcat-viewall:hover {
+            color: #2874f0;
+            text-decoration: underline;
+         }
+      </style>
+
+      <!-- Simple Category & Subcategory Row -->
+      <div class="elt-cat-subcat-wrapper" id="eltCatSubcatNav">
+         <!-- Category Row -->
+         <div class="container">
+            <div class="elt-cat-row">
+               <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
+                  <a href="<?= site_url('shop/' . $cat_item['slug']); ?>"
+                     class="elt-cat-pill <?= $c_idx === 0 ? 'is-active' : ''; ?>"
+                     data-elt-cat-target="eltSubGroup-<?= $cat_item['id']; ?>">
+                     <img src="<?= $cat_item['image']; ?>"
+                          alt="<?= html_escape($cat_item['name']); ?>"
+                          class="elt-cat-pill-img"
+                          onerror="this.src='<?= $cat_item['fallback']; ?>'">
+                     <span><?= html_escape($cat_item['name']); ?></span>
+                     <i class="fa-solid fa-chevron-down elt-cat-pill-chevron"></i>
+                  </a>
+               <?php endforeach; ?>
+            </div>
+         </div>
+
+         <!-- Subcategory Row -->
+         <div class="elt-subcat-bar">
+            <div class="container">
+               <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
+                  <div class="elt-subcat-group <?= $c_idx === 0 ? 'is-active' : ''; ?>" id="eltSubGroup-<?= $cat_item['id']; ?>">
+                     <span class="elt-subcat-label">
+                        <i class="fa-solid fa-layer-group"></i> <?= html_escape($cat_item['name']); ?>:
+                     </span>
+                     <?php foreach ($cat_item['subs'] as $sub): ?>
+                        <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug'])); ?>" class="elt-subcat-link">
+                           <?= html_escape($sub['name']); ?>
+                        </a>
+                     <?php endforeach; ?>
+                     <a href="<?= site_url('shop/' . $cat_item['slug']); ?>" class="elt-subcat-viewall d-none d-md-inline-block">
+                        All <?= html_escape($cat_item['name']); ?> <i class="fa-solid fa-arrow-right ms-1"></i>
+                     </a>
+                  </div>
+               <?php endforeach; ?>
+            </div>
+         </div>
+      </div>
+      <!-- /Simple Category & Subcategory Row -->
+      <?php endif; ?>
+
       <script>
       document.addEventListener('DOMContentLoaded', function() {
+         // 1. Category & Subcategory Row Hover Switching
+         var catPills = document.querySelectorAll('.elt-cat-pill[data-elt-cat-target]');
+         var subGroups = document.querySelectorAll('.elt-subcat-group');
+
+         if (catPills.length > 0 && subGroups.length > 0) {
+            catPills.forEach(function(pill) {
+               pill.addEventListener('mouseenter', function() {
+                  var targetId = this.getAttribute('data-elt-cat-target');
+                  catPills.forEach(function(p) { p.classList.remove('is-active'); });
+                  subGroups.forEach(function(g) { g.classList.remove('is-active'); });
+
+                  this.classList.add('is-active');
+                  var targetEl = document.getElementById(targetId);
+                  if (targetEl) {
+                     targetEl.classList.add('is-active');
+                  }
+               });
+            });
+         }
+
+         // 2. Search Autocomplete
          var searchInput = document.getElementById('storeNavSearchInput');
          var resultsDropdown = document.getElementById('storeAutocompleteResults');
          var autoTimer = null;
