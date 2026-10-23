@@ -40,11 +40,8 @@ if (!function_exists('elt_resolve_img')) {
    <meta name="description" content="<?= html_escape($meta_description ?? ($store_settings['meta_description'] ?? 'Premium Electronics Store')); ?>">
    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-   <?php if (!empty($store_settings['site_favicon'])): ?>
-   <link rel="shortcut icon" type="image/x-icon" href="<?= base_url('assets/images/logo/' . $store_settings['site_favicon']); ?>">
-   <?php else: ?>
-   <link rel="shortcut icon" type="image/x-icon" href="<?= $bazaro; ?>img/logo/favicon.png">
-   <?php endif; ?>
+   <link rel="shortcut icon" type="image/webp" href="<?= base_url('assets/images/logo/codeulas_logo_small.webp'); ?>">
+   <link rel="icon" type="image/webp" href="<?= base_url('assets/images/logo/codeulas_logo_small.webp'); ?>">
 
    <!-- CSS here (Exact Bazaro Electronics stack) -->
    <link rel="stylesheet" href="<?= $bazaro; ?>css/bootstrap.css">
@@ -64,8 +61,193 @@ if (!function_exists('elt_resolve_img')) {
    <?php endif; ?>
 
    <style>
-      /* Prevent preloader from blocking view */
+      /* Preload Spinner (Matching Fashion Template) */
       #loading { display: none !important; }
+      .preload-container {
+         display: flex;
+         position: fixed;
+         width: 100%;
+         height: 100%;
+         top: 0;
+         left: 0;
+         background: #ffffff;
+         z-index: 99999999999;
+         align-items: center;
+         justify-content: center;
+         overflow: hidden;
+      }
+      .preload-logo {
+         position: relative;
+         width: 65px;
+         height: 65px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+      }
+      .preload-logo .spinner {
+         width: 60px;
+         height: 60px;
+         border: 3px solid rgba(0, 0, 0, 0.08);
+         border-top: 3px solid #111;
+         border-radius: 50%;
+         position: absolute;
+         top: 0;
+         bottom: 0;
+         left: 0;
+         right: 0;
+         margin: auto;
+         animation: spin 0.8s infinite linear;
+      }
+      @keyframes spin {
+         0% { transform: rotate(0deg); }
+         100% { transform: rotate(360deg); }
+      }
+
+      /* Wide Search Bar & Autocomplete (Matching Fashion Template) */
+      .store-search-col {
+         max-width: 680px;
+         margin: 0 1.25rem;
+      }
+      .store-search-input-wrap {
+         display: flex;
+         align-items: center;
+         background-color: #f0f5ff;
+         border-radius: 8px;
+         height: 44px;
+         padding: 0 14px;
+         transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+         border: 1px solid transparent;
+      }
+      .store-search-input-wrap:focus-within {
+         background-color: #ffffff;
+         border-color: #2874f0;
+         box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12);
+      }
+      .store-search-icon-btn {
+         background: transparent;
+         border: none;
+         color: #717478;
+         font-size: 15px;
+         padding: 0;
+         margin-right: 12px;
+         cursor: pointer;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+      }
+      .store-search-icon-btn:hover {
+         color: #2874f0;
+      }
+      .store-search-input {
+         height: 34px !important;
+         border: 0 !important;
+         background-color: #f0f5ff !important;
+         outline: none !important;
+         width: 100%;
+         font-size: 14px;
+         color: #212121;
+         font-weight: 400;
+         padding: 0 8px !important;
+         border-radius: 4px;
+         transition: background-color 0.2s ease;
+         box-shadow: none !important;
+      }
+      .store-search-input:focus,
+      #storeNavSearchInput:focus,
+      .store-search-input-wrap:focus-within .store-search-input {
+         background-color: #ffffff !important;
+      }
+      .store-search-input::placeholder {
+         color: #717478;
+         font-size: 14px;
+      }
+      @media (max-width: 767.98px) {
+         .store-search-col {
+            width: 100%;
+            max-width: 100%;
+            flex: 0 0 100%;
+            margin: 8px 0 2px 0;
+         }
+         .store-search-input-wrap {
+            height: 40px;
+            background-color: #ffffff;
+            border: 1px solid #d4d5d9;
+            border-radius: 8px;
+            padding: 0 12px;
+         }
+         .store-search-input {
+            background-color: #ffffff !important;
+            font-size: 13.5px;
+         }
+      }
+
+      /* Autocomplete Dropdown */
+      .store-autocomplete-dropdown {
+         position: absolute;
+         top: calc(100% + 6px);
+         left: 0;
+         right: 0;
+         background: #ffffff;
+         border: 1px solid #e2e8f0;
+         border-radius: 8px;
+         z-index: 1100;
+         max-height: 420px;
+         overflow-y: auto;
+      }
+      .store-auto-item {
+         display: flex;
+         align-items: center;
+         gap: 12px;
+         padding: 9px 14px;
+         text-decoration: none;
+         border-bottom: 1px solid #f5f5f5;
+         transition: background-color 0.15s ease;
+      }
+      .store-auto-item:hover {
+         background-color: #f4f8ff;
+      }
+      .store-auto-img {
+         width: 44px;
+         height: 44px;
+         object-fit: cover;
+         border-radius: 6px;
+         border: 1px solid #eee;
+         flex-shrink: 0;
+      }
+      .store-auto-title {
+         font-size: 13.5px;
+         font-weight: 500;
+         color: #212121;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+      }
+      .store-auto-cat {
+         font-size: 11.5px;
+         color: #888;
+         margin-top: 2px;
+      }
+      .store-auto-price {
+         font-size: 13.5px;
+         font-weight: 700;
+         color: #2874f0;
+         flex-shrink: 0;
+      }
+      .store-auto-viewall {
+         display: block;
+         text-align: center;
+         padding: 10px;
+         font-size: 13px;
+         font-weight: 600;
+         color: #2874f0;
+         text-decoration: none;
+         background: #fbfcfe;
+      }
+      .store-auto-viewall:hover {
+         background-color: #f0f5ff;
+         text-decoration: underline;
+      }
+
       .elt-toast-notify {
          position: fixed; bottom: 28px; right: 28px; z-index: 99999;
          background: #111827; color: #fff; padding: 13px 20px; border-radius: 10px;
@@ -83,10 +265,30 @@ if (!function_exists('elt_resolve_img')) {
       window.ASSET_URL = '<?= rtrim(base_url(), '/') . '/'; ?>';
       window.CURRENCY_SYMBOL = '<?= addslashes($curr); ?>';
       window.IS_USER_LOGGED_IN = <?= !empty($is_logged_in) ? 'true' : 'false'; ?>;
+
+      // Auto-fade preloader on window load
+      window.addEventListener('load', function() {
+         setTimeout(function() {
+            var p = document.querySelector('.preload');
+            if (p) {
+               p.style.transition = 'opacity 0.4s ease';
+               p.style.opacity = '0';
+               setTimeout(function() { if (p && p.parentNode) p.parentNode.removeChild(p); }, 400);
+            }
+         }, 500);
+      });
    </script>
 </head>
 
 <body>
+
+   <!-- preload -->
+   <div class="preload preload-container">
+      <div class="preload-logo">
+         <div class="spinner"></div>
+      </div>
+   </div>
+   <!-- /preload -->
 
    <!-- back to top start -->
    <div class="progress-wrap">
@@ -135,44 +337,6 @@ if (!function_exists('elt_resolve_img')) {
          </div>
       </div>
    </div>
-
-   <!-- search area start -->
-   <div class="aq-search-wrap aq-search-area">
-      <div class="aq-search-close">
-         <button class="aq-search-close-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-               <path d="M11 1L1 11M1 1L11 11" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-         </button>
-      </div>
-      <div class="container container-1430">
-         <div class="row">
-            <div class="col-xl-12">
-               <div class="aq-search-inner-wrap">
-                  <div class="aq-search-input p-relative mb-60">
-                     <form action="<?= site_url('search'); ?>" method="GET">
-                        <input type="text" name="q" placeholder="Search for electronics, laptops, audio, accessories..." value="<?= html_escape($this->input->get('q') ?? ''); ?>">
-                        <button class="aq-btn-search" type="submit">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                              <path d="M18.9999 19L14.6499 14.65M17 9C17 13.4183 13.4183 17 9 17C4.58172 17 1 13.4183 1 9C1 4.58172 4.58172 1 9 1C13.4183 1 17 4.58172 17 9Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                           </svg>
-                        </button>
-                     </form>
-                  </div>
-                  <?php if (!empty($nav_categories)): ?>
-                  <div class="aq-search-Category d-flex align-items-center flex-wrap">
-                     <span class="me-3 fw-semibold">Popular Categories:</span>
-                     <?php $sc = 0; foreach ($nav_categories as $cat): if ($sc++ >= 6) break; ?>
-                        <a href="<?= site_url('shop/' . $cat['slug']); ?>" class="me-3 text-decoration-underline"><?= html_escape($cat['name']); ?></a>
-                     <?php endforeach; ?>
-                  </div>
-                  <?php endif; ?>
-               </div>
-            </div>
-         </div>
-      </div>
-   </div>
-   <!-- search area end -->
 
    <!-- cartmini area start -->
    <div class="aq-cartmini-area aq-cartmini-active d-flex flex-column justify-content-between" id="eltCartMiniDrawer">
@@ -237,46 +401,6 @@ if (!function_exists('elt_resolve_img')) {
    </div>
    <!-- cartmini area end -->
 
-   <!-- offcanvas area start -->
-   <div class="aq-offcanvas-wrap">
-      <div class="aq-offcanvas-top d-flex align-items-center justify-content-between mb-30">
-         <div class="aq-offcanvas-logo">
-            <a href="<?= site_url('home'); ?>">
-               <?php if (!empty($store_settings['site_logo']) && file_exists(FCPATH . 'assets/images/logo/' . $store_settings['site_logo'])): ?>
-                  <img data-width="120" src="<?= base_url('assets/images/logo/' . $store_settings['site_logo']); ?>" alt="<?= html_escape($site_name); ?>">
-               <?php else: ?>
-                  <img data-width="120" src="<?= $bazaro; ?>img/logo/logo.png" alt="<?= html_escape($site_name); ?>">
-               <?php endif; ?>
-            </a>
-         </div>
-         <div class="aq-offcanvas-close">
-            <button class="aq-offcanvas-close-btn">
-               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M11 1L1 11M1 1L11 11" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-               </svg>
-            </button>
-         </div>
-      </div>
-      <div class="aq-offcanvas-bar mb-30">
-         <div class="aq-offcanvas-menu-wrap">
-            <nav></nav>
-         </div>
-      </div>
-      <div class="aq-offcanvas-bottom">
-         <div class="aq-offcanvas-btn mb-30">
-            <a class="aq-btn-black w-100 text-center" href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
-               <?= !empty($is_logged_in) ? 'My Account' : 'Login / Register'; ?>
-            </a>
-         </div>
-         <div class="aq-offcanvas-info mb-30">
-            <h4 class="aq-offcanvas-sm-title">Contact Us</h4>
-            <span><a href="tel:<?= html_escape($store_settings['site_phone'] ?? '+18005550199'); ?>"><?= html_escape($store_settings['site_phone'] ?? '(+92) 413 90 762'); ?></a></span>
-            <span><a href="mailto:<?= html_escape($store_settings['site_email'] ?? 'support@electronics.com'); ?>"><?= html_escape($store_settings['site_email'] ?? 'support@electronics.com'); ?></a></span>
-         </div>
-      </div>
-   </div>
-   <!-- offcanvas area end -->
-
    <!-- body overlay here -->
    <div class="body-overlay"></div>
    <!-- body overlay end -->
@@ -301,7 +425,7 @@ if (!function_exists('elt_resolve_img')) {
             </a>
          </div>
          <div class="aq-bottom-menu-item">
-            <button class="aq-search-toggle">
+            <button type="button" onclick="var s=document.getElementById('storeNavSearchInput');if(s){window.scrollTo({top:0,behavior:'smooth'});s.focus();}">
                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M18.7504 18.7499L14.4004 14.3999M16.75 8.75C16.75 13.1683 13.1683 16.75 8.75 16.75C4.33172 16.75 0.75 13.1683 0.75 8.75C0.75 4.33172 4.33172 0.75 8.75 0.75C13.1683 0.75 16.75 4.33172 16.75 8.75Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                </svg>
@@ -331,116 +455,131 @@ if (!function_exists('elt_resolve_img')) {
    <header>
 
       <!-- header area start -->
-      <div class="aq-header-area p-relative">
+      <div class="aq-header-area p-relative py-3">
          <div class="container">
-            <div class="row align-items-center">
-               <div class="col-4 d-xl-none">
-                  <div class="aq-header-bar">
-                     <button class="aq-offcanvas-toggle">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                           <path d="M3 6H21" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                           <path d="M3 12H21" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                           <path d="M3 18H15" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                     </button>
-                  </div>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
+               <!-- Logo -->
+               <div class="aq-header-logo d-flex align-items-center">
+                  <a href="<?= site_url('home'); ?>" class="d-inline-flex align-items-center">
+                     <img data-width="120" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
+                  </a>
                </div>
-               <div class="col-xl-3 col-4">
-                  <div class="aq-header-logo text-center text-xl-start">
-                     <a href="<?= site_url('home'); ?>">
-                        <?php if (!empty($store_settings['site_logo']) && file_exists(FCPATH . 'assets/images/logo/' . $store_settings['site_logo'])): ?>
-                           <img data-width="120" src="<?= base_url('assets/images/logo/' . $store_settings['site_logo']); ?>" alt="<?= html_escape($site_name); ?>">
-                        <?php else: ?>
-                           <img data-width="120" src="<?= $bazaro; ?>img/logo/logo.png" alt="<?= html_escape($site_name); ?>">
-                        <?php endif; ?>
-                     </a>
-                  </div>
+
+               <!-- Centered Wide Search Box (Matches Fashion Template, wraps to 2nd row on mobile) -->
+               <div class="store-search-col flex-grow-1 order-3 order-md-2 position-relative">
+                  <form action="<?= site_url('shop'); ?>" method="GET" class="store-search-form" id="storeNavSearchForm">
+                     <div class="store-search-input-wrap">
+                        <button type="submit" class="store-search-icon-btn" aria-label="Search">
+                           <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                        <input type="text"
+                               name="q"
+                               id="storeNavSearchInput"
+                               class="store-search-input"
+                               placeholder="Search for Products, Brands and More"
+                               value="<?= html_escape($search_query ?? ($this->input->get('q') ?: '')); ?>"
+                               autocomplete="off">
+                     </div>
+                  </form>
+                  <!-- Search Autocomplete Dropdown -->
+                  <div id="storeAutocompleteResults" class="store-autocomplete-dropdown shadow-lg d-none"></div>
                </div>
-               <div class="col-xl-6 d-none d-xl-block">
-                  <div class="aq-header-menu menu-height-62 aq-header-dropdown menu-black text-center">
-                     <nav class="aq-mobile-menu-active">
-                        <ul>
-                           <li>
-                              <a href="<?= site_url('home'); ?>">Home</a>
-                           </li>
-                           <li class="has-dropdown">
-                              <a href="<?= site_url('shop'); ?>">Shop</a>
-                              <?php if (!empty($nav_categories)): ?>
-                              <ul class="aq-submenu submenu">
-                                 <li><a href="<?= site_url('shop'); ?>">All Electronics</a></li>
-                                 <?php foreach ($nav_categories as $cat): ?>
-                                    <li><a href="<?= site_url('shop/' . $cat['slug']); ?>"><?= html_escape($cat['name']); ?></a></li>
-                                 <?php endforeach; ?>
-                              </ul>
-                              <?php endif; ?>
-                           </li>
-                           <li class="has-dropdown">
-                              <a href="<?= site_url('shop'); ?>">Categories</a>
-                              <?php if (!empty($nav_categories)): ?>
-                              <ul class="aq-submenu submenu">
-                                 <?php foreach ($nav_categories as $cat): ?>
-                                    <li><a href="<?= site_url('shop/' . $cat['slug']); ?>"><?= html_escape($cat['name']); ?></a></li>
-                                 <?php endforeach; ?>
-                              </ul>
-                              <?php endif; ?>
-                           </li>
-                           <li>
-                              <a href="<?= site_url('about'); ?>">About</a>
-                           </li>
-                           <li>
-                              <a href="<?= site_url('contact'); ?>">Contact</a>
-                           </li>
-                        </ul>
-                     </nav>
-                  </div>
-               </div>
-               <div class="col-xl-3 col-4">
-                  <div class="aq-header-right-options text-end">
-                     <ul>
-                        <li class="aq-header-top-search">
-                           <button class="aq-search-toggle">
-                              <i>
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                    <path d="M18.7504 18.7499L14.4004 14.3999M16.75 8.75C16.75 13.1683 13.1683 16.75 8.75 16.75C4.33172 16.75 0.75 13.1683 0.75 8.75C0.75 4.33172 4.33172 0.75 8.75 0.75C13.1683 0.75 16.75 4.33172 16.75 8.75Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>
-                              </i>
-                           </button>
-                        </li>
-                        <li class="aq-header-top-account d-none d-md-inline-block">
-                           <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
-                              <i>
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
-                                    <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>
-                              </i>
-                           </a>
-                        </li>
-                        <li class="aq-header-top-wishlist d-none d-md-inline-block">
-                           <a href="<?= site_url('wishlist'); ?>" class="aq-wishlist-btn">
-                              <span class="count-box wishlist-count"><?= $wish_cnt; ?></span>
-                              <i>
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
-                                    <path d="M6.50726 4.80303C5.44195 5.14334 4.68503 6.09974 4.59044 7.22502M10.4856 18.6038C12.6562 17.2679 14.6755 15.6957 16.5073 13.9152C17.7951 12.633 18.7756 11.0698 19.3735 9.3454C20.4494 6.00032 19.1927 2.17084 15.6755 1.03753C13.827 0.442448 11.8081 0.782566 10.2505 1.95149C8.69225 0.783989 6.67412 0.443991 4.82552 1.03753C1.30833 2.17084 0.0425004 6.00032 1.11845 9.3454C1.71636 11.0698 2.69679 12.633 3.98465 13.9152C5.81647 15.6957 7.83575 17.2679 10.0064 18.6038L10.2414 18.75L10.4856 18.6038Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>
-                              </i>
-                           </a>
-                        </li>
-                        <li class="aq-header-top-cart aq-cart-btn">
-                           <button type="button">
-                              <span class="count-box cart-count"><?= $cart_cnt; ?></span>
-                              <i>
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="21" viewBox="0 0 20 21" fill="none">
-                                    <path d="M5.48681 5.07041C5.48681 2.68433 7.4211 0.750039 9.80717 0.750039C10.9562 0.74517 12.0598 1.1982 12.874 2.00895C13.6882 2.81971 14.1459 3.92139 14.1458 5.07041M6.84107 9.57384H6.88684M12.6721 9.57388H12.7179M5.62368 19.972H13.9715C17.0379 19.972 19.3903 18.8645 18.7221 14.4068L17.944 8.3656C17.5321 6.14134 16.1134 5.29008 14.8685 5.29008H4.69004C3.42688 5.29008 2.0905 6.20542 1.61453 8.3656L0.836493 14.4068C0.268988 18.361 2.55732 19.972 5.62368 19.972Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>
-                              </i>
-                           </button>
-                        </li>
-                     </ul>
-                  </div>
+
+               <!-- Right Options -->
+               <div class="aq-header-right-options text-end order-2 order-md-3">
+                  <ul>
+                     <li class="aq-header-top-account d-none d-md-inline-block">
+                        <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
+                           <i>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
+                                 <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                           </i>
+                        </a>
+                     </li>
+                     <li class="aq-header-top-wishlist d-none d-md-inline-block">
+                        <a href="<?= site_url('wishlist'); ?>" class="aq-wishlist-btn">
+                           <span class="count-box wishlist-count"><?= $wish_cnt; ?></span>
+                           <i>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
+                                 <path d="M6.50726 4.80303C5.44195 5.14334 4.68503 6.09974 4.59044 7.22502M10.4856 18.6038C12.6562 17.2679 14.6755 15.6957 16.5073 13.9152C17.7951 12.633 18.7756 11.0698 19.3735 9.3454C20.4494 6.00032 19.1927 2.17084 15.6755 1.03753C13.827 0.442448 11.8081 0.782566 10.2505 1.95149C8.69225 0.783989 6.67412 0.443991 4.82552 1.03753C1.30833 2.17084 0.0425004 6.00032 1.11845 9.3454C1.71636 11.0698 2.69679 12.633 3.98465 13.9152C5.81647 15.6957 7.83575 17.2679 10.0064 18.6038L10.2414 18.75L10.4856 18.6038Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                           </i>
+                        </a>
+                     </li>
+                     <li class="aq-header-top-cart aq-cart-btn">
+                        <button type="button">
+                           <span class="count-box cart-count"><?= $cart_cnt; ?></span>
+                           <i>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="21" viewBox="0 0 20 21" fill="none">
+                                 <path d="M5.48681 5.07041C5.48681 2.68433 7.4211 0.750039 9.80717 0.750039C10.9562 0.74517 12.0598 1.1982 12.874 2.00895C13.6882 2.81971 14.1459 3.92139 14.1458 5.07041M6.84107 9.57384H6.88684M12.6721 9.57388H12.7179M5.62368 19.972H13.9715C17.0379 19.972 19.3903 18.8645 18.7221 14.4068L17.944 8.3656C17.5321 6.14134 16.1134 5.29008 14.8685 5.29008H4.69004C3.42688 5.29008 2.0905 6.20542 1.61453 8.3656L0.836493 14.4068C0.268988 18.361 2.55732 19.972 5.62368 19.972Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                           </i>
+                        </button>
+                     </li>
+                  </ul>
                </div>
             </div>
          </div>
       </div>
       <!-- header area end -->
+
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+         var searchInput = document.getElementById('storeNavSearchInput');
+         var resultsDropdown = document.getElementById('storeAutocompleteResults');
+         var autoTimer = null;
+
+         if (searchInput && resultsDropdown) {
+            searchInput.addEventListener('input', function() {
+               clearTimeout(autoTimer);
+               var query = this.value.trim();
+               if (query.length < 2) {
+                  resultsDropdown.classList.add('d-none');
+                  resultsDropdown.innerHTML = '';
+                  return;
+               }
+
+               autoTimer = setTimeout(function() {
+                  fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query))
+                     .then(function(res) { return res.json(); })
+                     .then(function(data) {
+                        if (data.results && data.results.length > 0) {
+                           var html = '';
+                           data.results.forEach(function(item) {
+                              html += '<a href="' + item.url + '" class="store-auto-item">';
+                              html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= $bazaro; ?>img/electronics/arrival-product/product-1/product-1.jpg\'">';
+                              html += '  <div class="flex-grow-1 overflow-hidden">';
+                              html += '    <div class="store-auto-title">' + item.title + '</div>';
+                              html += '    <div class="store-auto-cat">' + (item.category_name || 'Electronics') + '</div>';
+                              html += '  </div>';
+                              html += '  <div class="store-auto-price">' + item.price_html + '</div>';
+                              html += '</a>';
+                           });
+                           html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                           html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
+                           html += '</a>';
+
+                           resultsDropdown.innerHTML = html;
+                           resultsDropdown.classList.remove('d-none');
+                        } else {
+                           resultsDropdown.innerHTML = '<div class="p-3 text-center text-muted small">No products found for "' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"</div>';
+                           resultsDropdown.classList.remove('d-none');
+                        }
+                     })
+                     .catch(function() {
+                        resultsDropdown.classList.add('d-none');
+                     });
+               }, 220);
+            });
+
+            document.addEventListener('click', function(e) {
+               if (!searchInput.contains(e.target) && !resultsDropdown.contains(e.target)) {
+                  resultsDropdown.classList.add('d-none');
+               }
+            });
+         }
+      });
+      </script>
 
    </header>

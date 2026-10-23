@@ -145,9 +145,7 @@
 
     <!-- Favicon -->
     <?php
-      $web_favicon = !empty($store_settings['site_favicon'])
-        ? base_url('assets/images/logo/' . $store_settings['site_favicon'])
-        : base_url('assets/images/logo/codeulas_logo_small.webp');
+      $web_favicon = base_url('assets/images/logo/codeulas_logo_small.webp');
     ?>
     <link rel="shortcut icon" href="<?= $web_favicon; ?>" type="image/webp">
     <link rel="icon" type="image/webp" href="<?= $web_favicon; ?>">

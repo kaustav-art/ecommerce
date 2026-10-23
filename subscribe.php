@@ -86,6 +86,8 @@ $templates_catalog = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subscribe & Setup Store — <?php echo htmlspecialchars($plan_name); ?></title>
+    <link rel="shortcut icon" type="image/webp" href="codeulas_logo_small.webp">
+    <link rel="icon" type="image/webp" href="codeulas_logo_small.webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -408,13 +410,7 @@ $templates_catalog = [
     <nav class="wizard-navbar">
         <div class="container d-flex justify-content-between align-items-center">
             <a href="index.php" class="text-decoration-none d-flex align-items-center gap-2">
-                <span style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#c29958,#9e7a3c);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;">
-                    <i class="fa-solid fa-bag-shopping"></i>
-                </span>
-                <div>
-                    <span class="fw-bold text-white fs-5">LuxeCommerce</span>
-                    <span class="badge ms-1" style="background:rgba(194,153,88,0.2);color:#d4af37;font-size:0.68rem;">SAAS CLOUD</span>
-                </div>
+                <img src="logo.webp" alt="Logo" style="height:40px;width:auto;object-fit:contain;">
             </a>
 
             <div class="d-flex align-items-center gap-3">

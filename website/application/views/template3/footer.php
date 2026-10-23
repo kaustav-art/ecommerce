@@ -13,11 +13,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
                      <div class="aq-footer-widget footer-col-6-1 mb-90">
                         <div class="aq-footer-logo mb-25">
                            <a href="<?= site_url('home'); ?>">
-                              <?php if (!empty($store_settings['site_logo']) && file_exists(FCPATH . 'assets/images/logo/' . $store_settings['site_logo'])): ?>
-                                 <img data-width="120" src="<?= base_url('assets/images/logo/' . $store_settings['site_logo']); ?>" alt="<?= html_escape($site_name); ?>" style="background:#fff;padding:4px 10px;border-radius:6px;">
-                              <?php else: ?>
-                                 <img data-width="120" src="<?= $bazaro; ?>img/logo/logo-white.png" alt="<?= html_escape($site_name); ?>">
-                              <?php endif; ?>
+                              <img data-width="120" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
                            </a>
                         </div>
                         <div class="aq-footer-contact-wrap">

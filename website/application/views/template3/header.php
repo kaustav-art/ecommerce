@@ -12,11 +12,10 @@
    $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/templates/bazaro/');
    $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    $is_home_page = (($active_page ?? 'home') === 'home');
-   $web_favicon = !empty($store_settings['site_favicon'])
-       ? base_url('assets/images/logo/' . $store_settings['site_favicon'])
-       : $bazaro . 'img/logo/favicon.png';
+   $web_favicon = base_url('assets/images/logo/codeulas_logo_small.webp');
    ?>
-   <link rel="shortcut icon" type="image/x-icon" href="<?= $web_favicon; ?>">
+   <link rel="shortcut icon" type="image/webp" href="<?= $web_favicon; ?>">
+   <link rel="icon" type="image/webp" href="<?= $web_favicon; ?>">
 
    <?php if (!$is_home_page): ?>
    <!-- Core Storefront Styles for Inner Pages (Shop, Product Detail, Cart, Checkout, Account) -->
@@ -161,7 +160,7 @@
    <div class="aq-offcanvas-wrap">
       <div class="aq-offcanvas-top d-flex align-items-center justify-content-between">
          <div class="aq-offcanvas-logo">
-            <a href="<?= site_url('home'); ?>"><img width="115" src="<?= $bazaro; ?>img/logo/logo.png" alt="<?= html_escape($site_name); ?>"></a>
+            <a href="<?= site_url('home'); ?>"><img width="115" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:40px;width:auto;object-fit:contain;"></a>
          </div>
          <div class="aq-offcanvas-close">
             <span>
@@ -303,11 +302,7 @@
                   <div class="col-lg-2 col-md-3 col-6">
                      <div class="aq-header-logo">
                         <a href="<?= site_url('home'); ?>" class="text-decoration-none d-inline-flex align-items-center gap-2">
-                           <?php if (!empty($store_settings['site_logo']) && file_exists(FCPATH . 'assets/images/logo/' . $store_settings['site_logo'])): ?>
-                              <img data-width="140" src="<?= base_url('assets/images/logo/' . $store_settings['site_logo']); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:40px; background:#fff; padding:4px 10px; border-radius:8px;">
-                           <?php else: ?>
-                              <img data-width="140" src="<?= $bazaro; ?>img/logo/logo-white.png" alt="<?= html_escape($site_name); ?>" onerror="this.src='<?= $bazaro; ?>img/logo/logo.png'">
-                           <?php endif; ?>
+                           <img data-width="140" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
                         </a>
                      </div>
                   </div>

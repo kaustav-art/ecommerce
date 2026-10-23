@@ -10,11 +10,23 @@ class home extends MY_Controller {
 
     public function index()
     {
-        $banners        = Static_template_data::get('banners');
-        $products       = Static_template_data::get('products');
+        $tpl_key = $this->template_registry->get_tpl_key($this->active_template);
+
+        // Load Superadmin Template Customizer Section Headings
+        $tpl_settings = [];
+        if (isset($this->db) && $this->db->table_exists('template_layout_settings')) {
+            $s_rows = $this->db->where('template_key', $tpl_key)->get('template_layout_settings')->result_array();
+            foreach ($s_rows as $sr) {
+                $tpl_settings[$sr['section_key']][$sr['setting_key']] = $sr['setting_value'];
+            }
+        }
+
+        // Load dynamic Hero Banners, Categories, and Products from Superadmin panel
+        $banners        = $this->get_dynamic_template_banners($tpl_key);
+        $categories     = $this->get_dynamic_template_categories($tpl_key);
+        $products       = $this->get_dynamic_template_products($tpl_key);
         $total_products = count($products);
         $brands         = Static_template_data::get('brands');
-        $categories     = Static_template_data::get('root_categories');
 
         $deal_products = array_values(array_filter($products, function($p) {
             return !empty($p['sale_price']);
@@ -27,12 +39,12 @@ class home extends MY_Controller {
         $featured_products   = array_slice($products, 0, 8);
         $sale_products       = $deal_products;
         $bestseller_products = array_slice($products, 0, 8);
-        $featured_product    = Static_template_data::get('common_product');
+        $featured_product    = !empty($products[0]) ? $products[0] : Static_template_data::get('common_product');
 
         $data = [
             'title'               => $this->site_name . ' - Multipurpose eCommerce',
             'active_page'         => 'home',
-            'tpl_settings'        => [],
+            'tpl_settings'        => $tpl_settings,
             'banners'             => $banners,
             'products'            => $products,
             'deal_products'       => $deal_products,
@@ -42,6 +54,8 @@ class home extends MY_Controller {
             'bestseller_products' => $bestseller_products,
             'featured_product'    => $featured_product,
             'categories'          => $categories,
+            'nav_categories'      => $categories,
+            'category_tree'       => $categories,
             'total_products'      => $total_products,
             'brands'              => $brands
         ];
@@ -60,7 +74,8 @@ class home extends MY_Controller {
             $offset = 0;
         }
 
-        $all_products = Static_template_data::get('products');
+        $tpl_key      = $this->template_registry->get_tpl_key($this->active_template);
+        $all_products = $this->get_dynamic_template_products($tpl_key);
         $products     = array_slice($all_products, $offset, $limit);
         $total        = count($all_products);
         $has_more     = ($offset + count($products)) < $total;

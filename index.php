@@ -47,6 +47,8 @@ $contactAddress = $settings['contact_address'] ?? '123 Commerce Way, Suite 500, 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($siteTitle) ?></title>
+    <link rel="shortcut icon" type="image/webp" href="codeulas_logo_small.webp">
+    <link rel="icon" type="image/webp" href="codeulas_logo_small.webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -584,8 +586,7 @@ $contactAddress = $settings['contact_address'] ?? '123 Commerce Way, Suite 500, 
     <!-- Top Navigation -->
     <header class="navbar">
         <a href="index.php" class="nav-brand">
-            <span class="nav-brand-icon"><i class="fa-solid fa-layer-group"></i></span>
-            <span><?= htmlspecialchars($platformName) ?></span>
+            <img src="logo.webp" alt="<?= htmlspecialchars($platformName) ?>" style="height:40px;width:auto;object-fit:contain;">
         </a>
         <nav class="nav-links">
             <a href="#templates">Store Templates</a>
@@ -885,8 +886,7 @@ $contactAddress = $settings['contact_address'] ?? '123 Commerce Way, Suite 500, 
         <div class="footer-grid">
             <div>
                 <a href="index.php" class="nav-brand" style="margin-bottom:14px;">
-                    <span class="nav-brand-icon"><i class="fa-solid fa-layer-group"></i></span>
-                    <span><?= htmlspecialchars($platformName) ?></span>
+                    <img src="logo.webp" alt="<?= htmlspecialchars($platformName) ?>" style="height:40px;width:auto;object-fit:contain;">
                 </a>
                 <p style="color:var(--text-muted);font-size:0.9rem;max-width:340px;">
                     Multi-tenant, multi-template SaaS eCommerce platform empowering merchants to launch Fashion, Electronics, and Grocery stores in seconds.

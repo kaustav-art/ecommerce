@@ -125,7 +125,7 @@
                     <!-- Scroll Track -->
                     <div class="store-cat-track" id="catSlideTrack">
                         <?php 
-                        $header_categories = !empty($category_tree) ? array_slice($category_tree, 0, 10) : [];
+                        $header_categories = !empty($category_tree) ? $category_tree : [];
                         if (!empty($header_categories)): 
                             $c_idx = 1;
                             foreach ($header_categories as $root_c): 

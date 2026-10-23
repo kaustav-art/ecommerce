@@ -182,10 +182,57 @@ class shop extends MY_Controller {
             return;
         }
 
-        $all_products = Static_template_data::get('products');
-        $symbol       = $this->store_settings['currency_symbol'] ?? '$';
-        $results      = [];
+        $symbol  = $this->store_settings['currency_symbol'] ?? '$';
+        $results = [];
+        $tpl_key = $this->template_folder ?? 'template1';
 
+        $main_db_name = !empty($this->master_db_name) ? $this->master_db_name : $this->db->database;
+        $check_p = $this->db->query("SHOW TABLES FROM `{$main_db_name}` LIKE 'template_products'")->row_array();
+        if (!empty($check_p)) {
+            $like_q = '%' . $this->db->escape_like_str($q) . '%';
+            $tpl_rows = $this->db->query(
+                "SELECT p.*, c.name AS cat_name
+                 FROM `{$main_db_name}`.`template_products` p
+                 LEFT JOIN `{$main_db_name}`.`template_categories` c ON c.id = p.category_id
+                 WHERE p.template_key = ? AND p.status = 1
+                   AND (p.title LIKE ? OR c.name LIKE ?)
+                 ORDER BY p.sort_order ASC, p.id ASC
+                 LIMIT 8",
+                [$tpl_key, $like_q, $like_q]
+            )->result_array();
+
+            if (!empty($tpl_rows)) {
+                foreach ($tpl_rows as $r) {
+                    $price = (!empty($r['sale_price']) && (float) $r['sale_price'] > 0) ? (float) $r['sale_price'] : (float) $r['price'];
+                    $img = $r['image'] ?? '';
+                    $clean = ltrim($img, '/');
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $img_url = $img;
+                    } elseif (strpos($clean, 'assets/') === 0) {
+                        $img_url = base_url($clean);
+                    } elseif (file_exists(FCPATH . 'assets/images/' . $clean)) {
+                        $img_url = base_url('assets/images/' . $clean);
+                    } elseif (file_exists(FCPATH . 'assets/templates/bazaro/img/' . $clean)) {
+                        $img_url = base_url('assets/templates/bazaro/img/' . $clean);
+                    } else {
+                        $img_url = base_url('assets/images/' . $clean);
+                    }
+                    $results[] = [
+                        'id'            => (int) $r['id'],
+                        'title'         => $r['title'],
+                        'sku'           => 'SKU-' . $r['id'],
+                        'category_name' => $r['cat_name'] ?? 'Products',
+                        'price_html'    => $symbol . number_format($price, 2),
+                        'url'           => site_url('product/' . $r['slug']),
+                        'image'         => $img_url
+                    ];
+                }
+                $this->json_response(['results' => $results]);
+                return;
+            }
+        }
+
+        $all_products = Static_template_data::get('products');
         foreach ($all_products as $item) {
             if (stripos($item['title'], $q) !== FALSE || stripos($item['category_name'] ?? '', $q) !== FALSE) {
                 $price = !empty($item['sale_price']) ? (float) $item['sale_price'] : (float) $item['price'];
