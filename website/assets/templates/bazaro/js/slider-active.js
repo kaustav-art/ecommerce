@@ -1005,17 +1005,19 @@
 			</button>`,
 		});
 		
-		$('.slider-nav').slick({
-			slidesToShow: 3,
+		$('.slider-nav').on('init reInit setPosition breakpoint', function() {
+			$(this).find('.slick-list').css('height', '');
+		}).slick({
+			slidesToShow: 4,
 			slidesToScroll: 1,
 			vertical: true,
 			verticalSwiping: true,
-			infinite: true,   
+			infinite: false,   
 			asNavFor: '.slider-for',
 			centerMode: false,
 			dots: false,
 			arrows: false,
-			autoplay: true,
+			autoplay: false,
 			focusOnSelect: true,
 			responsive: [
 				{
@@ -1030,6 +1032,7 @@
 				},
 			]
 		});
+		$('.slider-nav .slick-list').css('height', '');
 
 		$('.slider-nav-2').slick({
 			slidesToShow: 5,

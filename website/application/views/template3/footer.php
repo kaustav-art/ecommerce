@@ -152,10 +152,6 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    <script src="<?= $bazaro; ?>js/ajax-form.js"></script>
    <script src="<?= $bazaro; ?>js/main.js"></script>
 
-   <?php if (($active_page ?? 'home') !== 'home' && (($this->uri->segment(1) ?? '') !== 'product')): ?>
-   <script src="<?= base_url('assets/js/main.js'); ?>"></script>
-   <?php endif; ?>
-
    <script>
    function showGrcToast(msg, isError) {
        var t = document.getElementById('grcToast');
@@ -212,15 +208,21 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
            } else {
                var html = '';
                data.cart_items.forEach(function(item) {
-                   var img = item.image
-                       ? (item.image.indexOf('http') === 0 ? item.image : window.BASE_URL + 'assets/images/products/' + item.image.replace(/^\/+/, ''))
-                       : '<?= $bazaro; ?>img/product/grocery-p-1.jpg';
-                   var pUrl = window.SITE_URL + '/product/' + (item.slug || item.product_id);
+                   var rawImg = (item.image || '').replace(/^\/+/, '');
+                   var img = '<?= $bazaro; ?>img/product/grocery-p-1.jpg';
+                   if (rawImg) {
+                       if (rawImg.indexOf('http') === 0) img = rawImg;
+                       else if (rawImg.indexOf('assets/') === 0) img = window.BASE_URL + rawImg;
+                       else if (rawImg.indexOf('products/') === 0) img = window.BASE_URL + 'assets/images/' + rawImg;
+                       else img = window.BASE_URL + 'assets/images/products/' + rawImg;
+                   }
+                   var itemName = item.name || item.title || 'Fresh Grocery Item';
+                   var pUrl = window.SITE_URL + '/product/' + (item.slug || item.product_id) + '?preview_tpl=grocery';
                    var key = item.cart_key || item.product_id;
                    html += '<div class="aq-cartmini-product-item mb-15 item-delete d-flex align-items-center">' +
                        '<div class="aq-cartmini-product-thumbnail"><a href="' + pUrl + '"><img src="' + img + '" alt=""></a></div>' +
                        '<div class="aq-cartmini-product-summary">' +
-                       '<h4 class="aq-product-title"><a href="' + pUrl + '">' + item.name + '</a></h4>' +
+                       '<h4 class="aq-product-title"><a href="' + pUrl + '">' + itemName + '</a></h4>' +
                        '<span class="aq-cartmini-product-price">' + window.CURRENCY_SYMBOL + parseFloat(item.price).toFixed(2) + ' &times; ' + item.quantity + '</span>' +
                        '<div class="aq-product-details-quantity d-flex align-items-center mt-1">' +
                        '<button type="button" onclick="grcRemoveCartItem(\'' + key + '\')" class="aq-line-anim aq-cartmini-remove">Remove</button>' +
@@ -320,15 +322,49 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        }, 1000);
    })();
 
-   // Propagate ?preview_tpl=grocery across all internal storefront links on Template 3
+   // Propagate ?preview_tpl=grocery across all internal storefront links & normalize Grocery theme accents on Template 3
    document.addEventListener('DOMContentLoaded', function() {
        var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+       var defaultGrcImg = '<?= $bazaro; ?>img/product/grocery-p-3.jpg';
+
        document.querySelectorAll('a[href]').forEach(function(a) {
            var href = a.getAttribute('href');
            if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
            if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-               var sep = href.indexOf('?') === -1 ? '?' : '&';
-               a.setAttribute('href', href + sep + 'preview_tpl=grocery');
+               var hashIdx = href.indexOf('#');
+               var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
+               var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
+               var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
+               a.setAttribute('href', baseHref + sep + 'preview_tpl=grocery' + hashPart);
+           }
+       });
+
+       document.querySelectorAll('form[action]').forEach(function(f) {
+           var act = f.getAttribute('action');
+           if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
+               var sep = act.indexOf('?') === -1 ? '?' : '&';
+               f.setAttribute('action', act + sep + 'preview_tpl=grocery');
+           }
+       });
+
+       // Convert any residual inline Flipkart-blue (#2874f0) or fashion fallback images on shared views to Grocery theme
+       document.querySelectorAll('[style*="#2874f0"], [style*="rgb(40, 116, 240)"], [style*="#f0f5ff"], [style*="#e1ecff"]').forEach(function(el) {
+           var st = el.getAttribute('style') || '';
+           st = st.replace(/#2874f0/gi, '#108910')
+                  .replace(/rgb\(40,\s*116,\s*240\)/gi, '#108910')
+                  .replace(/#f0f5ff/gi, '#ecfdf5')
+                  .replace(/#e1ecff/gi, '#bbf7d0');
+           el.setAttribute('style', st);
+       });
+
+       document.querySelectorAll('img').forEach(function(img) {
+           var onerr = img.getAttribute('onerror');
+           if (onerr && onerr.indexOf('women-1.jpg') !== -1) {
+               img.setAttribute('onerror', "this.src='" + defaultGrcImg + "'");
+           }
+           var src = img.getAttribute('src') || '';
+           if (src.indexOf('womens/women-') !== -1) {
+               img.setAttribute('src', defaultGrcImg);
            }
        });
    });

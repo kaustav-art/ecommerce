@@ -404,7 +404,7 @@ button:focus {
   align-items: center;
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.form-check-input),
 textarea {
   height: 46px;
   width: 100%;

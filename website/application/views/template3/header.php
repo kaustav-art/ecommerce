@@ -21,11 +21,7 @@
    $is_grc_product_page = (($this->uri->segment(1) ?? '') === 'product');
    ?>
    <link rel="stylesheet" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
-   <?php if (!$is_home_page && !$is_grc_product_page): ?>
-   <!-- Core Storefront Styles for Inner Pages (Shop, Cart, Checkout, Account) -->
    <link rel="stylesheet" href="<?= base_url('assets/fonts/fonts.css'); ?>">
-   <link rel="stylesheet" href="<?= base_url('assets/css/styles.css'); ?>">
-   <?php endif; ?>
 
    <!-- Bazaro Grocery Template CSS -->
    <link rel="stylesheet" href="<?= $bazaro; ?>css/bootstrap.css">
@@ -41,6 +37,15 @@
    <link rel="stylesheet" href="<?= $bazaro; ?>css/main.css">
 
    <style>
+      :root {
+         --grc-primary: #003D29;
+         --grc-accent: #108910;
+         --grc-mint: #ecfdf5;
+         --grc-mint-border: #bbf7d0;
+         --grc-bg-soft: #f4f8f5;
+         --bs-primary: #108910;
+         --bs-primary-rgb: 16, 137, 16;
+      }
       .grc-unit-pill {
          display: inline-block;
          background: #ecfdf5;
@@ -76,6 +81,241 @@
       }
       /* Ensure preloader never blocks interaction if JS is slow */
       #loading { display: none !important; }
+
+      /* =====================================================================
+       * Grocery Theme Overrides for Shared Inner Pages
+       * (Account, Orders, Wishlist, Cart, Checkout, Track Order, Static Pages)
+       * ===================================================================== */
+      body {
+         color: #1f2937;
+      }
+      section[style*="background: #f1f3f6"],
+      section[style*="background:#f1f3f6"],
+      .flat-spacing[style*="background: #f1f3f6"] {
+         background: #f3f8f4 !important;
+      }
+      /* Primary colors -> Fresh Harvest Green / Deep Forest Green */
+      .text-primary {
+         color: #108910 !important;
+      }
+      .bg-primary {
+         background-color: #003D29 !important;
+      }
+      .border-primary {
+         border-color: #108910 !important;
+      }
+      .btn-primary {
+         background-color: #108910 !important;
+         border-color: #108910 !important;
+         color: #ffffff !important;
+         font-weight: 600;
+         border-radius: 10px;
+         transition: all 0.2s ease;
+      }
+      .btn-primary:hover,
+      .btn-primary:focus {
+         background-color: #003D29 !important;
+         border-color: #003D29 !important;
+         color: #ffffff !important;
+      }
+      .btn-outline-primary {
+         color: #003D29 !important;
+         border-color: #108910 !important;
+         font-weight: 600;
+         border-radius: 10px;
+      }
+      .btn-outline-primary:hover,
+      .btn-outline-primary:focus {
+         background-color: #108910 !important;
+         border-color: #108910 !important;
+         color: #ffffff !important;
+      }
+      /* Account Sidebar & Profile Cards */
+      .fk-sidebar-wrap .card,
+      section .card.border-0.shadow-sm {
+         border: 1px solid #e2efe6 !important;
+         border-radius: 14px !important;
+         box-shadow: 0 6px 20px rgba(0, 61, 41, 0.04) !important;
+      }
+      .fk-menu-group-header {
+         color: #003D29 !important;
+      }
+      .fk-menu-group-header i {
+         color: #108910 !important;
+      }
+      .fk-sub-link:hover {
+         color: #108910 !important;
+         background-color: #f0fdf4 !important;
+      }
+      .fk-sub-link.active {
+         color: #003D29 !important;
+         background-color: #ecfdf5 !important;
+         font-weight: 700 !important;
+         border-left: 3px solid #108910;
+      }
+      .fk-Single-link:hover {
+         color: #108910 !important;
+         background-color: #f0fdf4 !important;
+      }
+      .fk-input-control:focus,
+      .form-control:focus,
+      .form-select:focus {
+         border-color: #108910 !important;
+         box-shadow: 0 0 0 3px rgba(16, 137, 16, 0.12) !important;
+      }
+      /* Reset Bazaro global input rules on checkboxes, radios, and range sliders */
+      input[type="checkbox"],
+      input[type="radio"],
+      .form-check-input {
+         width: 18px !important;
+         height: 18px !important;
+         min-width: 18px !important;
+         min-height: 18px !important;
+         padding: 0 !important;
+         padding-inline-start: 0 !important;
+         padding-inline-end: 0 !important;
+         margin-top: 0 !important;
+         line-height: 1 !important;
+         flex-shrink: 0 !important;
+         border: 1.5px solid #9ca3af !important;
+         background-color: #ffffff !important;
+         box-shadow: none !important;
+         cursor: pointer;
+         vertical-align: middle;
+      }
+      input[type="checkbox"],
+      .form-check-input[type="checkbox"] {
+         border-radius: 4px !important;
+      }
+      input[type="radio"],
+      .form-check-input[type="radio"] {
+         border-radius: 50% !important;
+      }
+      input[type="checkbox"]:checked,
+      input[type="radio"]:checked,
+      .form-check-input:checked {
+         background-color: #108910 !important;
+         border-color: #108910 !important;
+         accent-color: #108910 !important;
+      }
+      input[type="checkbox"]:focus,
+      input[type="radio"]:focus,
+      .form-check-input:focus {
+         border-color: #108910 !important;
+         box-shadow: 0 0 0 3px rgba(16, 137, 16, 0.15) !important;
+      }
+      input[type="range"],
+      .form-range {
+         width: 100% !important;
+         height: 6px !important;
+         padding: 0 !important;
+         padding-inline-start: 0 !important;
+         padding-inline-end: 0 !important;
+         border: none !important;
+         box-shadow: none !important;
+         accent-color: #108910 !important;
+      }
+      /* Cart & Checkout Grocery Theme Styling */
+      .cart-address-card,
+      .cart-items-card,
+      .cart-summary-card,
+      .fk-step-card {
+         border: 1px solid #e2efe6 !important;
+         border-radius: 14px !important;
+         box-shadow: 0 6px 20px rgba(0, 61, 41, 0.04) !important;
+      }
+      .fk-step-header.active {
+         background: #003D29 !important;
+         color: #ffffff !important;
+         border-radius: 14px 14px 0 0;
+      }
+      .fk-step-header.active .step-num {
+         background: #108910 !important;
+         color: #ffffff !important;
+      }
+      .step-num {
+         color: #003D29 !important;
+         background: #ecfdf5 !important;
+      }
+      .btn-deliver-here,
+      .btn-proceed-buy,
+      .tf-btn.btn-fill {
+         background: #108910 !important;
+         border-color: #108910 !important;
+         color: #ffffff !important;
+         border-radius: 10px !important;
+         font-weight: 700 !important;
+         box-shadow: 0 4px 14px rgba(16, 137, 16, 0.22) !important;
+      }
+      .btn-deliver-here:hover,
+      .btn-proceed-buy:hover,
+      .tf-btn.btn-fill:hover {
+         background: #003D29 !important;
+         border-color: #003D29 !important;
+         color: #ffffff !important;
+      }
+      .btn-change-addr {
+         color: #108910 !important;
+         border-color: #bbf7d0 !important;
+         background: #f0fdf4 !important;
+         border-radius: 8px !important;
+      }
+      .btn-change-addr:hover {
+         background: #108910 !important;
+         color: #ffffff !important;
+      }
+      .address-type-badge {
+         background: #ecfdf5 !important;
+         color: #047857 !important;
+         border: 1px solid #a7f3d0;
+      }
+      .fk-addr-item.selected,
+      .fk-pay-item.selected {
+         background: #f4fbf6 !important;
+         border-color: #bbf7d0 !important;
+      }
+      .qty-circle-btn:hover:not(:disabled) {
+         border-color: #108910 !important;
+         color: #108910 !important;
+      }
+      .item-action-btn:hover {
+         color: #108910 !important;
+      }
+      /* Inner page titles / breadcrumbs */
+      .tf-page-title {
+         background: linear-gradient(135deg, #003D29 0%, #07593e 100%) !important;
+         padding: 36px 0 !important;
+         color: #ffffff !important;
+      }
+      .tf-page-title .heading,
+      .tf-page-title h1,
+      .tf-page-title h2,
+      .tf-page-title h3,
+      .tf-page-title .breadcrumbs,
+      .tf-page-title .breadcrumbs a,
+      .tf-page-title .breadcrumbs li,
+      .tf-page-title .text-secondary {
+         color: #ffffff !important;
+      }
+      .tf-page-title .breadcrumbs a:hover {
+         color: #86efac !important;
+      }
+      /* Order status timeline & order cards */
+      .fk-order-card:hover {
+         border-color: #108910 !important;
+         box-shadow: 0 6px 18px rgba(0, 61, 41, 0.08) !important;
+      }
+      .fk-item-title:hover {
+         color: #108910 !important;
+      }
+      .fk-step-item.completed .fk-step-circle,
+      .fk-step-item.active .fk-step-circle {
+         background: #108910 !important;
+         border-color: #108910 !important;
+      }
+      .fk-step-item.completed:not(:last-child)::after {
+         background: #108910 !important;
+      }
    </style>
 
    <script>
@@ -121,18 +361,28 @@
       <div class="aq-cartmini-body" id="grcCartMiniBody">
          <?php if (!empty($cart_items)): ?>
             <?php foreach ($cart_items as $c_key => $c_item):
-               $c_img = !empty($c_item['image'])
-                  ? (strpos($c_item['image'], 'http') === 0 ? $c_item['image'] : (strpos($c_item['image'], 'assets/') === 0 ? base_url($c_item['image']) : base_url('assets/images/products/' . ltrim($c_item['image'], '/'))))
-                  : $bazaro . 'img/product/grocery-p-1.jpg';
+               $c_name = $c_item['name'] ?? ($c_item['title'] ?? ($c_item['product_title'] ?? 'Fresh Grocery Item'));
+               $raw_img = !empty($c_item['image']) ? ltrim($c_item['image'], '/') : '';
+               if (empty($raw_img)) {
+                  $c_img = $bazaro . 'img/product/grocery-p-1.jpg';
+               } elseif (strpos($raw_img, 'http') === 0) {
+                  $c_img = $raw_img;
+               } elseif (strpos($raw_img, 'assets/') === 0) {
+                  $c_img = base_url($raw_img);
+               } elseif (strpos($raw_img, 'products/') === 0) {
+                  $c_img = base_url('assets/images/' . $raw_img);
+               } else {
+                  $c_img = base_url('assets/images/products/' . $raw_img);
+               }
             ?>
             <div class="aq-cartmini-product-item mb-15 item-delete d-flex align-items-center">
                <div class="aq-cartmini-product-thumbnail">
                   <a href="<?= site_url('product/' . ($c_item['slug'] ?? $c_item['product_id'])); ?>">
-                     <img src="<?= $c_img; ?>" alt="<?= html_escape($c_item['name']); ?>" onerror="this.src='<?= $bazaro; ?>img/product/grocery-p-1.jpg'">
+                     <img src="<?= $c_img; ?>" alt="<?= html_escape($c_name); ?>" onerror="this.src='<?= $bazaro; ?>img/product/grocery-p-1.jpg'">
                   </a>
                </div>
                <div class="aq-cartmini-product-summary">
-                  <h4 class="aq-product-title"><a href="<?= site_url('product/' . ($c_item['slug'] ?? $c_item['product_id'])); ?>"><?= html_escape($c_item['name']); ?></a></h4>
+                  <h4 class="aq-product-title"><a href="<?= site_url('product/' . ($c_item['slug'] ?? $c_item['product_id'])); ?>"><?= html_escape($c_name); ?></a></h4>
                   <span class="aq-cartmini-product-price"><?= html_escape($curr) . number_format((float)$c_item['price'], 2); ?> &times; <?= (int)$c_item['quantity']; ?></span>
                   <div class="aq-product-details-quantity d-flex align-items-center mt-1">
                      <button type="button" onclick="grcRemoveCartItem('<?= html_escape($c_key); ?>')" class="aq-line-anim aq-cartmini-remove">Remove</button>

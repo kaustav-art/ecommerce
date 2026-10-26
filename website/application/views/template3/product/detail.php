@@ -156,7 +156,7 @@ $base_per_pc_sale = $unit_info['unit_type'] === 'pc'
 $kg_variants = [
     [
         'id'          => 'kg-250g',
-        'label'       => '250 g Pack',
+        'label'       => '250 g',
         'short_label' => '250 g',
         'unit_type'   => 'kg',
         'unit_qty'    => 0.25,
@@ -169,7 +169,7 @@ $kg_variants = [
     ],
     [
         'id'          => 'kg-400g',
-        'label'       => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g Pack' : '400 g Punnet',
+        'label'       => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
         'short_label' => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
         'unit_type'   => 'kg',
         'unit_qty'    => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? 0.50 : 0.40,
@@ -182,7 +182,7 @@ $kg_variants = [
     ],
     [
         'id'          => 'kg-1kg',
-        'label'       => '1 kg Value Pack',
+        'label'       => '1 kg',
         'short_label' => '1 kg',
         'unit_type'   => 'kg',
         'unit_qty'    => 1.00,
@@ -195,7 +195,7 @@ $kg_variants = [
     ],
     [
         'id'          => 'kg-2kg',
-        'label'       => '2 kg Family Box',
+        'label'       => '2 kg',
         'short_label' => '2 kg',
         'unit_type'   => 'kg',
         'unit_qty'    => 2.00,
@@ -211,7 +211,7 @@ $kg_variants = [
 $pc_variants = [
     [
         'id'          => 'pc-1',
-        'label'       => '1 pc (Single)',
+        'label'       => '1 pc',
         'short_label' => '1 pc',
         'unit_type'   => 'pc',
         'unit_qty'    => 1,
@@ -224,7 +224,7 @@ $pc_variants = [
     ],
     [
         'id'          => 'pc-4',
-        'label'       => '4 pcs Pack',
+        'label'       => '4 pcs',
         'short_label' => '4 pcs',
         'unit_type'   => 'pc',
         'unit_qty'    => 4,
@@ -237,7 +237,7 @@ $pc_variants = [
     ],
     [
         'id'          => 'pc-8',
-        'label'       => '8 pcs Box',
+        'label'       => '8 pcs',
         'short_label' => '8 pcs',
         'unit_type'   => 'pc',
         'unit_qty'    => 8,
@@ -250,7 +250,7 @@ $pc_variants = [
     ],
     [
         'id'          => 'pc-12',
-        'label'       => '12 pcs Family Pack',
+        'label'       => '12 pcs',
         'short_label' => '12 pcs',
         'unit_type'   => 'pc',
         'unit_qty'    => 12,
@@ -367,6 +367,9 @@ $grc_specifications = [
     height: 430px;
     object-fit: contain;
     margin: 0 auto;
+}
+.product-slider-nav .slick-list {
+    height: auto !important;
 }
 .product-slider-nav .product-slider-nav-img {
     width: 100%;
@@ -1333,7 +1336,7 @@ $grc_specifications = [
                      <div class="grc-qty-action-row mt-4">
                         <button type="button" class="btn-grc-atc" id="main-btn-atc" onclick="grcDetailAddToCart(event)">
                            <i class="fa-solid fa-basket-shopping"></i>
-                           <span>Add to Grocery Bag</span>
+                           <span>Add to Bag</span>
                         </button>
 
                         <button type="button" class="btn-grc-buy" onclick="grcDetailBuyNow()">
@@ -1903,12 +1906,15 @@ $grc_specifications = [
         }
 
         if ($nav.length && !$nav.hasClass('slick-initialized')) {
+            $nav.on('init reInit setPosition breakpoint', function() {
+                $nav.find('.slick-list').css('height', '');
+            });
             $nav.slick({
-                slidesToShow: 3,
+                slidesToShow: 4,
                 slidesToScroll: 1,
                 vertical: true,
                 verticalSwiping: true,
-                infinite: true,
+                infinite: false,
                 asNavFor: '.slider-for',
                 centerMode: false,
                 dots: false,
@@ -1929,6 +1935,9 @@ $grc_specifications = [
                     }
                 ]
             });
+        }
+        if ($nav.length) {
+            $nav.find('.slick-list').css('height', '');
         }
     }
 

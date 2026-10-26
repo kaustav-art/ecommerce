@@ -181,6 +181,20 @@ class MY_Controller extends CI_Controller {
                 $hover_raw = !empty($tp['hover_image']) ? $tp['hover_image'] : $tp['image'];
                 $hover_img = $this->normalize_tpl_image($hover_raw, $tpl_key);
 
+                $raw_unit  = trim((string)($tp['unit_label'] ?? ''));
+                $clean_unit = $raw_unit;
+                if ($raw_unit !== '' && $tpl_key === 'template3') {
+                    if (preg_match('/^(\d+(?:\.\d+)?)\s*(kg|g|gm|ml|l|ltr|liter|litre|liters|litres|pc|pcs|piece|pieces)\b/i', $raw_unit, $um)) {
+                        $u_word = $um[2];
+                        if (stripos($u_word, 'piece') === 0) {
+                            $u_word = ((float)$um[1] > 1) ? 'pcs' : 'pc';
+                        }
+                        $clean_unit = $um[1] . (in_array(strtolower($u_word), ['g', 'gm', 'ml'], true) ? strtolower($u_word) : ' ' . $u_word);
+                    } elseif (preg_match('/^(\d+)\b/', $raw_unit, $um)) {
+                        $clean_unit = $um[1] . (((int)$um[1] > 1) ? ' pcs' : ' pc');
+                    }
+                }
+
                 $products[] = [
                     'id'                     => (int)$tp['id'],
                     'title'                  => $tp['name'],
@@ -195,8 +209,8 @@ class MY_Controller extends CI_Controller {
                     'hover_image'            => $hover_img,
                     'gallery_images_decoded' => [$hover_img],
                     'badge_text'             => $tp['badge_text'] ?? '',
-                    'unit_value'             => $tp['unit_label'] ?? '',
-                    'unit_label'             => $tp['unit_label'] ?? '',
+                    'unit_value'             => $clean_unit,
+                    'unit_label'             => $clean_unit,
                     'short_description'      => $tp['short_desc'] ?? '',
                     'description'            => $tp['short_desc'] ?? '',
                     'rating'                 => isset($tp['rating']) ? (float)$tp['rating'] : 4.8,

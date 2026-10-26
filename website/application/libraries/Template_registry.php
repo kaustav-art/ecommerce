@@ -130,7 +130,7 @@ class Template_registry {
     {
         $tpl = $this->get($template_key);
         $resolved_view = $this->resolve_view($tpl['key'], $view);
-        $is_bazaro_home = ($tpl['key'] !== 'fashion' && ($view === 'home/index' || $view === 'home' || strpos($resolved_view, 'template2/') === 0 || strpos($resolved_view, 'template3/') === 0));
+        $is_bazaro_home = ($tpl['key'] !== 'fashion');
 
         $data['active_template']      = $tpl['key'];
         $data['active_tpl_key']       = $tpl['tpl_key'];
