@@ -256,45 +256,6 @@
    <header>
 
       <!-- header area start -->
-      <div class="aq-header-top-area aq-header-top-style-2 d-none d-xl-block z-index-3" data-bg-color="#108910" style="background-color:#108910;">
-         <div class="container container-1630">
-            <div class="row align-items-center">
-               <div class="col-lg-4">
-                  <div class="aq-header-info d-flex align-items-center">
-                     <div class="aq-header-info-item d-flex align-items-center">
-                        <i class="fa-solid fa-leaf text-white me-1"></i>
-                        <span>100% Certified Organic</span>
-                     </div>
-                     <div class="aq-header-info-item d-flex align-items-center">
-                        <i class="fa-solid fa-phone text-white me-1"></i>
-                        <a class="aq-line-anim" href="tel:<?= html_escape($store_settings['site_phone'] ?? '40276328246'); ?>"><?= html_escape($store_settings['site_phone'] ?? '+(402) 763 282 46'); ?></a>
-                     </div>
-                  </div>
-               </div>
-               <div class="col-lg-4">
-                  <div class="aq-header-discount text-center">
-                     <div class="aq-header-discount-item text-center">
-                        <p class="mb-0 text-white"><?= html_escape($store_settings['announcement_text'] ?? 'Save up to 20% on Fresh Produce & Organic Essentials!'); ?></p>
-                     </div>
-                  </div>
-               </div>
-               <div class="col-lg-4">
-                  <div class="aq-header-top-left-options d-flex align-items-center justify-content-end">
-                     <div class="aq-header-top-menu-item grc-top-menu">
-                        <a href="<?= site_url('order/track'); ?>" class="text-white text-decoration-none">Order Tracking</a>
-                     </div>
-                     <div class="aq-header-top-menu-item grc-top-menu ms-3">
-                        <a href="<?= site_url('shop'); ?>" class="text-white text-decoration-none">All Departments</a>
-                     </div>
-                     <div class="aq-header-top-menu-item aq-header-currency ms-3">
-                        <span class="aq-header-currency-toggle"><?= html_escape($curr . ($currency_code ?? 'USD')); ?></span>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-
       <div class="grc-header-ptb pt-25 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
          <div class="container container-1630">
             <div class="grc-header-main-wrap">
@@ -361,15 +322,6 @@
                                        <path d="M5.48681 5.07041C5.48681 2.68433 7.4211 0.750039 9.80717 0.750039C10.9562 0.74517 12.0598 1.1982 12.874 2.00895C13.6882 2.81971 14.1459 3.92139 14.1458 5.07041M6.84107 9.57384H6.88684M12.6721 9.57388H12.7179M5.62368 19.972H13.9715C17.0379 19.972 19.3903 18.8645 18.7221 14.4068L17.944 8.3656C17.5321 6.14134 16.1134 5.29008 14.8685 5.29008H4.69004C3.42688 5.29008 2.0905 6.20542 1.61453 8.3656L0.836493 14.4068C0.268988 18.361 2.55732 19.972 5.62368 19.972Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                  </i>
-                              </button>
-                           </li>
-                           <li class="aq-header-top-bar">
-                              <button class="grc-header-bar aq-offcanvas-toggle">
-                                 <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="16" viewBox="0 0 32 16" fill="none">
-                                       <path d="M31 8H1M31 1H1M31 15H1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                 </span>
                               </button>
                            </li>
                         </ul>
