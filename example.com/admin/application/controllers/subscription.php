@@ -111,6 +111,21 @@ class subscription extends MY_Controller {
         }
         $tid = (int) $tenant['id'];
 
+        $current_plan = !empty($tenant['plan_id'])
+            ? $this->db->where('id', (int) $tenant['plan_id'])->get($plans_tbl)->row_array()
+            : null;
+        if ($current_plan && (int) $plan['id'] !== (int) $current_plan['id']) {
+            $cur_price = (float) ($current_plan['price'] ?? 0);
+            $new_price = (float) ($plan['price'] ?? 0);
+            $cur_sort  = (int) ($current_plan['sort_order'] ?? $current_plan['id']);
+            $new_sort  = (int) ($plan['sort_order'] ?? $plan['id']);
+            if ($new_price < $cur_price || ($new_price == $cur_price && $new_sort < $cur_sort)) {
+                $this->session->set_flashdata('error', 'Plan downgrade is not allowed. You can only renew your current plan or upgrade to a higher plan.');
+                redirect('subscription');
+                return;
+            }
+        }
+
         $duration_days = max(1, (int) ($plan['duration_days'] ?? 30));
         $current_exp = !empty($tenant['subscription_expires_at']) && strtotime($tenant['subscription_expires_at']) > time()
             ? strtotime($tenant['subscription_expires_at'])

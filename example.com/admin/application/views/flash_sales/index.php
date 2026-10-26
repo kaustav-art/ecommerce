@@ -76,7 +76,7 @@
                       <input class="form-check-input" type="checkbox" name="product_ids[]" value="<?= $p['id']; ?>" id="p_check_<?= $p['id']; ?>">
                       <label class="form-check-label d-flex justify-content-between small" for="p_check_<?= $p['id']; ?>">
                         <span class="text-truncate" style="max-width: 220px;"><?= html_escape($p['title']); ?></span>
-                        <strong>$<?= number_format($p['price'], 2); ?></strong>
+                        <strong><?= html_escape($currency_symbol ?? '$') . number_format($p['price'], 2); ?></strong>
                       </label>
                     </div>
                   <?php endforeach; ?>

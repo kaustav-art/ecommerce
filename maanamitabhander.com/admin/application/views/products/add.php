@@ -88,14 +88,14 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label" for="price">Regular Price <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input type="number" step="0.01" class="form-control" id="price" name="price" placeholder="99.00" required />
                 </div>
               </div>
               <div class="col-md-6 mb-3" id="add_sale_price_wrapper">
                 <label class="form-label" for="sale_price">Sale Price (Optional)</label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input type="number" step="0.01" class="form-control" id="sale_price" name="sale_price" placeholder="79.00" />
                 </div>
                 <small class="text-muted d-block mt-1" style="font-size: 11px;">Active when no size attributes are selected.</small>
@@ -288,7 +288,7 @@
                         </div>
                         <!-- Quick Bulk Sale Price -->
                         <div class="input-group input-group-sm" style="width: 170px;">
-                          <span class="input-group-text">$</span>
+                          <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                           <input type="number" step="0.01" min="0" class="form-control" id="add_quick_sale_price_val" placeholder="Sale Price">
                           <button type="button" class="btn btn-outline-primary" onclick="applyAddSalePriceToAll()" title="Apply to all selected">Apply All</button>
                         </div>
@@ -297,13 +297,13 @@
 
                     <!-- Table of Selected Multi Attribute Values for Stock -->
                     <div class="table-responsive">
-                      <table class="table table-sm table-bordered align-middle mb-0">
+                      <table class="table table-sm table-bordered align-middle mb-0 no-datatable">
                         <thead class="table-light">
                           <tr>
                             <th style="width: 110px;" class="text-center" id="add-multi-stock-th-label">Option</th>
                             <th>Variant SKU</th>
                             <th style="width: 160px;">Stock Quantity</th>
-                            <th style="width: 160px;">Sale Price ($)</th>
+                            <th style="width: 160px;">Sale Price (<?= html_escape($currency_symbol ?? '$'); ?>)</th>
                             <th style="width: 110px;" class="text-center">Status</th>
                           </tr>
                         </thead>
@@ -345,7 +345,7 @@
           </div>
           <div class="card-body" id="highlights_panel" style="display: none;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="highlights_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="highlights_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Highlight Key / Label</th>
@@ -380,7 +380,7 @@
           </div>
           <div class="card-body" id="specifications_panel" style="display: none;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="specifications_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="specifications_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Specification Name</th>
@@ -820,7 +820,7 @@ function renderMultiStockTable() {
       '</td>' +
       '<td>' +
         '<div class="input-group input-group-sm">' +
-          '<span class="input-group-text">$</span>' +
+          '<span class="input-group-text">' + escapeHtml(<?= json_encode($currency_symbol ?? '$'); ?>) + '</span>' +
           '<input type="number" step="0.01" min="0" class="form-control text-end add-multi-sale-price-input" name="multi_sale_price[' + valId + ']" data-val-id="' + valId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
         '</div>' +
       '</td>' +

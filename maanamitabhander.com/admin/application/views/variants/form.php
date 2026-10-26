@@ -235,7 +235,7 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold" for="var_price">Regular Price <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input
                     type="number"
                     step="0.01"
@@ -307,7 +307,7 @@
               <div class="col-md-6 mb-3" id="var_sale_price_wrapper" style="<?= (!empty($selected_sizes_map) || (!empty($size_attribute) && !empty($size_attribute['values']))) ? 'display: none;' : ''; ?>">
                 <label class="form-label fw-semibold" for="var_sale_price">Sale Price (Optional)</label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input
                     type="number"
                     step="0.01"
@@ -432,13 +432,13 @@
 
                         <!-- Table of Selected Options for Stock -->
                         <div class="table-responsive">
-                          <table class="table table-sm table-bordered align-middle mb-0">
+                          <table class="table table-sm table-bordered align-middle mb-0 no-datatable">
                             <thead class="table-light">
                               <tr>
                                 <th style="width: 100px;" class="text-center"><?= html_escape($multi_name); ?></th>
                                 <th>Variant SKU</th>
                                 <th style="width: 170px;">Stock Quantity</th>
-                                <th style="width: 170px;">Sale Price ($)</th>
+                                <th style="width: 170px;">Sale Price (<?= html_escape($currency_symbol ?? '$'); ?>)</th>
                                 <th style="width: 110px;" class="text-center">Status</th>
                               </tr>
                             </thead>
@@ -497,7 +497,7 @@
           </div>
           <div class="card-body" id="highlights_panel" style="display: <?= $has_highlights ? 'block' : 'none'; ?>;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="highlights_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="highlights_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Highlight Key / Label</th>
@@ -558,7 +558,7 @@
           </div>
           <div class="card-body" id="specifications_panel" style="display: <?= $has_specs ? 'block' : 'none'; ?>;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="specifications_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="specifications_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Specification Name</th>
@@ -1011,7 +1011,7 @@ function renderVarSizeStockInputs(presetStocks) {
       '</td>' +
       '<td class="align-middle">' +
         '<div class="input-group input-group-sm">' +
-          '<span class="input-group-text">$</span>' +
+          '<span class="input-group-text">' + escapeHtml(<?= json_encode($currency_symbol ?? '$'); ?>) + '</span>' +
           '<input type="number" step="0.01" min="0" class="form-control text-end var-size-sale-price-input" name="size_sale_price[' + sizeId + ']" data-size-id="' + sizeId + '" value="' + escapeHtml(existingSalePrice) + '" placeholder="' + escapeHtml(defaultSalePrice || '0.00') + '">' +
         '</div>' +
       '</td>' +

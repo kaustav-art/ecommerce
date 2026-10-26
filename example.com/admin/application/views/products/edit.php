@@ -84,14 +84,14 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label" for="price">Regular Price <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input type="number" step="0.01" class="form-control" id="price" name="price" value="<?= $product['price']; ?>" required />
                 </div>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label" for="sale_price">Sale Price (Optional)</label>
                 <div class="input-group">
-                  <span class="input-group-text">$</span>
+                  <span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>
                   <input type="number" step="0.01" class="form-control" id="sale_price" name="sale_price" value="<?= $product['sale_price']; ?>" />
                 </div>
               </div>
@@ -201,7 +201,7 @@
           </div>
           <div class="card-body" id="highlights_panel" style="display: <?= $has_highlights ? 'block' : 'none'; ?>;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="highlights_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="highlights_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Highlight Key / Label</th>
@@ -253,7 +253,7 @@
           </div>
           <div class="card-body" id="specifications_panel" style="display: <?= $has_specs ? 'block' : 'none'; ?>;">
             <div class="table-responsive">
-              <table class="table table-bordered table-sm align-middle" id="specifications_table">
+              <table class="table table-bordered table-sm align-middle no-datatable" id="specifications_table">
                 <thead class="table-light">
                   <tr>
                     <th style="width: 45%;">Specification Name</th>

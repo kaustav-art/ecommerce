@@ -35,7 +35,7 @@
                 <label class="form-label" for="c_type">Discount Type</label>
                 <select class="form-select" id="c_type" name="discount_type">
                   <option value="percent">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount ($)</option>
+                  <option value="fixed">Fixed Amount (<?= html_escape($currency_symbol ?? '$'); ?>)</option>
                 </select>
               </div>
               <div class="col-6 mb-3">
@@ -46,7 +46,7 @@
 
             <div class="row">
               <div class="col-6 mb-3">
-                <label class="form-label" for="c_min">Min Spend ($)</label>
+                <label class="form-label" for="c_min">Min Spend (<?= html_escape($currency_symbol ?? '$'); ?>)</label>
                 <input type="number" step="0.01" class="form-control" id="c_min" name="min_spend" value="0.00">
               </div>
               <div class="col-6 mb-3">
@@ -124,9 +124,9 @@
                   <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($c['code'] . ' ' . $c['discount_type'] . ' ' . $c['status'])); ?>">
                     <td><code><?= html_escape($c['code']); ?></code></td>
                     <td>
-                      <strong><?= ($c['discount_type'] === 'percent') ? (float)$c['discount_value'] . '%' : '$' . number_format($c['discount_value'], 2); ?> OFF</strong>
+                      <strong><?= ($c['discount_type'] === 'percent') ? (float)$c['discount_value'] . '%' : html_escape($currency_symbol ?? '$') . number_format($c['discount_value'], 2); ?> OFF</strong>
                     </td>
-                    <td>$<?= number_format($c['min_spend'], 2); ?></td>
+                    <td><?= html_escape($currency_symbol ?? '$') . number_format($c['min_spend'], 2); ?></td>
                     <td><span class="badge bg-label-secondary"><?= $c['used_count']; ?> / <?= $c['usage_limit']; ?></span></td>
                     <td>
                       <?php if (!empty($c['expires_at'])): ?>

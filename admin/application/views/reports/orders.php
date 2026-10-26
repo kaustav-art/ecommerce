@@ -32,7 +32,7 @@
           <tr>
             <th>Order Status</th>
             <th>Number of Orders</th>
-            <th>Total Value ($)</th>
+            <th>Total Value (<?= html_escape($currency_symbol ?? '$'); ?>)</th>
           </tr>
         </thead>
         <tbody>

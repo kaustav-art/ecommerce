@@ -154,9 +154,16 @@
     </div>
     <div class="card-body">
       <div class="row g-4">
+        <?php
+          $cur_price = (float)($current_plan['price'] ?? 0);
+          $cur_sort  = (int)($current_plan['sort_order'] ?? ($current_plan['id'] ?? 0));
+        ?>
         <?php foreach ($all_plans as $pl): ?>
           <?php
             $is_current = ((int)($current_plan['id'] ?? 0) === (int)$pl['id']);
+            $pl_price   = (float)($pl['price'] ?? 0);
+            $pl_sort    = (int)($pl['sort_order'] ?? ($pl['id'] ?? 0));
+            $is_downgrade = !$is_current && ($pl_price < $cur_price || ($pl_price == $cur_price && $pl_sort < $cur_sort));
             $pl_feats = !empty($pl['features']) ? (json_decode($pl['features'], true) ?: []) : [];
             $pl_tpls = !empty($pl['allowed_templates']) ? json_decode($pl['allowed_templates'], true) : null;
             if (!is_array($pl_tpls)) {
@@ -164,13 +171,15 @@
             }
           ?>
           <div class="col-md-4">
-            <div class="card h-100 <?= $is_current ? 'border-primary border-2' : 'border'; ?>">
+            <div class="card h-100 <?= $is_current ? 'border-primary border-2' : ($is_downgrade ? 'border bg-light opacity-75' : 'border'); ?>">
               <div class="card-body d-flex flex-column justify-content-between">
                 <div>
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="fw-bold mb-0"><?= html_escape($pl['name']); ?></h5>
                     <?php if ($is_current): ?>
                       <span class="badge bg-primary">Current Plan</span>
+                    <?php elseif ($is_downgrade): ?>
+                      <span class="badge bg-label-secondary">Lower Tier</span>
                     <?php elseif (!empty($pl['is_featured'])): ?>
                       <span class="badge bg-label-warning">Popular</span>
                     <?php endif; ?>
@@ -197,14 +206,20 @@
                   </ul>
                 </div>
 
-                <form method="post" action="<?= site_url('subscription/upgrade'); ?>">
-                  <input type="hidden" name="plan_id" value="<?= (int)$pl['id']; ?>">
-                  <input type="hidden" name="gateway" value="sandbox">
-                  <button type="submit" class="btn <?= $is_current ? 'btn-outline-primary' : 'btn-primary'; ?> w-100">
-                    <i class="ri ri-flashlight-line me-1"></i>
-                    <?= $is_current ? 'Extend / Renew Plan' : 'Upgrade to ' . html_escape($pl['name']); ?>
+                <?php if ($is_downgrade): ?>
+                  <button type="button" class="btn btn-outline-secondary w-100" disabled>
+                    <i class="ri ri-lock-line me-1"></i> Downgrade Not Allowed
                   </button>
-                </form>
+                <?php else: ?>
+                  <form method="post" action="<?= site_url('subscription/upgrade'); ?>">
+                    <input type="hidden" name="plan_id" value="<?= (int)$pl['id']; ?>">
+                    <input type="hidden" name="gateway" value="sandbox">
+                    <button type="submit" class="btn <?= $is_current ? 'btn-outline-primary' : 'btn-primary'; ?> w-100">
+                      <i class="ri ri-flashlight-line me-1"></i>
+                      <?= $is_current ? 'Extend / Renew Plan' : 'Upgrade to ' . html_escape($pl['name']); ?>
+                    </button>
+                  </form>
+                <?php endif; ?>
               </div>
             </div>
           </div>

@@ -134,6 +134,12 @@ class MY_Controller extends CI_Controller {
             $this->load->model('setting_model');
             $data['store_settings'] = $this->setting_model->get_all();
         }
+        if (!isset($data['currency_symbol'])) {
+            $data['currency_symbol'] = $data['store_settings']['currency_symbol'] ?? '$';
+        }
+        if (!isset($data['currency_code'])) {
+            $data['currency_code'] = $data['store_settings']['currency_code'] ?? ($data['store_settings']['currency'] ?? 'USD');
+        }
 
         if ($return) {
             $content  = $this->load->view('layouts/header', $data, TRUE);
@@ -158,6 +164,12 @@ class MY_Controller extends CI_Controller {
         if (!isset($data['store_settings'])) {
             $this->load->model('setting_model');
             $data['store_settings'] = $this->setting_model->get_all();
+        }
+        if (!isset($data['currency_symbol'])) {
+            $data['currency_symbol'] = $data['store_settings']['currency_symbol'] ?? '$';
+        }
+        if (!isset($data['currency_code'])) {
+            $data['currency_code'] = $data['store_settings']['currency_code'] ?? ($data['store_settings']['currency'] ?? 'USD');
         }
 
         if ($return) {

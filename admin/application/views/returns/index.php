@@ -70,7 +70,7 @@
                   <small class="text-muted"><?= html_escape($ret['customer_email']); ?></small>
                 </td>
                 <td><span class="badge bg-label-info"><?= ucfirst($ret['type']); ?></span></td>
-                <td><strong>$<?= number_format($ret['amount'], 2); ?></strong></td>
+                <td><strong><?= html_escape($currency_symbol ?? '$') . number_format($ret['amount'], 2); ?></strong></td>
                 <td>
                   <span class="d-inline-block text-truncate" style="max-width: 200px;" title="<?= html_escape($ret['reason']); ?>">
                     <?= html_escape($ret['reason']); ?>
@@ -112,7 +112,7 @@
                               <select class="form-select" id="res_status_<?= $ret['id']; ?>" name="status">
                                 <option value="pending" <?= ($ret['status'] === 'pending') ? 'selected' : ''; ?>>Pending Review</option>
                                 <option value="approved" <?= ($ret['status'] === 'approved') ? 'selected' : ''; ?>>Approve Return / Replacement</option>
-                                <option value="refunded" <?= ($ret['status'] === 'refunded') ? 'selected' : ''; ?>>Mark as Refunded ($<?= number_format($ret['amount'], 2); ?>)</option>
+                                <option value="refunded" <?= ($ret['status'] === 'refunded') ? 'selected' : ''; ?>>Mark as Refunded (<?= html_escape($currency_symbol ?? '$') . number_format($ret['amount'], 2); ?>)</option>
                                 <option value="completed" <?= ($ret['status'] === 'completed') ? 'selected' : ''; ?>>Completed / Closed</option>
                                 <option value="rejected" <?= ($ret['status'] === 'rejected') ? 'selected' : ''; ?>>Reject Request</option>
                               </select>

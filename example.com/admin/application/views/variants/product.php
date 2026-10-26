@@ -7,7 +7,7 @@
         Variants for <?= html_escape($product['title']); ?>
       </h4>
       <small class="text-muted">
-        SKU: <code><?= html_escape($product['sku']); ?></code> | Base Price: $<?= number_format($product['price'], 2); ?> | Total Stock: <strong><?= $product['stock_quantity']; ?> units</strong>
+        SKU: <code><?= html_escape($product['sku']); ?></code> | Base Price: <?= html_escape($currency_symbol ?? '$') . number_format($product['price'], 2); ?> | Total Stock: <strong><?= $product['stock_quantity']; ?> units</strong>
       </small>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -163,10 +163,10 @@
                 <!-- Price -->
                 <td>
                   <?php if (!empty($grp['sale_price'])): ?>
-                    <strong class="text-danger fs-6">$<?= number_format($grp['sale_price'], 2); ?></strong>
-                    <small class="text-muted text-decoration-line-through d-block" style="font-size: 11px;">$<?= number_format($grp['price'], 2); ?></small>
+                    <strong class="text-danger fs-6"><?= html_escape($currency_symbol ?? '$') . number_format($grp['sale_price'], 2); ?></strong>
+                    <small class="text-muted text-decoration-line-through d-block" style="font-size: 11px;"><?= html_escape($currency_symbol ?? '$') . number_format($grp['price'], 2); ?></small>
                   <?php else: ?>
-                    <strong class="text-dark fs-6">$<?= number_format($grp['price'], 2); ?></strong>
+                    <strong class="text-dark fs-6"><?= html_escape($currency_symbol ?? '$') . number_format($grp['price'], 2); ?></strong>
                   <?php endif; ?>
                 </td>
 
@@ -326,7 +326,7 @@ function openQuickStockModal(grp) {
           '<input type="number" min="0" class="form-control text-end qs-stock-input" data-var-id="' + sz.variant_id + '" value="' + (sz.stock !== null && sz.stock !== undefined && sz.stock !== '' ? sz.stock : 0) + '" placeholder="0" oninput="recalcQsTotal()" onblur="if(this.value.trim()===\'\') { this.value=\'0\'; recalcQsTotal(); }">' +
         '</div>' +
         '<div class="input-group input-group-sm" style="width: 120px;" title="Sale Price">' +
-          '<span class="input-group-text">$</span>' +
+          '<span class="input-group-text"><?= html_escape($currency_symbol ?? '$'); ?></span>' +
           '<input type="number" step="0.01" min="0" class="form-control text-end qs-sale-price-input" data-var-id="' + sz.variant_id + '" value="' + (sz.sale_price !== null && sz.sale_price !== undefined ? sz.sale_price : '') + '" placeholder="Price">' +
         '</div>' +
       '</div>';
