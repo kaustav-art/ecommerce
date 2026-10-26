@@ -326,32 +326,8 @@ $grc_specifications = [
 /* ==========================================================================
    GROCERY PRODUCT DETAILS PAGE STYLES (Template 3 - Bazaro Grocery)
    ========================================================================== */
-.grc-pd-breadcrumb {
-    background: #f4f8f5;
-    border-bottom: 1px solid #e2ece5;
-    padding: 16px 0;
-    margin-bottom: 36px;
-}
-.grc-pd-breadcrumb-list {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 14px;
-    color: #4b5563;
-}
-.grc-pd-breadcrumb-list a {
-    color: #003D29;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s ease;
-}
-.grc-pd-breadcrumb-list a:hover {
-    color: #108910;
-}
-.grc-pd-breadcrumb-list .current {
-    color: #108910;
-    font-weight: 600;
+.aq-product-details-thumbnails-style {
+    padding-top: 24px;
 }
 
 /* Gallery Card & Vertical Thumbnail Slider (Sticky on Desktop while Right Column Scrolls) */
@@ -376,7 +352,11 @@ $grc_specifications = [
     box-shadow: 0 6px 24px rgba(0, 61, 41, 0.04);
     position: relative;
 }
+.product-slider-main:not(.slick-initialized) .product-slider-for-img:not(:first-child) {
+    display: none;
+}
 .product-slider-for-img {
+    height: 430px;
     border-radius: 14px;
     overflow: hidden;
     background: #f9fbf9;
@@ -384,11 +364,13 @@ $grc_specifications = [
 }
 .product-slider-for-img img {
     width: 100%;
-    height: 440px;
+    height: 430px;
     object-fit: contain;
     margin: 0 auto;
 }
 .product-slider-nav .product-slider-nav-img {
+    width: 100%;
+    height: 92px;
     border-radius: 10px;
     overflow: hidden;
     border: 2px solid #e5efe8;
@@ -403,8 +385,17 @@ $grc_specifications = [
 }
 .product-slider-nav .product-slider-nav-img img {
     width: 100%;
-    height: 92px;
+    height: 100%;
     object-fit: cover;
+}
+
+/* Product Title */
+.grc-pd-title {
+    color: #003D29;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 8px;
 }
 
 /* Right Column Info Wrap */
@@ -755,6 +746,232 @@ $grc_specifications = [
     gap: 8px;
     font-size: 13.5px;
 }
+
+/* Highlights & Specifications Grid */
+.grc-specs-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+    row-gap: 10px;
+}
+.grc-accordion-heading {
+    font-size: 18px;
+    font-weight: 700;
+    color: #003D29;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE STYLES
+   ========================================================================== */
+@media (max-width: 1199.98px) {
+    /* Place thumbnail slider horizontally underneath the main product image */
+    .product-slider-nav {
+        margin-top: 10px;
+        overflow: hidden;
+    }
+    .product-slider-nav .slick-list {
+        margin: 0 -4px !important;
+        padding: 2px 0 !important;
+    }
+    .product-slider-nav .slick-track {
+        display: flex !important;
+        align-items: center;
+    }
+    .product-slider-nav .product-slider-nav-img,
+    .product-slider-nav .slick-slide,
+    .product-slider-nav .slick-slide.slick-current {
+        width: 72px !important;
+        height: 72px !important;
+        flex: 0 0 72px !important;
+        margin: 0 4px !important;
+        border-radius: 10px;
+    }
+    .product-slider-nav .product-slider-nav-img img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .aq-product-details-thumbnails-style {
+        padding-top: 16px;
+        padding-bottom: 45px !important;
+    }
+    .product-slider-for-img,
+    .product-slider-for-img img {
+        height: 340px;
+    }
+    .product-details-tab.pb-90 {
+        padding-bottom: 45px !important;
+    }
+    .grc-product-ptb.pb-80 {
+        padding-bottom: 45px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .aq-product-details-thumbnails-style {
+        padding-top: 12px;
+        padding-bottom: 36px !important;
+    }
+    .grc-gallery-card {
+        padding: 12px;
+        border-radius: 14px;
+    }
+    .product-slider-for-img {
+        border-radius: 10px;
+        height: 260px;
+    }
+    .product-slider-for-img img {
+        height: 260px;
+    }
+    .product-slider-nav .product-slider-nav-img,
+    .product-slider-nav .slick-slide,
+    .product-slider-nav .slick-slide.slick-current {
+        width: 62px !important;
+        height: 62px !important;
+        flex: 0 0 62px !important;
+        margin: 0 3px !important;
+        border-radius: 8px;
+    }
+    .btn-grc-wish {
+        width: 38px;
+        height: 38px;
+        top: 10px;
+        right: 10px;
+        font-size: 16px;
+    }
+    .grc-pd-title {
+        font-size: 18px;
+        line-height: 1.35;
+        margin-bottom: 6px;
+    }
+    .grc-dept-pill {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+    .grc-farm-link {
+        font-size: 12px;
+    }
+    .grc-price-calculator-card {
+        padding: 14px;
+        border-radius: 12px;
+        margin: 12px 0;
+    }
+    .grc-current-price {
+        font-size: 24px;
+    }
+    .grc-discount-tag {
+        font-size: 12.5px;
+        padding: 3px 8px;
+    }
+    .grc-mrp-price {
+        font-size: 13px;
+    }
+    .grc-pack-badge-inline {
+        font-size: 11.5px;
+        padding: 3px 10px;
+    }
+    .grc-unit-rate-highlight {
+        margin-top: 10px;
+        padding-top: 10px;
+        gap: 8px;
+    }
+    .grc-unit-rate-pill {
+        font-size: 13px;
+        padding: 6px 12px;
+        width: 100%;
+        justify-content: center;
+    }
+    .grc-unit-formula-note {
+        font-size: 12px;
+        width: 100%;
+        text-align: center;
+    }
+    .grc-unit-mode-switch {
+        width: 100%;
+        display: flex;
+    }
+    .grc-unit-mode-btn {
+        flex: 1 1 50%;
+        justify-content: center;
+        font-size: 12px;
+        padding: 7px 8px;
+    }
+    .grc-pack-variants-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .grc-pack-card {
+        padding: 9px 8px;
+        border-radius: 10px;
+    }
+    .grc-pack-card-weight {
+        font-size: 13px;
+    }
+    .grc-pack-card-price {
+        font-size: 13px;
+    }
+    .grc-pack-card-unitrate {
+        font-size: 11px;
+    }
+    .grc-accordion-heading {
+        font-size: 15.5px;
+    }
+    .grc-specs-grid-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 12px;
+        row-gap: 8px;
+    }
+    .grc-qty-action-row {
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 14px !important;
+    }
+    .btn-grc-atc,
+    .btn-grc-buy {
+        flex: 1 1 50%;
+        height: 46px;
+        font-size: 13.5px;
+        padding: 0 12px;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .product-details-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start !important;
+        gap: 8px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .product-details-nav .nav-links {
+        white-space: nowrap;
+        font-size: 13.5px !important;
+        padding: 8px 14px !important;
+        flex: 0 0 auto;
+    }
+    .product-details-desc-title {
+        font-size: 18px !important;
+        line-height: 1.4 !important;
+    }
+    .aq-section-title.fs-30 {
+        font-size: 20px !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .grc-specs-grid-layout {
+        grid-template-columns: 1fr;
+    }
+    .btn-grc-atc,
+    .btn-grc-buy {
+        font-size: 12.5px;
+        padding: 0 8px;
+    }
+}
 </style>
 
    <!-- Question Modal (#exampleModalToggle4) -->
@@ -814,21 +1031,6 @@ $grc_specifications = [
 
    <main>
 
-      <!-- Grocery Breadcrumb Area -->
-      <div class="grc-pd-breadcrumb">
-         <div class="container container-1630">
-            <div class="grc-pd-breadcrumb-list">
-               <a href="<?= site_url('home?preview_tpl=grocery'); ?>"><i class="fa-solid fa-house-chimney me-1"></i>Home</a>
-               <span>/</span>
-               <a href="<?= site_url('shop?preview_tpl=grocery'); ?>">Grocery Aisle</a>
-               <span>/</span>
-               <a href="<?= site_url('shop/' . $prod_cat_slug . '?preview_tpl=grocery'); ?>"><?= html_escape($prod_cat); ?></a>
-               <span>/</span>
-               <span class="current"><?= html_escape($prod_title); ?></span>
-            </div>
-         </div>
-      </div>
-
       <!-- Grocery Product Details Main Area -->
       <div class="aq-product-details-thumbnails-style pb-90">
          <div class="container container-1630">
@@ -839,7 +1041,7 @@ $grc_specifications = [
                   <div class="grc-gallery-card">
                      <div class="product-details-slider-wrap">
                         <div class="row">
-                           <div class="col-xl-2">
+                           <div class="col-xl-2 order-2 order-xl-1">
                               <div class="product-slider-nav slider-nav">
                                  <?php foreach ($gallery_urls as $g_url): ?>
                                  <div class="product-slider-nav-img">
@@ -848,7 +1050,7 @@ $grc_specifications = [
                                  <?php endforeach; ?>
                               </div>
                            </div>
-                           <div class="col-xl-10">
+                           <div class="col-xl-10 order-1 order-xl-2">
                               <div class="product-slider-main-wrap p-relative">
                                  <button type="button" class="btn-grc-wish" onclick="grcToggleWishlist(<?= $prod_id; ?>)" title="Save to Wishlist">
                                     <i class="fa-regular fa-heart"></i>
@@ -886,7 +1088,7 @@ $grc_specifications = [
                      </div>
 
                      <!-- Product Title -->
-                     <h2 class="fw-bold mb-2" style="color:#003D29; font-size: 28px; line-height: 1.3;">
+                     <h2 class="grc-pd-title">
                         <?= html_escape($prod_title); ?>
                      </h2>
 
@@ -1056,7 +1258,7 @@ $grc_specifications = [
                         <!-- Grocery Highlights (Open by Default) -->
                         <div class="product-highlights-block mb-2" id="product-highlights-block">
                            <div class="d-flex justify-content-between align-items-center py-2 user-select-none" onclick="toggleProductHighlights()" style="cursor: pointer;">
-                              <h4 class="m-0" style="font-size: 19px; font-weight: 700; color: #003D29;">
+                              <h4 class="m-0 grc-accordion-heading">
                                  <i class="fa-solid fa-leaf text-success me-2"></i>Grocery Highlights &amp; Freshness Info
                               </h4>
                               <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: #ecfdf5; border-radius: 8px; border: none; color: #003D29;">
@@ -1065,7 +1267,7 @@ $grc_specifications = [
                            </div>
 
                            <div id="product-highlights-collapse" class="pt-2" style="display: block;">
-                              <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                              <div class="grc-specs-grid-layout">
                                  <?php foreach ($grc_highlights as $hl): ?>
                                     <div class="spec-grid-item" style="border-bottom: 1px solid #eef2f0; padding-bottom: 6px;">
                                        <div class="spec-item-key" style="font-size: 12.5px; color: #6b7280; margin-bottom: 2px;"><?= html_escape($hl['key']); ?></div>
@@ -1079,7 +1281,7 @@ $grc_specifications = [
                         <!-- Nutritional Facts & Storage Specifications -->
                         <div class="product-specifications-block mb-2 border-top pt-2" id="product-specifications-block">
                            <div class="d-flex justify-content-between align-items-center py-2 user-select-none" onclick="toggleProductSpecifications()" style="cursor: pointer;">
-                              <h4 class="m-0" style="font-size: 19px; font-weight: 700; color: #003D29;">
+                              <h4 class="m-0 grc-accordion-heading">
                                  <i class="fa-solid fa-apple-whole text-success me-2"></i>Nutrition Facts &amp; Storage Specs
                               </h4>
                               <button type="button" class="btn-collapse-arrow d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: #ecfdf5; border-radius: 8px; border: none; color: #003D29;">
@@ -1088,7 +1290,7 @@ $grc_specifications = [
                            </div>
 
                            <div id="product-specs-collapse" class="pt-2" style="display: none;">
-                              <div class="specs-grid-layout" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px;">
+                              <div class="grc-specs-grid-layout">
                                  <?php foreach ($grc_specifications as $sp): ?>
                                     <div class="spec-grid-item" style="border-bottom: 1px solid #eef2f0; padding-bottom: 6px;">
                                        <div class="spec-item-key" style="font-size: 12.5px; color: #6b7280; margin-bottom: 2px;"><?= html_escape($sp['name']); ?></div>
@@ -1364,7 +1566,7 @@ $grc_specifications = [
                   $rp_unit = !empty($rp['unit_label']) ? $rp['unit_label'] : '500g Pack';
                   $rp_uinfo = grc_calculate_unit_pricing($rp_unit, $rp_sal);
                ?>
-               <div class="col-xxl-2 col-xl-3 col-lg-4 col-sm-6">
+               <div class="col-xxl-2 col-xl-3 col-lg-4 col-sm-6 col-6">
                   <div class="aq-product-item aq-product-main mb-40">
                      <div class="aq-product-thumb p-relative mb-10">
                         <?php if ($rp_pct > 0): ?>
@@ -1676,5 +1878,61 @@ $grc_specifications = [
     };
 
     recalculateGrcPricing();
+
+    // Ensure both main product image slider (.slider-for) and thumbnail slider (.slider-nav)
+    // are initialized and synced (1 image at a time in main slider, vertical thumbnails on desktop,
+    // 4 horizontal thumbnails underneath on mobile/tablet)
+    function initGrcProductSliders() {
+        if (!window.jQuery || !jQuery.fn || !jQuery.fn.slick) return;
+        var $for = jQuery('.product-slider-main.slider-for');
+        var $nav = jQuery('.product-slider-nav.slider-nav');
+
+        if ($for.length && !$for.hasClass('slick-initialized')) {
+            $for.slick({
+                slidesToShow: 1,
+                slidesToScroll: 1,
+                arrows: true,
+                fade: false,
+                infinite: true,
+                autoplay: false,
+                asNavFor: '.slider-nav',
+                appendArrows: '.product-slider-arrow',
+                prevArrow: '<button type="button" class="slick-prev"><svg xmlns="http://www.w3.org/2000/svg" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M5.75 10.75L0.75 5.75L5.75 0.75" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>',
+                nextArrow: '<button type="button" class="slick-next"><svg xmlns="http://www.w3.org/2000/svg" width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M0.75 10.75L5.75 5.75L0.75 0.75" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+            });
+        }
+
+        if ($nav.length && !$nav.hasClass('slick-initialized')) {
+            $nav.slick({
+                slidesToShow: 3,
+                slidesToScroll: 1,
+                vertical: true,
+                verticalSwiping: true,
+                infinite: true,
+                asNavFor: '.slider-for',
+                centerMode: false,
+                dots: false,
+                arrows: false,
+                autoplay: false,
+                focusOnSelect: true,
+                responsive: [
+                    {
+                        breakpoint: 1200,
+                        settings: {
+                            vertical: false,
+                            verticalSwiping: false,
+                            centerMode: false,
+                            infinite: false,
+                            slidesToShow: 4,
+                            slidesToScroll: 1
+                        }
+                    }
+                ]
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initGrcProductSliders);
+    window.addEventListener('load', initGrcProductSliders);
 })();
 </script>

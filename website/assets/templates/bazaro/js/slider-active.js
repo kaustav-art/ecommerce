@@ -975,8 +975,10 @@
 	});
 
 	// Sync both Swipers
-	arrivals_product.controller.control = arrivals_nav;
-	arrivals_nav.controller.control = arrivals_product;
+	if (arrivals_product && arrivals_product.controller && arrivals_nav && arrivals_nav.controller) {
+		arrivals_product.controller.control = arrivals_nav;
+		arrivals_nav.controller.control = arrivals_product;
+	}
 
 
 
@@ -1020,8 +1022,9 @@
 					breakpoint: 1200,
 					settings: {
 						vertical: false,
-						centerMode: true,
-						slidesToShow: 2,
+						centerMode: false,
+						infinite: false,
+						slidesToShow: 4,
 						verticalSwiping: false,
 					}
 				},
