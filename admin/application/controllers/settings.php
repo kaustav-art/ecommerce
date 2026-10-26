@@ -60,7 +60,7 @@ class settings extends MY_Controller {
 
             // Handle Logo upload for general settings
             if ($submitted_group === 'general' && !empty($_FILES['site_logo_file']['name'])) {
-                $logo_dir = admin_storefront_fs_path('assets/images/logo/';
+                $logo_dir = admin_storefront_fs_path('assets/images/logo/');
                 if (!is_dir($logo_dir)) {
                     @mkdir($logo_dir, 0777, TRUE);
                 }
@@ -99,7 +99,7 @@ class settings extends MY_Controller {
 
             // Handle Favicon upload for general settings
             if ($submitted_group === 'general' && !empty($_FILES['site_favicon_file']['name'])) {
-                $fav_dir = admin_storefront_fs_path('assets/images/logo/';
+                $fav_dir = admin_storefront_fs_path('assets/images/logo/');
                 if (!is_dir($fav_dir)) {
                     @mkdir($fav_dir, 0777, TRUE);
                 }

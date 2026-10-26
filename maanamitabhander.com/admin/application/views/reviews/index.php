@@ -63,8 +63,8 @@
               <tr>
                 <td>
                   <div class="d-flex align-items-center">
-                    <img src="<?= base_url('../website/assets/images/' . ($r['product_image'] ?: 'products/womens/women-1.jpg')); ?>" class="rounded me-2" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>'">
-                    <a href="<?= base_url('../website/product/' . $r['product_slug']); ?>" target="_blank" class="fw-bold text-dark text-truncate" style="max-width: 180px;">
+                    <img src="<?= admin_storefront_asset_url('images/' . ($r['product_image'] ?: 'products/womens/women-1.jpg')); ?>" class="rounded me-2" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='<?= admin_storefront_asset_url('images/products/womens/women-1.jpg'); ?>'">
+                    <a href="<?= admin_storefront_url('product/' . $r['product_slug']); ?>" target="_blank" class="fw-bold text-dark text-truncate" style="max-width: 180px;">
                       <?= html_escape($r['product_title']); ?>
                     </a>
                   </div>

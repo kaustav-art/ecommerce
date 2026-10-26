@@ -40,8 +40,18 @@ if (!function_exists('elt_resolve_img')) {
    <meta name="description" content="<?= html_escape($meta_description ?? ($store_settings['meta_description'] ?? 'Premium Electronics Store')); ?>">
    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-   <link rel="shortcut icon" type="image/webp" href="<?= base_url('assets/images/logo/codeulas_logo_small.webp'); ?>">
-   <link rel="icon" type="image/webp" href="<?= base_url('assets/images/logo/codeulas_logo_small.webp'); ?>">
+   <?php
+   $raw_fav = trim((string)($store_settings['site_favicon'] ?? ''));
+   $web_favicon = ($raw_fav !== '')
+       ? ((strpos($raw_fav, 'assets/') === 0) ? base_url($raw_fav) : base_url('assets/images/logo/' . $raw_fav))
+       : base_url('assets/images/logo/codeulas_logo_small.webp');
+   $raw_logo = trim((string)($store_settings['site_logo'] ?? ''));
+   $web_logo = ($raw_logo !== '')
+       ? ((strpos($raw_logo, 'assets/') === 0) ? base_url($raw_logo) : base_url('assets/images/logo/' . $raw_logo))
+       : base_url('assets/images/logo/logo.webp');
+   ?>
+   <link rel="shortcut icon" href="<?= $web_favicon; ?>">
+   <link rel="icon" href="<?= $web_favicon; ?>">
 
    <!-- CSS here (Exact Bazaro Electronics stack) -->
    <link rel="stylesheet" href="<?= $bazaro; ?>css/bootstrap.css">
@@ -704,7 +714,7 @@ if (!function_exists('elt_resolve_img')) {
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 gap-md-3">
                <!-- Logo -->
                <div class="aq-header-logo d-flex align-items-center">
-                  <a href="<?= site_url('home?preview_tpl=electronics'); ?>" class="d-inline-flex align-items-center">
+                  <a href="<?= site_url('home'); ?>" class="d-inline-flex align-items-center">
                      <img data-width="120" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
                   </a>
                </div>
@@ -712,7 +722,9 @@ if (!function_exists('elt_resolve_img')) {
                <!-- Centered Wide Search Box (Matches Fashion Template, wraps to 2nd row on mobile) -->
                <div class="store-search-col flex-grow-1 order-3 order-md-2 position-relative">
                   <form action="<?= site_url('shop'); ?>" method="GET" class="store-search-form" id="storeNavSearchForm">
+                     <?php if (empty($is_user_project)): ?>
                      <input type="hidden" name="preview_tpl" value="electronics">
+                     <?php endif; ?>
                      <div class="store-search-input-wrap">
                         <button type="submit" class="store-search-icon-btn" aria-label="Search">
                            <i class="fa-solid fa-magnifying-glass"></i>
@@ -1275,11 +1287,12 @@ if (!function_exists('elt_resolve_img')) {
                      <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
                   </button>
 
+                  <?php $elt_qs = empty($is_user_project) ? '?preview_tpl=electronics' : ''; ?>
                   <div class="elt-v2-dept-flyout">
                      <!-- Left Category List -->
                      <div class="elt-v2-dept-sidebar">
                         <?php foreach ($elt_prepared_cats as $c_idx => $cat_item): ?>
-                           <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>"
+                           <a href="<?= site_url('shop/' . $cat_item['slug'] . $elt_qs); ?>"
                               class="elt-v2-dept-item <?= $c_idx === 0 ? 'is-active' : ''; ?>"
                               data-v2-pane="eltV2Pane-<?= $cat_item['id']; ?>">
                               <span class="d-flex align-items-center gap-2">
@@ -1303,13 +1316,13 @@ if (!function_exists('elt_resolve_img')) {
                                          onerror="this.src='<?= $cat_item['fallback']; ?>'">
                                     <h5><?= html_escape($cat_item['name']); ?></h5>
                                  </div>
-                                 <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>" class="small fw-bold text-decoration-none" style="color:#2874f0;">
+                                 <a href="<?= site_url('shop/' . $cat_item['slug'] . $elt_qs); ?>" class="small fw-bold text-decoration-none" style="color:#2874f0;">
                                     Explore All <i class="fa-solid fa-arrow-right ms-1"></i>
                                  </a>
                               </div>
                               <div class="elt-v2-sub-grid">
                                  <?php foreach ($cat_item['subs'] as $sub): ?>
-                                    <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . '?preview_tpl=electronics'); ?>" class="elt-v2-sub-item">
+                                    <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . $elt_qs); ?>" class="elt-v2-sub-item">
                                        <i class="fa-solid fa-angle-right text-muted" style="font-size:11px;"></i>
                                        <span><?= html_escape($sub['name']); ?></span>
                                     </a>
@@ -1325,7 +1338,7 @@ if (!function_exists('elt_resolve_img')) {
                <ul class="elt-v2-nav-list">
                   <?php foreach ($elt_prepared_cats as $cat_item): ?>
                      <li class="elt-v2-nav-item">
-                        <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>" class="elt-v2-nav-link">
+                        <a href="<?= site_url('shop/' . $cat_item['slug'] . $elt_qs); ?>" class="elt-v2-nav-link">
                            <i class="fa-solid <?= $cat_item['icon']; ?> cat-tab-icon"></i>
                            <span><?= html_escape($cat_item['name']); ?></span>
                            <i class="fa-solid fa-chevron-down cat-tab-arrow"></i>
@@ -1337,12 +1350,12 @@ if (!function_exists('elt_resolve_img')) {
                                    alt="<?= html_escape($cat_item['name']); ?>"
                                    onerror="this.src='<?= $cat_item['fallback']; ?>'">
                               <span><?= html_escape($cat_item['name']); ?></span>
-                              <a href="<?= site_url('shop/' . $cat_item['slug'] . '?preview_tpl=electronics'); ?>">Shop All</a>
+                              <a href="<?= site_url('shop/' . $cat_item['slug'] . $elt_qs); ?>">Shop All</a>
                            </div>
                            <div class="elt-v2-pop-links">
                               <div class="elt-v2-pop-title">Subcategories</div>
                               <?php foreach ($cat_item['subs'] as $sub): ?>
-                                 <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . '?preview_tpl=electronics'); ?>" class="elt-v2-pop-link">
+                                 <a href="<?= site_url('shop/' . ($sub['slug'] ?? $cat_item['slug']) . $elt_qs); ?>" class="elt-v2-pop-link">
                                     <span><?= html_escape($sub['name']); ?></span>
                                     <i class="fa-solid fa-arrow-right"></i>
                                  </a>
@@ -1359,16 +1372,19 @@ if (!function_exists('elt_resolve_img')) {
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
-         // Propagate ?preview_tpl=electronics across all internal storefront links on Template 2
+         // Propagate ?preview_tpl=electronics only in Template Demo Mode
          var siteBase = '<?= rtrim(base_url(), "/"); ?>';
-         document.querySelectorAll('a[href]').forEach(function(a) {
-            var href = a.getAttribute('href');
-            if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-            if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-               var sep = href.indexOf('?') === -1 ? '?' : '&';
-               a.setAttribute('href', href + sep + 'preview_tpl=electronics');
-            }
-         });
+         var isUserProject = <?= !empty($is_user_project) ? 'true' : 'false'; ?>;
+         if (!isUserProject) {
+            document.querySelectorAll('a[href]').forEach(function(a) {
+               var href = a.getAttribute('href');
+               if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+               if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+                  var sep = href.indexOf('?') === -1 ? '?' : '&';
+                  a.setAttribute('href', href + sep + 'preview_tpl=electronics');
+               }
+            });
+         }
 
          // 0. Sync Sticky Top Bar (Logo + Search Bar) Height with Header Padding
          var stickyTopBar = document.querySelector('.aq-header-area.elt-sticky-top-bar');
@@ -1419,14 +1435,15 @@ if (!function_exists('elt_resolve_img')) {
                }
 
                autoTimer = setTimeout(function() {
-                  fetch('<?= site_url("shop/autocomplete"); ?>?preview_tpl=electronics&q=' + encodeURIComponent(query))
+                  var autoUrl = '<?= site_url("shop/autocomplete"); ?>' + (isUserProject ? '?q=' : '?preview_tpl=electronics&q=') + encodeURIComponent(query);
+                  fetch(autoUrl)
                      .then(function(res) { return res.json(); })
                      .then(function(data) {
                         if (data.results && data.results.length > 0) {
                            var html = '';
                            data.results.forEach(function(item) {
                               var itemUrl = item.url || '#';
-                              if (itemUrl.indexOf('preview_tpl=') === -1 && itemUrl !== '#') {
+                              if (!isUserProject && itemUrl.indexOf('preview_tpl=') === -1 && itemUrl !== '#') {
                                  itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=electronics';
                               }
                               html += '<a href="' + itemUrl + '" class="store-auto-item">';
@@ -1438,7 +1455,8 @@ if (!function_exists('elt_resolve_img')) {
                               html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                               html += '</a>';
                            });
-                           html += '<a href="<?= site_url("shop"); ?>?preview_tpl=electronics&q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                           var viewAllUrl = '<?= site_url("shop"); ?>' + (isUserProject ? '?q=' : '?preview_tpl=electronics&q=') + encodeURIComponent(query);
+                           html += '<a href="' + viewAllUrl + '" class="store-auto-viewall">';
                            html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                            html += '</a>';
 

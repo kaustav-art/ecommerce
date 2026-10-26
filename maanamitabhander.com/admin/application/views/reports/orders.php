@@ -50,17 +50,21 @@
                 <td><strong><?= $currency_symbol . number_format($row['total_value'], 2); ?></strong></td>
               </tr>
             <?php endforeach; ?>
-            <tr class="table-light fw-bold">
-              <td>Total:</td>
-              <td><?= $tot_cnt; ?> Orders</td>
-              <td><?= $currency_symbol . number_format($tot_val, 2); ?></td>
-            </tr>
           <?php else: ?>
             <tr>
               <td colspan="3" class="text-center text-muted py-4">No orders found in this period.</td>
             </tr>
           <?php endif; ?>
         </tbody>
+        <?php if (!empty($orders_data)): ?>
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td>Total:</td>
+            <td><?= $tot_cnt; ?> Orders</td>
+            <td><?= $currency_symbol . number_format($tot_val, 2); ?></td>
+          </tr>
+        </tfoot>
+        <?php endif; ?>
       </table>
     </div>
   </div>

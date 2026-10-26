@@ -8,6 +8,20 @@ if (!function_exists('admin_storefront_fs_path')) {
     }
 }
 
+if (!function_exists('admin_storefront_url')) {
+    function admin_storefront_url($subpath = '') {
+        $sub = ltrim((string)$subpath, '/');
+        return base_url('../website' . ($sub !== '' ? '/' . $sub : ''));
+    }
+}
+
+if (!function_exists('admin_storefront_asset_url')) {
+    function admin_storefront_asset_url($subpath = '') {
+        $sub = ltrim((string)$subpath, '/');
+        return base_url('../website/assets' . ($sub !== '' ? '/' . $sub : ''));
+    }
+}
+
 if (!function_exists('base_url')) {
     function base_url($uri = '', $protocol = NULL) {
         $uri_str = (string)$uri;
@@ -17,6 +31,9 @@ if (!function_exists('base_url')) {
             } elseif ($uri_str === '../website') {
                 $uri_str = '..';
             }
+        }
+        if (strpos($uri_str, 'assets/images/logo/assets/') !== false) {
+            $uri_str = str_replace('assets/images/logo/assets/', 'assets/', $uri_str);
         }
         if (strpos($uri_str, 'assets/images/assets/') !== false) {
             $uri_str = str_replace('assets/images/assets/', 'assets/', $uri_str);

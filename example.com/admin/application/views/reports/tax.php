@@ -52,18 +52,22 @@
                 <td><strong class="text-success"><?= $currency_symbol . number_format($row['tax_collected'], 2); ?></strong></td>
               </tr>
             <?php endforeach; ?>
-            <tr class="table-light fw-bold">
-              <td>TOTALS:</td>
-              <td>-</td>
-              <td><?= $currency_symbol . number_format($tot_tx_base, 2); ?></td>
-              <td class="text-success"><?= $currency_symbol . number_format($tot_tx_col, 2); ?></td>
-            </tr>
           <?php else: ?>
             <tr>
               <td colspan="4" class="text-center text-muted py-4">No tax collections recorded for this period.</td>
             </tr>
           <?php endif; ?>
         </tbody>
+        <?php if (!empty($tax_data)): ?>
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td>TOTALS:</td>
+            <td>-</td>
+            <td><?= $currency_symbol . number_format($tot_tx_base, 2); ?></td>
+            <td class="text-success"><?= $currency_symbol . number_format($tot_tx_col, 2); ?></td>
+          </tr>
+        </tfoot>
+        <?php endif; ?>
       </table>
     </div>
   </div>

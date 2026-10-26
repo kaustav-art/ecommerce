@@ -1,11 +1,21 @@
+<style>
+  @media (min-width: 768px) {
+    .split-sticky-card {
+      position: sticky;
+      top: 85px;
+      z-index: 10;
+    }
+  }
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Marketing /</span> Flash Sales & Campaigns</h4>
   </div>
 
-  <div class="row">
-    <!-- Form -->
-    <div class="col-md-5 mb-4">
+  <div class="row align-items-start">
+    <!-- Form (Sticky on Scroll) -->
+    <div class="col-md-5 mb-4 split-sticky-card">
       <div class="card">
         <div class="card-header pb-2">
           <h5 class="card-title mb-0" id="fs-form-title">Create Flash Sale Event</h5>
@@ -81,14 +91,38 @@
       </div>
     </div>
 
-    <!-- Table -->
+    <!-- Table with Infinite Scroll -->
     <div class="col-md-7">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h5 class="card-title mb-0">Flash Sale Campaigns</h5>
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-sm-6">
+              <h5 class="mb-0 fw-bold">Flash Sale Campaigns</h5>
+              <small class="text-muted">
+                Showing <span id="displayedCount"><?= min(10, count($flash_sales ?? [])); ?></span> of <span id="totalCount"><?= count($flash_sales ?? []); ?></span> campaigns
+              </small>
+            </div>
+            <div class="col-sm-6">
+              <div class="input-group input-group-merge">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input
+                  type="text"
+                  id="infiniteSearchInput"
+                  class="form-control"
+                  placeholder="Search campaign title..."
+                  autocomplete="off" />
+                <button type="button" id="clearInfiniteSearch" class="btn btn-outline-secondary d-none" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="card">
         <div class="table-responsive text-nowrap">
-          <table class="table table-hover">
+          <table class="table table-hover no-datatable">
             <thead>
               <tr>
                 <th>Title</th>
@@ -99,10 +133,10 @@
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="infiniteTableBody">
               <?php if (!empty($flash_sales)): ?>
                 <?php foreach ($flash_sales as $fs): ?>
-                  <tr>
+                  <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($fs['title'] . ' ' . $fs['status'])); ?>">
                     <td><strong><?= html_escape($fs['title']); ?></strong></td>
                     <td><span class="badge bg-label-danger"><?= (float)$fs['discount_percent']; ?>% OFF</span></td>
                     <td>
@@ -137,13 +171,23 @@
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="6" class="text-center text-muted py-4">No flash sales created yet.</td>
-                </tr>
               <?php endif; ?>
+              <tr id="noFilterResultsRow" style="<?= !empty($flash_sales) ? 'display:none;' : ''; ?>">
+                <td colspan="6" class="text-center text-muted py-4">No flash sales created yet.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Sentinel & Loading Indicator -->
+      <div id="infiniteScrollSentinel" class="py-3 text-center">
+        <div id="loadingSpinner" class="d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span class="text-muted small fw-semibold">Loading more campaigns...</span>
+        </div>
+        <div id="endOfList" class="text-muted small d-none">
+          <i class="fa-solid fa-check-double me-1 text-success"></i> All campaigns loaded
         </div>
       </div>
     </div>
@@ -180,7 +224,7 @@ function editFlashSale(fs) {
   const prevBox = document.getElementById('fs_preview_box');
   const prevImg = document.getElementById('fs_preview_img');
   if (fs.banner) {
-    prevImg.src = '<?= base_url('../website/assets/images/'); ?>' + fs.banner;
+    prevImg.src = '<?= admin_storefront_asset_url('images/'); ?>' + fs.banner;
     prevBox.style.display = 'block';
   } else {
     prevBox.style.display = 'none';

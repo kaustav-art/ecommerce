@@ -70,21 +70,25 @@
                 <td><strong class="text-success"><?= $currency_symbol . number_format($net, 2); ?></strong></td>
               </tr>
             <?php endforeach; ?>
-            <tr class="table-light fw-bold">
-              <td>TOTALS:</td>
-              <td><?= $tot_orders; ?> Orders</td>
-              <td><?= $currency_symbol . number_format($tot_gross, 2); ?></td>
-              <td><?= $currency_symbol . number_format($tot_ship, 2); ?></td>
-              <td><?= $currency_symbol . number_format($tot_tax, 2); ?></td>
-              <td class="text-danger">-<?= $currency_symbol . number_format($tot_disc, 2); ?></td>
-              <td class="text-success"><?= $currency_symbol . number_format($tot_gross - $tot_tax - $tot_ship, 2); ?></td>
-            </tr>
           <?php else: ?>
             <tr>
               <td colspan="7" class="text-center text-muted py-4">No completed sales recorded in this date range.</td>
             </tr>
           <?php endif; ?>
         </tbody>
+        <?php if (!empty($sales_data)): ?>
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td>TOTALS:</td>
+            <td><?= $tot_orders; ?> Orders</td>
+            <td><?= $currency_symbol . number_format($tot_gross, 2); ?></td>
+            <td><?= $currency_symbol . number_format($tot_ship, 2); ?></td>
+            <td><?= $currency_symbol . number_format($tot_tax, 2); ?></td>
+            <td class="text-danger">-<?= $currency_symbol . number_format($tot_disc, 2); ?></td>
+            <td class="text-success"><?= $currency_symbol . number_format($tot_gross - $tot_tax - $tot_ship, 2); ?></td>
+          </tr>
+        </tfoot>
+        <?php endif; ?>
       </table>
     </div>
   </div>

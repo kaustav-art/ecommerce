@@ -244,7 +244,7 @@
                 </div>
 
                 <div class="table-responsive border rounded-3 bg-white mb-2">
-                  <table class="table table-hover align-middle mb-0" id="shipping-charges-table">
+                  <table class="table table-hover align-middle mb-0 no-datatable" id="shipping-charges-table">
                     <thead class="table-light">
                       <tr>
                         <th style="min-width: 250px;">Charge Name <span class="text-danger">*</span></th>

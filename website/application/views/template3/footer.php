@@ -217,7 +217,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
                        else img = window.BASE_URL + 'assets/images/products/' + rawImg;
                    }
                    var itemName = item.name || item.title || 'Fresh Grocery Item';
-                   var pUrl = window.SITE_URL + '/product/' + (item.slug || item.product_id) + '?preview_tpl=grocery';
+                   var pUrl = window.SITE_URL + '/product/' + (item.slug || item.product_id) + (<?= empty($is_user_project) ? "'?preview_tpl=grocery'" : "''"; ?>);
                    var key = item.cart_key || item.product_id;
                    html += '<div class="aq-cartmini-product-item mb-15 item-delete d-flex align-items-center">' +
                        '<div class="aq-cartmini-product-thumbnail"><a href="' + pUrl + '"><img src="' + img + '" alt=""></a></div>' +
@@ -322,30 +322,33 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        }, 1000);
    })();
 
-   // Propagate ?preview_tpl=grocery across all internal storefront links & normalize Grocery theme accents on Template 3
+   // Propagate ?preview_tpl=grocery only in Template Demo Mode & normalize Grocery theme accents on Template 3
    document.addEventListener('DOMContentLoaded', function() {
        var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+       var isUserProject = <?= !empty($is_user_project) ? 'true' : 'false'; ?>;
        var defaultGrcImg = '<?= $bazaro; ?>img/product/grocery-p-3.jpg';
 
-       document.querySelectorAll('a[href]').forEach(function(a) {
-           var href = a.getAttribute('href');
-           if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-           if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-               var hashIdx = href.indexOf('#');
-               var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
-               var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
-               var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
-               a.setAttribute('href', baseHref + sep + 'preview_tpl=grocery' + hashPart);
-           }
-       });
+       if (!isUserProject) {
+           document.querySelectorAll('a[href]').forEach(function(a) {
+               var href = a.getAttribute('href');
+               if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+               if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+                   var hashIdx = href.indexOf('#');
+                   var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
+                   var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
+                   var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
+                   a.setAttribute('href', baseHref + sep + 'preview_tpl=grocery' + hashPart);
+               }
+           });
 
-       document.querySelectorAll('form[action]').forEach(function(f) {
-           var act = f.getAttribute('action');
-           if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
-               var sep = act.indexOf('?') === -1 ? '?' : '&';
-               f.setAttribute('action', act + sep + 'preview_tpl=grocery');
-           }
-       });
+           document.querySelectorAll('form[action]').forEach(function(f) {
+               var act = f.getAttribute('action');
+               if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
+                   var sep = act.indexOf('?') === -1 ? '?' : '&';
+                   f.setAttribute('action', act + sep + 'preview_tpl=grocery');
+               }
+           });
+       }
 
        // Convert any residual inline Flipkart-blue (#2874f0) or fashion fallback images on shared views to Grocery theme
        document.querySelectorAll('[style*="#2874f0"], [style*="rgb(40, 116, 240)"], [style*="#f0f5ff"], [style*="#e1ecff"]').forEach(function(el) {

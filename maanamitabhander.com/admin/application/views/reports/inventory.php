@@ -40,20 +40,24 @@
                 <td><strong class="text-success"><?= $currency_symbol . number_format($inv['inventory_value'], 2); ?></strong></td>
               </tr>
             <?php endforeach; ?>
-            <tr class="table-light fw-bold fs-6">
-              <td>TOTAL INVENTORY VALUE:</td>
-              <td>-</td>
-              <td>-</td>
-              <td>-</td>
-              <td><?= $tot_units; ?> Total Units</td>
-              <td class="text-success"><?= $currency_symbol . number_format($tot_val, 2); ?></td>
-            </tr>
           <?php else: ?>
             <tr>
               <td colspan="6" class="text-center text-muted py-4">No inventory found in database.</td>
             </tr>
           <?php endif; ?>
         </tbody>
+        <?php if (!empty($inventory_data)): ?>
+        <tfoot class="table-light fw-bold fs-6">
+          <tr>
+            <td>TOTAL INVENTORY VALUE:</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td><?= $tot_units; ?> Total Units</td>
+            <td class="text-success"><?= $currency_symbol . number_format($tot_val, 2); ?></td>
+          </tr>
+        </tfoot>
+        <?php endif; ?>
       </table>
     </div>
   </div>

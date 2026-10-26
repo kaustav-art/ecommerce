@@ -21,7 +21,8 @@
         ? base_url('../website/assets/images/logo/' . $store_settings['site_favicon'])
         : base_url('assets/img/favicon/codeulas_logo_small.webp');
     ?>
-    <link rel="icon" type="image/webp" href="<?= $admin_favicon; ?>" />
+    <link rel="shortcut icon" href="<?= $admin_favicon; ?>" />
+    <link rel="icon" href="<?= $admin_favicon; ?>" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -42,6 +43,27 @@
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css'); ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css'); ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css'); ?>" />
+    <style>
+      .dataTables_wrapper .row:first-child {
+        padding: 1rem 1.25rem 0.75rem;
+        margin: 0;
+        align-items: center;
+      }
+      .dataTables_wrapper .row:last-child {
+        padding: 0.75rem 1.25rem 1rem;
+        margin: 0;
+        align-items: center;
+      }
+      .dataTables_wrapper .dataTables_filter input {
+        margin-left: 0.5rem;
+      }
+      .dataTables_wrapper table.dataTable {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+    </style>
 
     <!-- Helpers -->
     <script src="<?= base_url('assets/vendor/js/helpers.js'); ?>"></script>

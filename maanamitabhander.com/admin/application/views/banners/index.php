@@ -1,14 +1,24 @@
+<style>
+  @media (min-width: 768px) {
+    .split-sticky-card {
+      position: sticky;
+      top: 85px;
+      z-index: 10;
+    }
+  }
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Catalog /</span> Home Page Banners & Sliders</h4>
-    <a href="<?= base_url('../website'); ?>" target="_blank" class="btn btn-outline-primary btn-sm">
+    <a href="<?= admin_storefront_url(); ?>" target="_blank" class="btn btn-outline-primary btn-sm">
       <i class="fa-solid fa-eye me-1"></i> Preview Homepage
     </a>
   </div>
 
-  <div class="row">
-    <!-- Add / Edit Form -->
-    <div class="col-lg-4 col-md-5">
+  <div class="row align-items-start">
+    <!-- Add / Edit Form (Sticky on Scroll) -->
+    <div class="col-lg-4 col-md-5 split-sticky-card">
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0" id="form-title">Add New Slider Banner</h5>
@@ -71,15 +81,38 @@
       </div>
     </div>
 
-    <!-- Banner List Table -->
+    <!-- Banner List Table with Infinite Scroll -->
     <div class="col-lg-8 col-md-7">
-      <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">Active Sliders & Banners</h5>
-          <span class="text-muted small">Controls the main slideshow on the homepage</span>
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-sm-6">
+              <h5 class="mb-0 fw-bold">Active Sliders & Banners</h5>
+              <small class="text-muted">
+                Showing <span id="displayedCount"><?= min(10, count($banners ?? [])); ?></span> of <span id="totalCount"><?= count($banners ?? []); ?></span> banners
+              </small>
+            </div>
+            <div class="col-sm-6">
+              <div class="input-group input-group-merge">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input
+                  type="text"
+                  id="infiniteSearchInput"
+                  class="form-control"
+                  placeholder="Search banner title or subtitle..."
+                  autocomplete="off" />
+                <button type="button" id="clearInfiniteSearch" class="btn btn-outline-secondary d-none" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="card">
         <div class="table-responsive">
-          <table class="table table-hover align-middle">
+          <table class="table table-hover align-middle no-datatable">
             <thead>
               <tr>
                 <th style="width: 120px;">Preview</th>
@@ -90,18 +123,18 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="infiniteTableBody">
               <?php if (!empty($banners)): ?>
                 <?php foreach ($banners as $b): ?>
-                  <tr>
+                  <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($b['title'] . ' ' . ($b['subtitle'] ?? '') . ' ' . ($b['button_text'] ?? '') . ' ' . $b['status'])); ?>">
                     <td>
                       <div class="rounded overflow-hidden border" style="width: 100px; height: 55px; background: #f8f9fa;">
                         <img
-                          src="<?= base_url('../website/assets/images/' . $b['image']); ?>"
+                          src="<?= admin_storefront_asset_url('images/' . $b['image']); ?>"
                           alt="<?= html_escape($b['title']); ?>"
                           class="w-100 h-100"
                           style="object-fit: cover;"
-                          onerror="this.src='<?= base_url('../website/assets/images/slider/slider-women1.jpg'); ?>'" />
+                          onerror="this.src='<?= admin_storefront_asset_url('images/slider/slider-women1.jpg'); ?>'" />
                       </div>
                     </td>
                     <td>
@@ -140,13 +173,23 @@
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="6" class="text-center text-muted py-4">No banners found. Add a banner to display on the homepage slider.</td>
-                </tr>
               <?php endif; ?>
+              <tr id="noFilterResultsRow" style="<?= !empty($banners) ? 'display:none;' : ''; ?>">
+                <td colspan="6" class="text-center text-muted py-4">No banners found. Add a banner to display on the homepage slider.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Sentinel & Loading Indicator -->
+      <div id="infiniteScrollSentinel" class="py-3 text-center">
+        <div id="loadingSpinner" class="d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span class="text-muted small fw-semibold">Loading more banners...</span>
+        </div>
+        <div id="endOfList" class="text-muted small d-none">
+          <i class="fa-solid fa-check-double me-1 text-success"></i> All banners loaded
         </div>
       </div>
     </div>
@@ -176,9 +219,9 @@ function editBanner(b) {
   document.getElementById('banner_file').value = '';
 
   const prevBox = document.getElementById('banner_preview_box');
-  const prevImg = document.getElementById('banner_preview_img');
+  const prevImg = document.getElementById('fs_preview_img') || document.getElementById('banner_preview_img');
   if (b.image) {
-    prevImg.src = '<?= base_url('../website/assets/images/'); ?>' + b.image;
+    prevImg.src = '<?= admin_storefront_asset_url('images/'); ?>' + b.image;
     prevBox.style.display = 'block';
   } else {
     prevBox.style.display = 'none';

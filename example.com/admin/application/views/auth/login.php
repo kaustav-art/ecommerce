@@ -38,7 +38,6 @@
                     id="email"
                     name="email"
                     placeholder="Enter your email"
-                    value="admin@ecommerce.com"
                     required
                     autofocus />
                   <label for="email">Email Address</label>
@@ -52,7 +51,6 @@
                           id="password"
                           class="form-control"
                           name="password"
-                          value="admin123"
                           placeholder="············"
                           required />
                         <label for="password">Password</label>
@@ -70,12 +68,6 @@
                   <button class="btn btn-primary d-grid w-100" type="submit">Sign In</button>
                 </div>
               </form>
-
-              <div class="alert alert-light border small">
-                <div class="fw-bold mb-1"><i class="fa-solid fa-circle-info me-1"></i> Preloaded Demo Credentials:</div>
-                <div><strong>Super Admin:</strong> <code>admin@ecommerce.com</code> / <code>admin123</code></div>
-                <div><strong>Store Manager:</strong> <code>manager@ecommerce.com</code> / <code>manager123</code></div>
-              </div>
             </div>
           </div>
         </div>

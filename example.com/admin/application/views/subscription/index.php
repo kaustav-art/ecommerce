@@ -6,19 +6,6 @@
       </h4>
       <p class="text-muted mb-0">Manage your SaaS store plan, resource limits, renewals, and billing history.</p>
     </div>
-    <div class="d-flex gap-2">
-      <a href="<?= site_url('template_manager'); ?>" class="btn btn-outline-primary">
-        <i class="ri ri-layout-masonry-line me-1"></i> Manage Store Template
-      </a>
-      <?php
-        $storefront_url = ((int)($tenant['id'] ?? 1) === 1)
-          ? base_url('../website/home')
-          : base_url('../website/s/' . ($tenant['slug'] ?? 'fashion-store'));
-      ?>
-      <a href="<?= $storefront_url; ?>" target="_blank" class="btn btn-primary">
-        <i class="ri ri-external-link-line me-1"></i> Visit Live Store
-      </a>
-    </div>
   </div>
 
   <?php if (!empty($subscription_expired)): ?>
@@ -87,8 +74,8 @@
             </div>
             <div class="col-sm-6">
               <div class="p-3 rounded bg-lighter">
-                <small class="text-muted d-block mb-1">Store Slug / URL</small>
-                <code class="small">/s/<?= html_escape($tenant['slug'] ?? 'fashion-store'); ?></code>
+                <small class="text-muted d-block mb-1">Store Domain / Slug</small>
+                <code class="small"><?= html_escape($tenant['domain'] ?? ($tenant['slug'] ?? 'store')); ?></code>
               </div>
             </div>
           </div>

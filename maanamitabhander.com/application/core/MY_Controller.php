@@ -16,6 +16,7 @@ class MY_Controller extends CI_Controller {
     public $tenant          = [];
     public $active_template = 'fashion';
     public $is_preview_mode = FALSE;
+    public $is_user_project = FALSE;
 
     public $current_user    = NULL;
     public $cart_count      = 0;
@@ -33,18 +34,24 @@ class MY_Controller extends CI_Controller {
         // 1. Resolve Active Tenant & Template from URL / Database
         $this->_resolve_tenant_and_template();
 
-        // 2. Load customer profile from session if logged in
-        if ($this->session->userdata('user_logged_in')) {
-            $this->current_user = [
-                'id'         => (int) $this->session->userdata('user_id'),
-                'first_name' => $this->session->userdata('user_first_name'),
-                'last_name'  => $this->session->userdata('user_last_name'),
-                'email'      => $this->session->userdata('user_email'),
-                'phone'      => $this->session->userdata('user_phone'),
-                'avatar'     => $this->session->userdata('user_avatar') ?: ''
-            ];
+        // 2. Load customer profile:
+        //    - In a user-taken project, load from session if logged in (or NULL for guest)
+        //    - In Template Demo mode (website/), load demo user from Static_template_data
+        if ($this->is_user_project) {
+            if ($this->session->userdata('user_logged_in')) {
+                $this->current_user = [
+                    'id'         => (int) $this->session->userdata('user_id'),
+                    'first_name' => $this->session->userdata('user_first_name'),
+                    'last_name'  => $this->session->userdata('user_last_name'),
+                    'email'      => $this->session->userdata('user_email'),
+                    'phone'      => $this->session->userdata('user_phone'),
+                    'avatar'     => $this->session->userdata('user_avatar') ?: ''
+                ];
+            } else {
+                $this->current_user = NULL;
+            }
         } else {
-            $this->current_user = NULL;
+            $this->current_user = Static_template_data::get('user');
         }
 
         // 3. Load Store Settings from DB
@@ -64,17 +71,15 @@ class MY_Controller extends CI_Controller {
         }
 
         $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
+        $this->is_user_project = ($db_name !== 'ecommerce_main');
         $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
 
-        if ($preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
+        // Only honor ?preview_tpl= when browsing the master template demo in ecommerce_main
+        if (!$this->is_user_project && $preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
             $canonical_tpl         = $this->template_registry->get_canonical_key($preview_param);
             $this->is_preview_mode = TRUE;
             $this->active_template = $canonical_tpl;
-            if ($db_name === 'ecommerce_main') {
-                $this->tenant_id = ($canonical_tpl === 'electronics') ? 3 : (($canonical_tpl === 'grocery') ? 2 : 1);
-            } else {
-                $this->tenant_id = 1;
-            }
+            $this->tenant_id       = ($canonical_tpl === 'electronics') ? 3 : (($canonical_tpl === 'grocery') ? 2 : 1);
             $this->tenant = [
                 'id'            => $this->tenant_id,
                 'business_name' => ucfirst($canonical_tpl) . ' Store',
@@ -93,6 +98,7 @@ class MY_Controller extends CI_Controller {
                 $this->tenant_id       = (int)$t_row['id'];
                 $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
                 $this->tenant          = $t_row;
+                $this->is_user_project = ($this->tenant_id > 3);
                 return;
             }
         }
@@ -355,6 +361,9 @@ class MY_Controller extends CI_Controller {
 
     public function is_logged_in()
     {
+        if (!$this->is_user_project) {
+            return TRUE;
+        }
         return (bool) $this->session->userdata('user_logged_in');
     }
 
@@ -385,6 +394,7 @@ class MY_Controller extends CI_Controller {
         $data['currency_symbol']      = $this->store_settings['currency_symbol'] ?? '$';
         $data['currency_code']        = $this->store_settings['currency_code'] ?? 'USD';
         $data['is_logged_in']         = $this->is_logged_in();
+        $data['is_user_project']      = $this->is_user_project;
         $data['site_name']            = $this->site_name;
         $data['tenant']               = $this->tenant;
         $data['tenant_id']            = $this->tenant_id;

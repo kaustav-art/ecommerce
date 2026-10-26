@@ -1,11 +1,21 @@
+<style>
+  @media (min-width: 768px) {
+    .split-sticky-card {
+      position: sticky;
+      top: 85px;
+      z-index: 10;
+    }
+  }
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Catalog /</span> Product Attributes</h4>
   </div>
 
-  <div class="row">
-    <!-- Form: Add/Edit Attribute -->
-    <div class="col-md-4 mb-4">
+  <div class="row align-items-start">
+    <!-- Form: Add/Edit Attribute (Sticky on Scroll) -->
+    <div class="col-md-4 mb-4 split-sticky-card">
       <div class="card">
         <div class="card-header pb-2">
           <h5 class="card-title mb-0" id="attr-form-title">Add Attribute</h5>
@@ -42,14 +52,38 @@
       </div>
     </div>
 
-    <!-- Table: Attributes List -->
+    <!-- Table: Attributes List with Infinite Scroll -->
     <div class="col-md-8">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h5 class="card-title mb-0">Dynamic Attributes List</h5>
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-sm-6">
+              <h5 class="mb-0 fw-bold">Dynamic Attributes List</h5>
+              <small class="text-muted">
+                Showing <span id="displayedCount"><?= min(10, count($attributes ?? [])); ?></span> of <span id="totalCount"><?= count($attributes ?? []); ?></span> attributes
+              </small>
+            </div>
+            <div class="col-sm-6">
+              <div class="input-group input-group-merge">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input
+                  type="text"
+                  id="infiniteSearchInput"
+                  class="form-control"
+                  placeholder="Search attribute or slug..."
+                  autocomplete="off" />
+                <button type="button" id="clearInfiniteSearch" class="btn btn-outline-secondary d-none" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="card">
         <div class="table-responsive text-nowrap">
-          <table class="table table-hover">
+          <table class="table table-hover no-datatable">
             <thead>
               <tr>
                 <th>Attribute</th>
@@ -59,10 +93,10 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="infiniteTableBody">
               <?php if (!empty($attributes)): ?>
                 <?php foreach ($attributes as $a): ?>
-                  <tr>
+                  <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($a['name'] . ' ' . $a['slug'] . ' ' . $a['type'])); ?>">
                     <td><strong><?= html_escape($a['name']); ?></strong></td>
                     <td><code><?= html_escape($a['slug']); ?></code></td>
                     <td>
@@ -91,13 +125,23 @@
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="5" class="text-center text-muted py-4">No attributes created yet.</td>
-                </tr>
               <?php endif; ?>
+              <tr id="noFilterResultsRow" style="<?= !empty($attributes) ? 'display:none;' : ''; ?>">
+                <td colspan="5" class="text-center text-muted py-4">No attributes found.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Sentinel & Loading Indicator -->
+      <div id="infiniteScrollSentinel" class="py-3 text-center">
+        <div id="loadingSpinner" class="d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span class="text-muted small fw-semibold">Loading more attributes...</span>
+        </div>
+        <div id="endOfList" class="text-muted small d-none">
+          <i class="fa-solid fa-check-double me-1 text-success"></i> All attributes loaded
         </div>
       </div>
     </div>
@@ -145,4 +189,74 @@ function resetAttrForm() {
   var lockedAlert = document.getElementById('attr_type_locked_alert');
   if (lockedAlert) lockedAlert.style.display = 'none';
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  var rows = Array.from(document.querySelectorAll('.infinite-item-row'));
+  var searchInput = document.getElementById('infiniteSearchInput');
+  var clearBtn = document.getElementById('clearInfiniteSearch');
+  var displayedCountEl = document.getElementById('displayedCount');
+  var totalCountEl = document.getElementById('totalCount');
+  var noResultsRow = document.getElementById('noFilterResultsRow');
+  var sentinel = document.getElementById('infiniteScrollSentinel');
+  var spinner = document.getElementById('loadingSpinner');
+  var endOfList = document.getElementById('endOfList');
+  var batchSize = 10;
+  var visibleLimit = batchSize;
+  var isLoading = false;
+
+  function renderRows() {
+    var q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    if (clearBtn) clearBtn.classList.toggle('d-none', q === '');
+    var matched = rows.filter(function(r) {
+      return !q || (r.getAttribute('data-search') || '').indexOf(q) !== -1;
+    });
+    rows.forEach(function(r) { r.style.display = 'none'; });
+    var toShow = matched.slice(0, visibleLimit);
+    toShow.forEach(function(r) { r.style.display = ''; });
+    if (displayedCountEl) displayedCountEl.textContent = toShow.length;
+    if (totalCountEl) totalCountEl.textContent = matched.length;
+    if (noResultsRow) noResultsRow.style.display = matched.length === 0 ? '' : 'none';
+    if (endOfList) {
+      endOfList.classList.toggle('d-none', matched.length === 0 || toShow.length < matched.length);
+    }
+    return { shown: toShow.length, total: matched.length };
+  }
+
+  function loadMore() {
+    if (isLoading) return;
+    var state = renderRows();
+    if (state.shown >= state.total) return;
+    isLoading = true;
+    if (spinner) spinner.classList.remove('d-none');
+    setTimeout(function() {
+      visibleLimit += batchSize;
+      if (spinner) spinner.classList.add('d-none');
+      isLoading = false;
+      renderRows();
+    }, 180);
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      visibleLimit = batchSize;
+      renderRows();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      visibleLimit = batchSize;
+      renderRows();
+    });
+  }
+  if ('IntersectionObserver' in window && sentinel) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) loadMore();
+      });
+    }, { rootMargin: '150px' });
+    obs.observe(sentinel);
+  }
+  renderRows();
+});
 </script>

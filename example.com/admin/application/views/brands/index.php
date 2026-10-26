@@ -1,11 +1,21 @@
+<style>
+  @media (min-width: 768px) {
+    .split-sticky-card {
+      position: sticky;
+      top: 85px;
+      z-index: 10;
+    }
+  }
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Catalog /</span> Brands</h4>
   </div>
 
-  <div class="row">
-    <!-- Add / Edit Form -->
-    <div class="col-md-4">
+  <div class="row align-items-start">
+    <!-- Add / Edit Form (Sticky on Scroll) -->
+    <div class="col-md-4 split-sticky-card">
       <div class="card mb-4">
         <div class="card-header">
           <h5 class="card-title mb-0" id="brand-form-title">Add Brand</h5>
@@ -23,7 +33,7 @@
                 <div class="border rounded p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;">
                   <img
                     id="brand_preview_img"
-                    src="<?= base_url('../website/assets/images/brand/brand-01.svg'); ?>"
+                    src="<?= admin_storefront_asset_url('images/brand/brand-01.svg'); ?>"
                     class="w-100 h-100 object-fit-contain"
                     alt="Brand Logo Preview"
                     onerror="this.src='<?= base_url('assets/img/elements/1.jpg'); ?>'"
@@ -50,11 +60,38 @@
       </div>
     </div>
 
-    <!-- Brands Table -->
+    <!-- Brands List with Infinite Scroll -->
     <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-sm-6">
+              <h5 class="mb-0 fw-bold">Registered Brands</h5>
+              <small class="text-muted">
+                Showing <span id="displayedCount"><?= min(10, count($brands ?? [])); ?></span> of <span id="totalCount"><?= count($brands ?? []); ?></span> brands
+              </small>
+            </div>
+            <div class="col-sm-6">
+              <div class="input-group input-group-merge">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input
+                  type="text"
+                  id="infiniteSearchInput"
+                  class="form-control"
+                  placeholder="Search brand or slug..."
+                  autocomplete="off" />
+                <button type="button" id="clearInfiniteSearch" class="btn btn-outline-secondary d-none" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="table-responsive">
-          <table class="table table-hover">
+          <table class="table table-hover no-datatable">
             <thead>
               <tr>
                 <th>Brand</th>
@@ -64,10 +101,10 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="infiniteTableBody">
               <?php if (!empty($brands)): ?>
                 <?php foreach ($brands as $b): ?>
-                  <tr>
+                  <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($b['name'] . ' ' . $b['slug'] . ' ' . $b['status'])); ?>">
                     <td><strong><?= html_escape($b['name']); ?></strong></td>
                     <td><code><?= html_escape($b['slug']); ?></code></td>
                     <td><span class="badge bg-label-info"><?= $b['product_count']; ?> Items</span></td>
@@ -87,13 +124,23 @@
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="5" class="text-center text-muted py-4">No brands registered yet.</td>
-                </tr>
               <?php endif; ?>
+              <tr id="noFilterResultsRow" style="<?= !empty($brands) ? 'display:none;' : ''; ?>">
+                <td colspan="5" class="text-center text-muted py-4">No brands registered yet.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Sentinel & Loading Indicator -->
+      <div id="infiniteScrollSentinel" class="py-3 text-center">
+        <div id="loadingSpinner" class="d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span class="text-muted small fw-semibold">Loading more brands...</span>
+        </div>
+        <div id="endOfList" class="text-muted small d-none">
+          <i class="fa-solid fa-check-double me-1 text-success"></i> All brands loaded
         </div>
       </div>
     </div>
@@ -116,7 +163,7 @@ function editBrand(b) {
   document.getElementById('brand_id').value = b.id;
   document.getElementById('brand_name').value = b.name;
   document.getElementById('brand_current_logo').value = b.logo || 'brand/brand-01.svg';
-  document.getElementById('brand_preview_img').src = '<?= base_url('../website/assets/images/'); ?>' + (b.logo || 'brand/brand-01.svg');
+  document.getElementById('brand_preview_img').src = '<?= admin_storefront_asset_url('images/'); ?>' + (b.logo || 'brand/brand-01.svg');
   document.getElementById('brand_logo_file').value = '';
 }
 
@@ -125,7 +172,7 @@ function resetBrandForm() {
   document.getElementById('brand_id').value = '';
   document.getElementById('brand_name').value = '';
   document.getElementById('brand_current_logo').value = 'brand/brand-01.svg';
-  document.getElementById('brand_preview_img').src = '<?= base_url('../website/assets/images/brand/brand-01.svg'); ?>';
+  document.getElementById('brand_preview_img').src = '<?= admin_storefront_asset_url('images/brand/brand-01.svg'); ?>';
   document.getElementById('brand_logo_file').value = '';
 }
 </script>

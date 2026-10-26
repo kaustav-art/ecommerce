@@ -56,7 +56,7 @@
                 <td>
                   <div class="d-flex align-items-center">
                     <img
-                      src="<?= base_url('../website/assets/images/' . $p['main_image']); ?>"
+                      src="<?= admin_storefront_asset_url('images/' . $p['main_image']); ?>"
                       alt="<?= html_escape($p['title']); ?>"
                       class="rounded me-3"
                       style="width: 48px; height: 48px; object-fit: contain;"
@@ -122,7 +122,7 @@
                             <i class="fa-solid fa-arrows-rotate me-1 text-warning"></i> Adjust Stock
                           </a>
                         <?php endif; ?>
-                        <a class="dropdown-item" href="<?= base_url('../website/product/' . $p['slug']); ?>" target="_blank">
+                        <a class="dropdown-item" href="<?= admin_storefront_url('product/' . $p['slug']); ?>" target="_blank">
                           <i class="fa-solid fa-arrow-up-right-from-square me-1 text-secondary"></i> View Live
                         </a>
                         <?php if ($this->can('products.delete')): ?>

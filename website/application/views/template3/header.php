@@ -12,10 +12,21 @@
    $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/templates/bazaro/');
    $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    $is_home_page = (($active_page ?? 'home') === 'home');
-   $web_favicon = base_url('assets/images/logo/codeulas_logo_small.webp');
+   $raw_fav = trim((string)($store_settings['site_favicon'] ?? ''));
+   if ($raw_fav !== '') {
+       $web_favicon = (strpos($raw_fav, 'assets/') === 0) ? base_url($raw_fav) : base_url('assets/images/logo/' . $raw_fav);
+   } else {
+       $web_favicon = base_url('assets/images/logo/codeulas_logo_small.webp');
+   }
+   $raw_logo = trim((string)($store_settings['site_logo'] ?? ''));
+   if ($raw_logo !== '') {
+       $web_logo = (strpos($raw_logo, 'assets/') === 0) ? base_url($raw_logo) : base_url('assets/images/logo/' . $raw_logo);
+   } else {
+       $web_logo = base_url('assets/images/logo/logo.webp');
+   }
    ?>
-   <link rel="shortcut icon" type="image/webp" href="<?= $web_favicon; ?>">
-   <link rel="icon" type="image/webp" href="<?= $web_favicon; ?>">
+   <link rel="shortcut icon" href="<?= $web_favicon; ?>">
+   <link rel="icon" href="<?= $web_favicon; ?>">
 
    <?php
    $is_grc_product_page = (($this->uri->segment(1) ?? '') === 'product');
@@ -414,7 +425,7 @@
    <div class="aq-offcanvas-wrap">
       <div class="aq-offcanvas-top d-flex align-items-center justify-content-between">
          <div class="aq-offcanvas-logo">
-            <a href="<?= site_url('home'); ?>"><img width="115" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:40px;width:auto;object-fit:contain;"></a>
+            <a href="<?= site_url('home'); ?>"><img width="115" src="<?= $web_logo; ?>" alt="<?= html_escape($site_name); ?>" style="max-height:40px;width:auto;object-fit:contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'"></a>
          </div>
          <div class="aq-offcanvas-close">
             <span>
@@ -528,7 +539,7 @@
                   <div class="col-lg-2 col-md-3 col-6">
                      <div class="aq-header-logo">
                         <a href="<?= site_url('home'); ?>" class="text-decoration-none d-inline-flex align-items-center gap-2">
-                           <img data-width="140" src="<?= base_url('assets/images/logo/logo.webp'); ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;">
+                           <img data-width="140" src="<?= $web_logo; ?>" alt="<?= html_escape($site_name); ?>" style="max-height:42px;width:auto;object-fit:contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
                         </a>
                      </div>
                   </div>

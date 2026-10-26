@@ -9,8 +9,9 @@
                         <div class="store-logo-col flex-shrink-0 order-1">
                             <a href="<?= site_url('home'); ?>" class="logo-header d-inline-block">
                                 <?php
-                                  $web_logo = !empty($store_settings['site_logo'])
-                                    ? base_url('assets/images/logo/' . $store_settings['site_logo'])
+                                  $raw_logo = trim((string)($store_settings['site_logo'] ?? ''));
+                                  $web_logo = ($raw_logo !== '')
+                                    ? ((strpos($raw_logo, 'assets/') === 0) ? base_url($raw_logo) : base_url('assets/images/logo/' . $raw_logo))
                                     : base_url('assets/images/logo/logo.webp');
                                 ?>
                                 <img src="<?= $web_logo; ?>" alt="<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>" class="logo" style="max-height: 42px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">

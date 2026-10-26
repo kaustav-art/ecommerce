@@ -15,7 +15,13 @@
     <title><?= isset($title) ? html_escape($title) : 'Sign In | Admin'; ?></title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/favicon/favicon.ico'); ?>" />
+    <?php
+      $auth_favicon = (!empty($store_settings['site_favicon']))
+        ? base_url('../website/assets/images/logo/' . $store_settings['site_favicon'])
+        : base_url('assets/img/favicon/codeulas_logo_small.webp');
+    ?>
+    <link rel="shortcut icon" href="<?= $auth_favicon; ?>" />
+    <link rel="icon" href="<?= $auth_favicon; ?>" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

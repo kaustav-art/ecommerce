@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="description" content="<?= html_escape($site_name ?? 'Store'); ?> - Multipurpose eCommerce Store">
 
+    <?php
+      $raw_fav = trim((string)($store_settings['site_favicon'] ?? ''));
+      $web_favicon = ($raw_fav !== '')
+        ? ((strpos($raw_fav, 'assets/') === 0) ? base_url($raw_fav) : base_url('assets/images/logo/' . $raw_fav))
+        : base_url('assets/images/logo/codeulas_logo_small.webp');
+    ?>
+    <link rel="shortcut icon" href="<?= $web_favicon; ?>">
+    <link rel="icon" href="<?= $web_favicon; ?>">
+
     <!-- Fonts -->
     <link rel="stylesheet" href="<?= base_url('assets/fonts/fonts.css'); ?>">
     <link rel="stylesheet" href="<?= base_url('assets/fonts/font-icons.css'); ?>">

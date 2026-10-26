@@ -1,11 +1,21 @@
+<style>
+  @media (min-width: 768px) {
+    .split-sticky-card {
+      position: sticky;
+      top: 85px;
+      z-index: 10;
+    }
+  }
+</style>
+
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold m-0"><span class="text-muted fw-light">Marketing /</span> Coupons & Discounts</h4>
   </div>
 
-  <div class="row">
-    <!-- Form -->
-    <div class="col-md-4 mb-4">
+  <div class="row align-items-start">
+    <!-- Form (Sticky on Scroll) -->
+    <div class="col-md-4 mb-4 split-sticky-card">
       <div class="card">
         <div class="card-header pb-2">
           <h5 class="card-title mb-0" id="coupon-form-title">Create Coupon</h5>
@@ -65,14 +75,38 @@
       </div>
     </div>
 
-    <!-- Table -->
+    <!-- Table with Infinite Scroll -->
     <div class="col-md-8">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h5 class="card-title mb-0">Active Promotional Coupons</h5>
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-sm-6">
+              <h5 class="mb-0 fw-bold">Active Promotional Coupons</h5>
+              <small class="text-muted">
+                Showing <span id="displayedCount"><?= min(10, count($coupons ?? [])); ?></span> of <span id="totalCount"><?= count($coupons ?? []); ?></span> coupons
+              </small>
+            </div>
+            <div class="col-sm-6">
+              <div class="input-group input-group-merge">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input
+                  type="text"
+                  id="infiniteSearchInput"
+                  class="form-control"
+                  placeholder="Search coupon code or status..."
+                  autocomplete="off" />
+                <button type="button" id="clearInfiniteSearch" class="btn btn-outline-secondary d-none" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="card">
         <div class="table-responsive text-nowrap">
-          <table class="table table-hover">
+          <table class="table table-hover no-datatable">
             <thead>
               <tr>
                 <th>Code</th>
@@ -84,10 +118,10 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="infiniteTableBody">
               <?php if (!empty($coupons)): ?>
                 <?php foreach ($coupons as $c): ?>
-                  <tr>
+                  <tr class="infinite-item-row" data-search="<?= html_escape(strtolower($c['code'] . ' ' . $c['discount_type'] . ' ' . $c['status'])); ?>">
                     <td><code><?= html_escape($c['code']); ?></code></td>
                     <td>
                       <strong><?= ($c['discount_type'] === 'percent') ? (float)$c['discount_value'] . '%' : '$' . number_format($c['discount_value'], 2); ?> OFF</strong>
@@ -116,13 +150,23 @@
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="7" class="text-center text-muted py-4">No coupons created yet.</td>
-                </tr>
               <?php endif; ?>
+              <tr id="noFilterResultsRow" style="<?= !empty($coupons) ? 'display:none;' : ''; ?>">
+                <td colspan="7" class="text-center text-muted py-4">No coupons created yet.</td>
+              </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Sentinel & Loading Indicator -->
+      <div id="infiniteScrollSentinel" class="py-3 text-center">
+        <div id="loadingSpinner" class="d-none">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span class="text-muted small fw-semibold">Loading more coupons...</span>
+        </div>
+        <div id="endOfList" class="text-muted small d-none">
+          <i class="fa-solid fa-check-double me-1 text-success"></i> All coupons loaded
         </div>
       </div>
     </div>

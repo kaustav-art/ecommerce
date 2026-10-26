@@ -155,27 +155,30 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    <script>
    document.addEventListener('DOMContentLoaded', function() {
        var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+       var isUserProject = <?= !empty($is_user_project) ? 'true' : 'false'; ?>;
        var defaultEltImg = '<?= $bazaro; ?>img/electronics/arrival-product/product-1/product-1.jpg';
 
-       document.querySelectorAll('a[href]').forEach(function(a) {
-           var href = a.getAttribute('href');
-           if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-           if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-               var hashIdx = href.indexOf('#');
-               var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
-               var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
-               var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
-               a.setAttribute('href', baseHref + sep + 'preview_tpl=electronics' + hashPart);
-           }
-       });
+       if (!isUserProject) {
+           document.querySelectorAll('a[href]').forEach(function(a) {
+               var href = a.getAttribute('href');
+               if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+               if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+                   var hashIdx = href.indexOf('#');
+                   var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
+                   var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
+                   var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
+                   a.setAttribute('href', baseHref + sep + 'preview_tpl=electronics' + hashPart);
+               }
+           });
 
-       document.querySelectorAll('form[action]').forEach(function(f) {
-           var act = f.getAttribute('action');
-           if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
-               var sep = act.indexOf('?') === -1 ? '?' : '&';
-               f.setAttribute('action', act + sep + 'preview_tpl=electronics');
-           }
-       });
+           document.querySelectorAll('form[action]').forEach(function(f) {
+               var act = f.getAttribute('action');
+               if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
+                   var sep = act.indexOf('?') === -1 ? '?' : '&';
+                   f.setAttribute('action', act + sep + 'preview_tpl=electronics');
+               }
+           });
+       }
 
        // Convert any residual inline Flipkart-blue (#2874f0) or fashion fallback images on shared views to Electronics theme
        document.querySelectorAll('[style*="#2874f0"], [style*="rgb(40, 116, 240)"], [style*="#f0f5ff"], [style*="#e1ecff"]').forEach(function(el) {

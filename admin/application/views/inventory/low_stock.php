@@ -28,7 +28,7 @@
               <tr>
                 <td>
                   <div class="d-flex align-items-center">
-                    <img src="<?= base_url('../website/assets/images/' . ($it['main_image'] ?: 'products/womens/women-1.jpg')); ?>" class="rounded me-2" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='<?= base_url('../website/assets/images/products/womens/women-1.jpg'); ?>'">
+                    <img src="<?= admin_storefront_asset_url('images/' . ($it['main_image'] ?: 'products/womens/women-1.jpg')); ?>" class="rounded me-2" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='<?= admin_storefront_asset_url('images/products/womens/women-1.jpg'); ?>'">
                     <strong><?= html_escape($it['product_title']); ?></strong>
                   </div>
                 </td>

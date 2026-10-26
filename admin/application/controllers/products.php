@@ -507,7 +507,7 @@ class products extends MY_Controller {
 
             // If it's a dynamic uploaded file, delete from disk
             if (strpos($image_path, 'products/prod_gal_') === 0) {
-                $file_path = admin_storefront_fs_path('assets/images/' . $image_path;
+                $file_path = admin_storefront_fs_path('assets/images/' . $image_path);
                 if (file_exists($file_path)) {
                     @unlink($file_path);
                 }

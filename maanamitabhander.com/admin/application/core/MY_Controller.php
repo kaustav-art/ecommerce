@@ -38,10 +38,15 @@ class MY_Controller extends CI_Controller {
                 'permissions' => (array) $this->session->userdata('admin_permissions')
             ];
 
-            // Load current tenant and plan metadata
-            $this->tenant = ($this->db->table_exists('saas_tenants'))
-                ? ($this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array() ?: [])
-                : [];
+            // Load current tenant and plan metadata (from ecommerce_main if running in a dedicated tenant DB)
+            $saas_tenants_tbl = ($this->db->database !== 'ecommerce_main') ? 'ecommerce_main.saas_tenants' : 'saas_tenants';
+            $saas_plans_tbl   = ($this->db->database !== 'ecommerce_main') ? 'ecommerce_main.saas_plans'   : 'saas_plans';
+
+            if ($this->db->database !== 'ecommerce_main') {
+                $this->tenant = @$this->db->where('database_name', $this->db->database)->get($saas_tenants_tbl)->row_array() ?: [];
+            } elseif ($this->db->table_exists('saas_tenants')) {
+                $this->tenant = $this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array() ?: [];
+            }
             if (empty($this->tenant)) {
                 $s_name = 'Store';
                 $s_tpl  = 'fashion';
@@ -62,8 +67,10 @@ class MY_Controller extends CI_Controller {
                 ];
             }
 
-            if (!empty($this->tenant['plan_id']) && $this->db->table_exists('saas_plans')) {
-                $this->tenant_plan = $this->db->where('id', (int) $this->tenant['plan_id'])->get('saas_plans')->row_array() ?: [];
+            if (!empty($this->tenant['plan_id'])) {
+                if ($this->db->database !== 'ecommerce_main' || $this->db->table_exists('saas_plans')) {
+                    $this->tenant_plan = @$this->db->where('id', (int) $this->tenant['plan_id'])->get($saas_plans_tbl)->row_array() ?: [];
+                }
             }
 
             // Enforce Tenant Suspension & Subscription Expiry for non-default tenants

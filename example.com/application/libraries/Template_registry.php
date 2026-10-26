@@ -155,7 +155,7 @@ class Template_registry {
             if (!empty($tpl['modals_view']) && !$is_bazaro_home && file_exists(APPPATH . 'views/' . $tpl['modals_view'] . '.php')) {
                 $content .= $this->CI->load->view($tpl['modals_view'], $data, TRUE);
             }
-            if (file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
+            if (!empty($data['is_user_project']) && file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
                 $content .= $this->CI->load->view('layouts/auth_login_modal', $data, TRUE);
             }
             return $content;
@@ -177,7 +177,7 @@ class Template_registry {
         if (!empty($tpl['modals_view']) && !$is_bazaro_home && file_exists(APPPATH . 'views/' . $tpl['modals_view'] . '.php')) {
             $this->CI->load->view($tpl['modals_view'], $data);
         }
-        if (file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
+        if (!empty($data['is_user_project']) && file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
             $this->CI->load->view('layouts/auth_login_modal', $data);
         }
     }

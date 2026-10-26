@@ -11,32 +11,54 @@ class subscription extends MY_Controller {
         $this->load->model('setting_model');
     }
 
+    private function _saas_table($name)
+    {
+        return ($this->db->database !== 'ecommerce_main') ? ('ecommerce_main.' . $name) : $name;
+    }
+
+    private function _resolve_saas_tenant()
+    {
+        $tenants_tbl = $this->_saas_table('saas_tenants');
+        if ($this->db->database !== 'ecommerce_main') {
+            $row = $this->db->where('database_name', $this->db->database)->get($tenants_tbl)->row_array();
+            if ($row) {
+                return $row;
+            }
+        }
+        $tid = (int) $this->tenant_id;
+        return $this->db->where('id', $tid)->get($tenants_tbl)->row_array() ?: $this->tenant;
+    }
+
     public function index()
     {
-        $tid = (int) $this->tenant_id;
-        $tenant = $this->db->where('id', $tid)->get('saas_tenants')->row_array();
-        $plan   = !empty($tenant['plan_id'])
-            ? $this->db->where('id', (int) $tenant['plan_id'])->get('saas_plans')->row_array()
+        $plans_tbl   = $this->_saas_table('saas_plans');
+        $subs_tbl    = $this->_saas_table('saas_subscriptions');
+        $pays_tbl    = $this->_saas_table('saas_payments');
+
+        $tenant   = $this->_resolve_saas_tenant();
+        $saas_tid = (int) ($tenant['id'] ?? $this->tenant_id);
+        $plan     = !empty($tenant['plan_id'])
+            ? $this->db->where('id', (int) $tenant['plan_id'])->get($plans_tbl)->row_array()
             : null;
 
         $all_plans = $this->db->where('is_active', 1)
                               ->order_by('sort_order', 'ASC')
                               ->order_by('price', 'ASC')
-                              ->get('saas_plans')
+                              ->get($plans_tbl)
                               ->result_array();
 
         $subscriptions = $this->db->select('s.*, p.name as plan_name, p.price as plan_price, p.billing_cycle')
-                                  ->from('saas_subscriptions s')
-                                  ->join('saas_plans p', 'p.id = s.plan_id', 'left')
-                                  ->where('s.tenant_id', $tid)
+                                  ->from($subs_tbl . ' s')
+                                  ->join($plans_tbl . ' p', 'p.id = s.plan_id', 'left')
+                                  ->where('s.tenant_id', $saas_tid)
                                   ->order_by('s.id', 'DESC')
                                   ->get()
                                   ->result_array();
 
         $payments = $this->db->select('pay.*, p.name as resolved_plan_name')
-                             ->from('saas_payments pay')
-                             ->join('saas_plans p', 'p.id = pay.plan_id', 'left')
-                             ->where('pay.tenant_id', $tid)
+                             ->from($pays_tbl . ' pay')
+                             ->join($plans_tbl . ' p', 'p.id = pay.plan_id', 'left')
+                             ->where('pay.tenant_id', $saas_tid)
                              ->order_by('pay.id', 'DESC')
                              ->get()
                              ->result_array();
@@ -67,22 +89,27 @@ class subscription extends MY_Controller {
             return;
         }
 
+        $plans_tbl   = $this->_saas_table('saas_plans');
+        $subs_tbl    = $this->_saas_table('saas_subscriptions');
+        $pays_tbl    = $this->_saas_table('saas_payments');
+        $tenants_tbl = $this->_saas_table('saas_tenants');
+
         $plan_id = (int) $this->input->post('plan_id');
         $gateway = trim($this->input->post('gateway', TRUE) ?: 'sandbox');
 
-        $plan = $this->db->where('id', $plan_id)->where('is_active', 1)->get('saas_plans')->row_array();
+        $plan = $this->db->where('id', $plan_id)->where('is_active', 1)->get($plans_tbl)->row_array();
         if (!$plan) {
             $this->session->set_flashdata('error', 'Selected subscription plan is invalid or inactive.');
             redirect('subscription');
             return;
         }
 
-        $tid = (int) $this->tenant_id;
-        $tenant = $this->db->where('id', $tid)->get('saas_tenants')->row_array();
-        if (!$tenant) {
+        $tenant = $this->_resolve_saas_tenant();
+        if (empty($tenant['id'])) {
             redirect('subscription');
             return;
         }
+        $tid = (int) $tenant['id'];
 
         $duration_days = max(1, (int) ($plan['duration_days'] ?? 30));
         $current_exp = !empty($tenant['subscription_expires_at']) && strtotime($tenant['subscription_expires_at']) > time()
@@ -110,7 +137,7 @@ class subscription extends MY_Controller {
             'currency_code'     => $currency
         ];
 
-        $this->db->insert('saas_subscriptions', [
+        $this->db->insert($subs_tbl, [
             'subscription_number' => $sub_number,
             'tenant_id'           => $tid,
             'plan_id'             => $plan_id,
@@ -124,7 +151,7 @@ class subscription extends MY_Controller {
         ]);
         $sub_id = $this->db->insert_id();
 
-        $this->db->insert('saas_payments', [
+        $this->db->insert($pays_tbl, [
             'order_number'    => $order_number,
             'subscription_id' => $sub_id,
             'tenant_id'       => $tid,
@@ -144,7 +171,7 @@ class subscription extends MY_Controller {
             'paid_at'         => $starts_at
         ]);
 
-        $this->db->where('id', $tid)->update('saas_tenants', [
+        $this->db->where('id', $tid)->update($tenants_tbl, [
             'plan_id'                 => $plan_id,
             'subscription_id'         => $sub_id,
             'payment_status'          => 'paid',
