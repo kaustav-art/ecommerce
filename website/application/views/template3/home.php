@@ -192,6 +192,14 @@ if (!function_exists('grc_product_img')) {
       $all_prods = !empty($products) ? $products : [];
       $tab_cats  = !empty($categories) ? array_slice($categories, 0, 4) : (!empty($nav_categories) ? array_slice($nav_categories, 0, 4) : []);
       ?>
+      <style>
+         @media (min-width: 1200px) {
+            .grc-col-5 {
+               flex: 0 0 auto;
+               width: 20% !important;
+            }
+         }
+      </style>
       <div class="grc-product-ptb pb-50">
          <div class="container container-1630">
             <div class="grc-product-top pb-20">
@@ -225,7 +233,7 @@ if (!function_exists('grc_product_img')) {
                <!-- Tab Pane: All -->
                <div class="tab-pane fade show active" id="grc-pane-all" role="tabpanel">
                   <div class="row">
-                     <?php foreach (array_slice($all_prods, 0, 12) as $p_idx => $p):
+                     <?php foreach (array_slice($all_prods, 0, 10) as $p_idx => $p):
                         $p_img  = grc_product_img($p['primary_image'] ?? ($p['image'] ?? ''), $bazaro, $p_idx + 1);
                         $p_reg  = (float)($p['regular_price'] ?? $p['price'] ?? 0);
                         $p_sal  = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0 && (float)$p['sale_price'] < $p_reg) ? (float)$p['sale_price'] : $p_reg;
@@ -233,7 +241,7 @@ if (!function_exists('grc_product_img')) {
                         $p_url  = site_url('product/' . $p['slug']);
                         $p_unit = !empty($p['unit_label']) ? $p['unit_label'] : '1 Pack';
                      ?>
-                     <div class="col-xxl-2 col-xl-3 col-lg-4 col-sm-6">
+                     <div class="col-lg-4 col-sm-6 grc-col-5">
                         <div class="aq-product-item aq-product-main mb-40">
                            <div class="aq-product-thumb p-relative mb-10">
                               <?php if ($p_pct > 0): ?>
@@ -288,19 +296,19 @@ if (!function_exists('grc_product_img')) {
                      return (int)($item['category_id'] ?? 0) === (int)$tcat['id'];
                   }));
                   if (empty($cat_prods)) {
-                     $cat_prods = array_slice($all_prods, 0, 6);
+                     $cat_prods = array_slice($all_prods, 0, 5);
                   }
                ?>
                <div class="tab-pane fade" id="grc-pane-<?= (int)$tcat['id']; ?>" role="tabpanel">
                   <div class="row">
-                     <?php foreach (array_slice($cat_prods, 0, 6) as $cp_idx => $cp):
+                     <?php foreach (array_slice($cat_prods, 0, 5) as $cp_idx => $cp):
                         $cp_img  = grc_product_img($cp['primary_image'] ?? ($cp['image'] ?? ''), $bazaro, $cp_idx + 1);
                         $cp_reg  = (float)($cp['regular_price'] ?? $cp['price'] ?? 0);
                         $cp_sal  = (!empty($cp['sale_price']) && (float)$cp['sale_price'] > 0 && (float)$cp['sale_price'] < $cp_reg) ? (float)$cp['sale_price'] : $cp_reg;
                         $cp_url  = site_url('product/' . $cp['slug']);
                         $cp_unit = !empty($cp['unit_label']) ? $cp['unit_label'] : '1 Pack';
                      ?>
-                     <div class="col-xxl-2 col-xl-3 col-lg-4 col-sm-6">
+                     <div class="col-lg-4 col-sm-6 grc-col-5">
                         <div class="aq-product-item aq-product-main mb-40">
                            <div class="aq-product-thumb p-relative mb-10">
                               <a href="<?= $cp_url; ?>">
@@ -488,15 +496,29 @@ if (!function_exists('grc_product_img')) {
                               $c_img  = grc_product_img($cp['primary_image'] ?? ($cp['image'] ?? ''), $bazaro, $c_idx + 1);
                               $c_reg  = (float)($cp['regular_price'] ?? $cp['price'] ?? 0);
                               $c_sal  = (!empty($cp['sale_price']) && (float)$cp['sale_price'] > 0 && (float)$cp['sale_price'] < $c_reg) ? (float)$cp['sale_price'] : $c_reg;
+                              $c_pct  = ($c_sal < $c_reg && $c_reg > 0) ? round((($c_reg - $c_sal) / $c_reg) * 100) : 0;
                               $c_url  = site_url('product/' . $cp['slug']);
                               $c_unit = !empty($cp['unit_label']) ? $cp['unit_label'] : '1 Pack';
                            ?>
                            <div class="swiper-slide">
                               <div class="aq-product-item aq-product-main mb-40">
                                  <div class="aq-product-thumb p-relative mb-10">
+                                    <?php if ($c_pct > 0): ?>
+                                    <div class="aq-product-badge">
+                                       <span class="clr-sale">-<?= $c_pct; ?>%</span>
+                                    </div>
+                                    <?php endif; ?>
                                     <a href="<?= $c_url; ?>">
                                        <img class="aq-product-img-hover" src="<?= $c_img; ?>" alt="<?= html_escape($cp['name']); ?>" onerror="this.src='<?= $bazaro; ?>img/product/grocery-p-<?= (($c_idx % 12) + 1); ?>.jpg'">
                                     </a>
+                                    <div class="aq-product-action-2 d-flex flex-column">
+                                       <button type="button" onclick="grcToggleWishlist(<?= (int)$cp['id']; ?>)" class="aq-product-action-btn-2 aq-wishlist-btn aq-tooltip">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="19" height="16" viewBox="0 0 19 16" fill="none">
+                                             <path d="M5.83058 3.81134C4.89058 4.07825 4.22269 4.82839 4.13922 5.71098M9.34149 14.6355C11.2568 13.5878 13.0385 12.3546 14.6549 10.9581C15.7913 9.95244 16.6564 8.72639 17.184 7.37389C18.1334 4.75023 17.0244 1.74665 13.9209 0.857757C12.2899 0.391012 10.5085 1.54015 9.13406 2.45698C7.7591 1.54127 5.97836 0.392222 4.3472 0.857757C1.24372 1.74665 0.126783 4.75023 1.07618 7.37389C1.60376 8.72639 2.46886 9.95244 3.60523 10.9581C5.22159 12.3546 7.00335 13.5878 8.91865 14.6355L9.12608 14.7502L9.34149 14.6355Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                          </svg>
+                                          <span class="aq-tooltip-item">Wishlist</span>
+                                       </button>
+                                    </div>
                                  </div>
                                  <div class="aq-product-content">
                                     <div class="d-flex align-items-center justify-content-between mb-1">
@@ -504,8 +526,18 @@ if (!function_exists('grc_product_img')) {
                                        <span class="grc-unit-pill"><?= html_escape($c_unit); ?></span>
                                     </div>
                                     <h4 class="aq-product-title"><a href="<?= $c_url; ?>"><?= html_escape($cp['name']); ?></a></h4>
+                                    <div class="aq-product-ratting text-warning small mb-1">
+                                       <i class="fa-solid fa-star"></i>
+                                       <i class="fa-solid fa-star"></i>
+                                       <i class="fa-solid fa-star"></i>
+                                       <i class="fa-solid fa-star"></i>
+                                       <i class="fa-solid fa-star"></i>
+                                    </div>
                                     <div class="aq-product-price">
                                        <ins><span class="aq-product-new-price"><?= html_escape($curr) . number_format($c_sal, 2); ?></span></ins>
+                                       <?php if ($c_sal < $c_reg): ?>
+                                          <del><span class="aq-product-old-price"><?= html_escape($curr) . number_format($c_reg, 2); ?></span></del>
+                                       <?php endif; ?>
                                     </div>
                                  </div>
                                  <div class="grc-product-btn">

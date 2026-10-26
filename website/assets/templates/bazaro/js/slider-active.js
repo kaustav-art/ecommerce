@@ -226,11 +226,11 @@
 
 	//deals-slider
 	let grc_deals_slider = new Swiper('.grc-deals-slider-active', {
-		slidesPerView: 4.5,
+		slidesPerView: 5,
 		loop: true,
 		autoplay: true,
 		arrow: false,
-		spaceBetween: 10,
+		spaceBetween: 16,
 		speed: 1000,
 		navigation: {
 			prevEl: '.aqf-deals-prev',
@@ -238,13 +238,13 @@
 		},
 		breakpoints: {
 			1400: {
-			    slidesPerView: 4.5,
+			    slidesPerView: 5,
 			},
 			1200: {
-			    slidesPerView: 3,
+			    slidesPerView: 5,
 			},
 			992: {
-			    slidesPerView: 2,
+			    slidesPerView: 3,
 			},
 			768: {
 			    slidesPerView: 2,
@@ -260,7 +260,7 @@
 
 	//grc-slider
 	let grc_slider_active = new Swiper('.grc-slider-active', {
-		slidesPerView: 6,
+		slidesPerView: 5,
 		loop: true,
 		autoplay: true,
 		arrow: false,
@@ -268,10 +268,10 @@
 		spaceBetween: 20,
 		breakpoints: {
 			1400: {
-			    slidesPerView: 6,
+			    slidesPerView: 5,
 			},
 			1200: {
-			    slidesPerView: 3,
+			    slidesPerView: 5,
 			},
 			992: {
 			    slidesPerView: 3,

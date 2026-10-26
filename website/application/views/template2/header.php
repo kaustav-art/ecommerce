@@ -52,16 +52,21 @@ if (!function_exists('elt_resolve_img')) {
    <link rel="stylesheet" href="<?= $bazaro; ?>css/swiper-bundle.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/magnific-popup.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/font-awesome-pro.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/spacing.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/main.css">
 
    <link rel="stylesheet" type="text/css" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
-   <?php if (!in_array(($active_page ?? 'home'), ['home', 'shop', 'product'], true)): ?>
-   <!-- Inner-page storefront styles for shared cart/checkout/account views -->
-   <link rel="stylesheet" type="text/css" href="<?= base_url('assets/css/styles.css'); ?>">
-   <?php endif; ?>
+   <link rel="stylesheet" type="text/css" href="<?= base_url('assets/fonts/fonts.css'); ?>">
 
    <style>
+      :root {
+         --elt-dark: #0B0D0E;
+         --elt-lime: #E1EEB7;
+         --elt-slate: #f6f7f9;
+         --bs-primary: #0B0D0E;
+         --bs-primary-rgb: 11, 13, 14;
+      }
       /* Preload Spinner (Matching Fashion Template) */
       #loading { display: none !important; }
       .preload-container {
@@ -112,22 +117,22 @@ if (!function_exists('elt_resolve_img')) {
       .store-search-input-wrap {
          display: flex;
          align-items: center;
-         background-color: #f0f5ff;
+         background-color: #f4f6f8;
          border-radius: 8px;
          height: 44px;
          padding: 0 14px;
          transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-         border: 1px solid transparent;
+         border: 1px solid #e2e8f0;
       }
       .store-search-input-wrap:focus-within {
          background-color: #ffffff;
-         border-color: #2874f0;
-         box-shadow: 0 0 0 3px rgba(40, 116, 240, 0.12);
+         border-color: #0B0D0E;
+         box-shadow: 0 0 0 3px rgba(11, 13, 14, 0.1);
       }
       .store-search-icon-btn {
          background: transparent;
          border: none;
-         color: #717478;
+         color: #475569;
          font-size: 15px;
          padding: 0;
          margin-right: 12px;
@@ -137,16 +142,16 @@ if (!function_exists('elt_resolve_img')) {
          justify-content: center;
       }
       .store-search-icon-btn:hover {
-         color: #2874f0;
+         color: #0B0D0E;
       }
       .store-search-input {
          height: 34px !important;
          border: 0 !important;
-         background-color: #f0f5ff !important;
+         background-color: transparent !important;
          outline: none !important;
          width: 100%;
          font-size: 14px;
-         color: #212121;
+         color: #0B0D0E;
          font-weight: 400;
          padding: 0 8px !important;
          border-radius: 4px;
@@ -258,6 +263,234 @@ if (!function_exists('elt_resolve_img')) {
       .elt-logo-text {
          font-size: 24px; font-weight: 800; color: #0B0D0E; text-decoration: none; letter-spacing: -0.5px;
       }
+
+      /* =====================================================================
+       * Bazaro Electronics Theme Overrides for Shared Inner Pages
+       * Palette: Dark Carbon (#0B0D0E) + Neon Lime (#E1EEB7) + Slate (#f6f7f9)
+       * ===================================================================== */
+      section[style*="background: #f1f3f6"],
+      section[style*="background:#f1f3f6"],
+      section[style*="background-color: #f1f3f6"],
+      div[style*="background-color: #f1f3f6"],
+      .flat-spacing[style*="background: #f1f3f6"] {
+         background-color: #f6f7f9 !important;
+      }
+      .text-primary {
+         color: #0B0D0E !important;
+      }
+      .bg-primary {
+         background-color: #0B0D0E !important;
+      }
+      .border-primary {
+         border-color: #0B0D0E !important;
+      }
+      .btn-primary,
+      .btn-deliver-here,
+      .btn-proceed-buy,
+      .tf-btn.btn-fill {
+         background-color: #0B0D0E !important;
+         border-color: #0B0D0E !important;
+         color: #ffffff !important;
+         font-weight: 700 !important;
+         border-radius: 10px !important;
+         transition: all 0.2s ease !important;
+         box-shadow: 0 4px 14px rgba(11, 13, 14, 0.14) !important;
+      }
+      .btn-primary:hover,
+      .btn-primary:focus,
+      .btn-deliver-here:hover,
+      .btn-proceed-buy:hover,
+      .tf-btn.btn-fill:hover {
+         background-color: #E1EEB7 !important;
+         border-color: #E1EEB7 !important;
+         color: #0B0D0E !important;
+      }
+      .btn-outline-primary {
+         color: #0B0D0E !important;
+         border-color: #0B0D0E !important;
+         font-weight: 700 !important;
+         border-radius: 10px !important;
+      }
+      .btn-outline-primary:hover,
+      .btn-outline-primary:focus {
+         background-color: #0B0D0E !important;
+         border-color: #0B0D0E !important;
+         color: #E1EEB7 !important;
+      }
+
+      /* Account Sidebar & Profile Cards (Electronics Dark Carbon + Lime Theme) */
+      .fk-sidebar-wrap .card,
+      section .card.border-0.shadow-sm,
+      .cart-address-card,
+      .cart-items-card,
+      .cart-summary-card,
+      .fk-step-card {
+         border: 1px solid #e7eaf0 !important;
+         border-radius: 16px !important;
+         box-shadow: 0 4px 18px rgba(11, 13, 14, 0.04) !important;
+      }
+      .fk-menu-group-header {
+         color: #0B0D0E !important;
+         font-weight: 800 !important;
+      }
+      .fk-menu-group-header i {
+         color: #0B0D0E !important;
+         background: #E1EEB7;
+         width: 28px !important;
+         height: 28px;
+         border-radius: 7px;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         font-size: 13px !important;
+      }
+      .fk-sub-link {
+         border-radius: 8px;
+         margin: 2px 10px;
+         padding: 9px 14px !important;
+         font-weight: 500;
+         color: #334155;
+      }
+      .fk-sub-link:hover {
+         color: #0B0D0E !important;
+         background-color: #f1f5f9 !important;
+      }
+      .fk-sub-link.active {
+         color: #E1EEB7 !important;
+         background-color: #0B0D0E !important;
+         font-weight: 700 !important;
+      }
+      .fk-Single-link:hover {
+         color: #0B0D0E !important;
+         background-color: #f1f5f9 !important;
+      }
+      .fk-input-control {
+         border-radius: 10px !important;
+         border-color: #d8dee6 !important;
+      }
+      .fk-input-control:focus,
+      .form-control:focus,
+      .form-select:focus {
+         border-color: #0B0D0E !important;
+         box-shadow: 0 0 0 3px rgba(11, 13, 14, 0.1) !important;
+      }
+
+      /* Reset Bazaro global input rules on checkboxes, radios, and range sliders */
+      input[type="checkbox"],
+      input[type="radio"],
+      .form-check-input {
+         width: 18px !important;
+         height: 18px !important;
+         min-width: 18px !important;
+         min-height: 18px !important;
+         padding: 0 !important;
+         padding-inline-start: 0 !important;
+         padding-inline-end: 0 !important;
+         margin-top: 0 !important;
+         line-height: 1 !important;
+         flex-shrink: 0 !important;
+         border: 1.5px solid #94a3b8 !important;
+         background-color: #ffffff !important;
+         box-shadow: none !important;
+         cursor: pointer;
+         vertical-align: middle;
+      }
+      input[type="checkbox"],
+      .form-check-input[type="checkbox"] {
+         border-radius: 4px !important;
+      }
+      input[type="radio"],
+      .form-check-input[type="radio"] {
+         border-radius: 50% !important;
+      }
+      input[type="checkbox"]:checked,
+      input[type="radio"]:checked,
+      .form-check-input:checked {
+         background-color: #0B0D0E !important;
+         border-color: #0B0D0E !important;
+         accent-color: #0B0D0E !important;
+      }
+      input[type="checkbox"]:focus,
+      input[type="radio"]:focus,
+      .form-check-input:focus {
+         border-color: #0B0D0E !important;
+         box-shadow: 0 0 0 3px rgba(11, 13, 14, 0.12) !important;
+      }
+      input[type="range"],
+      .form-range {
+         width: 100% !important;
+         height: 6px !important;
+         padding: 0 !important;
+         padding-inline-start: 0 !important;
+         padding-inline-end: 0 !important;
+         border: none !important;
+         box-shadow: none !important;
+         accent-color: #0B0D0E !important;
+      }
+
+      /* Cart, Checkout, Order Timeline & Inner Page Headers */
+      .fk-step-header.active {
+         background: #0B0D0E !important;
+         color: #ffffff !important;
+         border-radius: 16px 16px 0 0;
+      }
+      .fk-step-header.active .step-num {
+         background: #E1EEB7 !important;
+         color: #0B0D0E !important;
+      }
+      .step-num {
+         color: #0B0D0E !important;
+         background: #f1f5f9 !important;
+      }
+      .btn-change-addr {
+         color: #0B0D0E !important;
+         border-color: #cbd5e1 !important;
+         background: #f8fafc !important;
+         border-radius: 8px !important;
+      }
+      .btn-change-addr:hover {
+         background: #0B0D0E !important;
+         color: #E1EEB7 !important;
+         border-color: #0B0D0E !important;
+      }
+      .fk-addr-item.selected,
+      .fk-pay-item.selected {
+         background: #f8fafc !important;
+         border-color: #0B0D0E !important;
+      }
+      .fk-order-card:hover {
+         border-color: #0B0D0E !important;
+         box-shadow: 0 6px 18px rgba(11, 13, 14, 0.08) !important;
+      }
+      .fk-item-title:hover {
+         color: #0B0D0E !important;
+      }
+      .fk-step-item.completed .fk-step-circle,
+      .fk-step-item.active .fk-step-circle {
+         background: #0B0D0E !important;
+         border-color: #0B0D0E !important;
+      }
+      .fk-step-item.completed:not(:last-child)::after {
+         background: #0B0D0E !important;
+      }
+      .tf-page-title {
+         background: linear-gradient(135deg, #0B0D0E 0%, #181c20 60%, #11161b 100%) !important;
+         padding: 36px 0 !important;
+         color: #ffffff !important;
+      }
+      .tf-page-title .heading,
+      .tf-page-title h1,
+      .tf-page-title h2,
+      .tf-page-title h3,
+      .tf-page-title .breadcrumbs,
+      .tf-page-title .breadcrumbs a,
+      .tf-page-title .breadcrumbs li,
+      .tf-page-title .text-secondary {
+         color: #ffffff !important;
+      }
+      .tf-page-title .breadcrumbs a:hover {
+         color: #E1EEB7 !important;
+      }
    </style>
 
    <script>
@@ -356,17 +589,18 @@ if (!function_exists('elt_resolve_img')) {
             <div class="aq-cartmini-product-list" id="eltCartMiniBody">
                <?php if (!empty($cart_items)): ?>
                   <?php foreach ($cart_items as $c_key => $c_item):
+                     $c_name = $c_item['name'] ?? ($c_item['title'] ?? ($c_item['product_title'] ?? 'Electronics Product'));
                      $c_img = elt_resolve_img($c_item['image'] ?? ($c_item['main_image'] ?? ''));
                      $c_slug = !empty($c_item['slug']) ? site_url('product/' . $c_item['slug']) : site_url('product/' . ($c_item['product_id'] ?? ''));
                   ?>
                   <div class="aq-cartmini-product-item d-flex align-items-center justify-content-between">
                      <div class="aq-cartmini-product-info d-flex align-items-center">
                         <div class="aq-cartmini-product-img">
-                           <a href="<?= $c_slug; ?>"><img src="<?= $c_img; ?>" alt="<?= html_escape($c_item['name'] ?? 'Product'); ?>"></a>
+                           <a href="<?= $c_slug; ?>"><img src="<?= $c_img; ?>" alt="<?= html_escape($c_name); ?>"></a>
                         </div>
                         <div class="aq-cartmini-product-content">
                            <h4 class="aq-cartmini-product-title">
-                              <a href="<?= $c_slug; ?>"><?= html_escape($c_item['name'] ?? 'Product'); ?></a>
+                              <a href="<?= $c_slug; ?>"><?= html_escape($c_name); ?></a>
                            </h4>
                            <span class="aq-cartmini-product-price"><?= (int)($c_item['quantity'] ?? 1); ?> &times; <?= $curr . number_format((float)($c_item['price'] ?? 0), 2); ?></span>
                         </div>

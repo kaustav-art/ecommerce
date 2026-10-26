@@ -147,7 +147,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    <script src="<?= $bazaro; ?>js/purecounter.js"></script>
    <script src="<?= $bazaro; ?>js/isotope-pkgd.js"></script>
    <script src="<?= $bazaro; ?>js/lazysize.min.js"></script>
-   <script src="<?= $bazaro; ?>js/slider-active.js"></script>
+   <script src="<?= $bazaro; ?>js/slider-active.js?v=<?= filemtime(FCPATH . 'assets/templates/bazaro/js/slider-active.js'); ?>"></script>
    <script src="<?= $bazaro; ?>js/imagesloaded-pkgd.js"></script>
    <script src="<?= $bazaro; ?>js/ajax-form.js"></script>
    <script src="<?= $bazaro; ?>js/main.js"></script>
