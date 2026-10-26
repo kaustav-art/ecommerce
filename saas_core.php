@@ -226,11 +226,17 @@ function provision_tenant_standalone_folder_and_db($cleanDomain, $chosenTemplate
 
     // 1. Copy website -> {cleanDomain} and admin -> {cleanDomain}/admin using fast robocopy on Windows
     if (stripos(PHP_OS, 'WIN') === 0) {
-        $cmdWeb = sprintf('robocopy %s %s /E /XD .git node_modules /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcWeb), escapeshellarg($targetDir));
+        $cmdWeb = sprintf('robocopy %s %s /E /XD .git node_modules templates /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcWeb), escapeshellarg($targetDir));
         @shell_exec($cmdWeb);
         $targetAdmin = $targetDir . DIRECTORY_SEPARATOR . 'admin';
-        $cmdAdm = sprintf('robocopy %s %s /E /XD .git node_modules /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcAdmin), escapeshellarg($targetAdmin));
+        $cmdAdm = sprintf('robocopy %s %s /E /XD .git node_modules templates /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcAdmin), escapeshellarg($targetAdmin));
         @shell_exec($cmdAdm);
+    }
+
+    // Remove any unused templates folder if present
+    $unusedTplDir = $targetDir . DIRECTORY_SEPARATOR . 'templates';
+    if (is_dir($unusedTplDir)) {
+        rrmdir_saas($unusedTplDir);
     }
 
     // 2. Prune unselected template view folders so the project folder contains only the chosen template + common inner pages
@@ -274,16 +280,19 @@ function provision_tenant_standalone_folder_and_db($cleanDomain, $chosenTemplate
         }
     }
 
-    // Copy tenant-scoped tables for ONLY the chosen template ($srcTenantId) and normalize tenant_id = 1 in the tenant's DB
+    // Copy tenant-scoped catalog/config tables for ONLY the chosen template ($srcTenantId) and normalize tenant_id = 1 in the tenant's DB
+    // Never copy dummy customers (users, user_addresses), orders (orders, order_items, cart_items, notifications), or product reviews (reviews)
     $tenantScopedTables = [
         'categories', 'banners', 'brands', 'products', 'attributes', 'attribute_values',
-        'product_variants', 'reviews', 'users', 'user_addresses', 'cart_items',
-        'orders', 'order_items', 'notifications', 'payment_gateways', 'coupons'
+        'product_variants', 'payment_gateways', 'coupons'
     ];
     foreach ($tenantScopedTables as $tTbl) {
         if (!in_array($tTbl, $mainTables, true)) continue;
         $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`{$tTbl}` SELECT * FROM `ecommerce_main`.`{$tTbl}` WHERE `tenant_id` = {$srcTenantId}");
         $serverPdo->exec("UPDATE `{$tenantDbName}`.`{$tTbl}` SET `tenant_id` = 1");
+    }
+    if (in_array('products', $mainTables, true)) {
+        $serverPdo->exec("UPDATE `{$tenantDbName}`.`products` SET `reviews_count` = 0");
     }
 
     // Copy product child tables (product_specifications, product_attributes, product_variant_values) for the copied products/variants
@@ -741,8 +750,8 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
                         $tp['short_desc'] ?? $tp['name'],
                         $tp['image'],
                         $galleryJson,
-                        (float)($tp['rating'] ?? 4.8),
-                        (int)($tp['reviews_count'] ?? 18)
+                        (float)($tp['rating'] ?? 0),
+                        0
                     ]);
                 }
             }

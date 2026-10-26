@@ -16397,7 +16397,7 @@ body .ui-tooltip {
   border-radius: 16px;
   padding-bottom: 35px;
   background: var(--aq-common-white);
-  box-shadow: 0 30px 70px 0 rgba(1, 15, 28, 0.1);
+  /* box-shadow: 0 30px 70px 0 rgba(1, 15, 28, 0.1); */
 }
 .aq-login-title {
   font-size: 24px;

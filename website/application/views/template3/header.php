@@ -444,9 +444,11 @@
       </div>
       <div class="aq-offcanvas-bottom">
          <div class="aq-offcanvas-btn-wrap d-flex justify-content-between align-items-center">
-            <a class="aq-offcanvas-btn" href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
-               <?= !empty($is_logged_in) ? 'My Account' : 'Login'; ?>
-            </a>
+            <?php if (!empty($is_logged_in)): ?>
+            <a class="aq-offcanvas-btn" href="<?= site_url('account'); ?>">My Account</a>
+            <?php else: ?>
+            <a class="aq-offcanvas-btn" href="#exampleModalToggle" data-bs-toggle="modal">Login</a>
+            <?php endif; ?>
             <a class="aq-offcanvas-btn btn-black-bg" href="<?= site_url('wishlist'); ?>">Wishlist (<?= (int)($wishlist_count ?? 0); ?>)</a>
          </div>
       </div>
@@ -467,12 +469,21 @@
                </a>
             </div>
             <div class="col">
-               <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
+               <?php if (!empty($is_logged_in)): ?>
+               <a href="<?= site_url('account'); ?>">
                   <div class="aq-bottom-menu-item">
                      <i><i class="fa-regular fa-user"></i></i>
                      <span>Account</span>
                   </div>
                </a>
+               <?php else: ?>
+               <a href="#exampleModalToggle" data-bs-toggle="modal">
+                  <div class="aq-bottom-menu-item">
+                     <i><i class="fa-regular fa-user"></i></i>
+                     <span>Sign In</span>
+                  </div>
+               </a>
+               <?php endif; ?>
             </div>
             <div class="col">
                <a href="<?= site_url('shop'); ?>">
@@ -542,7 +553,8 @@
                      <div class="aq-header-right-options grc-header-right-option text-end">
                         <ul>
                            <li class="aq-header-top-account d-none d-md-inline-flex">
-                              <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>" class="text-decoration-none">
+                              <?php if (!empty($is_logged_in)): ?>
+                              <a href="<?= site_url('account'); ?>" class="text-decoration-none">
                                  <div class="aq-header-top-account-item">
                                     <span class="grc-option-style d-inline-flex align-items-center justify-content-center">
                                        <i>
@@ -552,11 +564,28 @@
                                        </i>
                                     </span>
                                     <div class="aq-header-top-account-content text-start">
-                                       <span><?= !empty($is_logged_in) ? html_escape($current_user['first_name'] ?? 'Member') : 'Hello'; ?></span>
-                                       <p><?= !empty($is_logged_in) ? 'Account' : 'Sign In'; ?></p>
+                                       <span><?= html_escape($current_user['first_name'] ?? 'Member'); ?></span>
+                                       <p>Account</p>
                                     </div>
                                  </div>
                               </a>
+                              <?php else: ?>
+                              <a href="#exampleModalToggle" data-bs-toggle="modal" class="text-decoration-none">
+                                 <div class="aq-header-top-account-item">
+                                    <span class="grc-option-style d-inline-flex align-items-center justify-content-center">
+                                       <i>
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
+                                             <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          </svg>
+                                       </i>
+                                    </span>
+                                    <div class="aq-header-top-account-content text-start">
+                                       <span>Hello</span>
+                                       <p>Sign In</p>
+                                    </div>
+                                 </div>
+                              </a>
+                              <?php endif; ?>
                            </li>
                            <li class="aq-header-top-wishlist d-none d-xl-inline-flex">
                               <a href="<?= site_url('wishlist'); ?>" class="grc-option-style aq-wishlist-btn d-inline-flex align-items-center justify-content-center position-relative">

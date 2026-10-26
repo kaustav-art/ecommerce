@@ -11,6 +11,24 @@ class account extends MY_Controller {
     public function __construct()
     {
         parent::__construct();
+        $this->load->model('user_model');
+    }
+
+    /**
+     * Resolve active user from session/DB when logged in, or fallback to demo user
+     */
+    protected function _get_account_user()
+    {
+        if ($this->is_logged_in() && !empty($this->current_user)) {
+            if (!empty($this->current_user['id'])) {
+                $db_user = $this->user_model->get_by_id((int) $this->current_user['id']);
+                if ($db_user) {
+                    return $db_user;
+                }
+            }
+            return $this->current_user;
+        }
+        return Static_template_data::get('user');
     }
 
     public function index()
@@ -20,10 +38,27 @@ class account extends MY_Controller {
 
     public function profile()
     {
-        $user = Static_template_data::get('user');
+        $user = $this->_get_account_user();
 
         if ($this->input->method() === 'post') {
-            $this->session->set_flashdata('success', 'Profile details updated (Template Demo Mode).');
+            if ($this->is_logged_in() && !empty($user['id'])) {
+                $update_data = [
+                    'first_name' => trim((string) $this->input->post('first_name', TRUE)),
+                    'last_name'  => trim((string) $this->input->post('last_name', TRUE)),
+                    'email'      => trim((string) $this->input->post('email', TRUE)),
+                    'phone'      => trim((string) $this->input->post('phone', TRUE)),
+                    'gender'     => trim((string) $this->input->post('gender', TRUE)),
+                ];
+                $this->user_model->update((int) $user['id'], $update_data);
+                $fresh_user = $this->user_model->get_by_id((int) $user['id']);
+                if ($fresh_user) {
+                    unset($fresh_user['password']);
+                    $this->session->set_userdata('user_data', $fresh_user);
+                }
+                $this->session->set_flashdata('success', 'Profile details updated successfully.');
+            } else {
+                $this->session->set_flashdata('success', 'Profile details updated (Template Demo Mode).');
+            }
             redirect('account/profile');
             return;
         }
@@ -40,7 +75,7 @@ class account extends MY_Controller {
 
     public function orders()
     {
-        $user   = Static_template_data::get('user');
+        $user   = $this->_get_account_user();
         $orders = Static_template_data::get('orders');
 
         $data = [
@@ -57,7 +92,7 @@ class account extends MY_Controller {
     public function order_detail($order_number = 'ORD-2026-88412')
     {
         // Always render the single Common Order Details page regardless of order_number
-        $user  = Static_template_data::get('user');
+        $user  = $this->_get_account_user();
         $order = Static_template_data::get('common_order');
 
         $data = [
@@ -74,7 +109,7 @@ class account extends MY_Controller {
 
     public function rate_review($order_number = 'ORD-2026-88412', $product_id = null)
     {
-        $user          = Static_template_data::get('user');
+        $user          = $this->_get_account_user();
         $order         = Static_template_data::get('common_order');
         $items         = $order['items'] ?? [];
         $selected_item = $items[0] ?? [];
@@ -129,7 +164,7 @@ class account extends MY_Controller {
 
     public function returns()
     {
-        $user = Static_template_data::get('user');
+        $user = $this->_get_account_user();
 
         $data = [
             'title'              => 'Return & Refund Requests - ' . $this->site_name,
@@ -150,7 +185,7 @@ class account extends MY_Controller {
 
     public function address()
     {
-        $user      = Static_template_data::get('user');
+        $user      = $this->_get_account_user();
         $addresses = Static_template_data::get('addresses');
 
         if ($this->input->method() === 'post') {
@@ -195,7 +230,7 @@ class account extends MY_Controller {
 
     public function wishlist()
     {
-        $user     = Static_template_data::get('user');
+        $user     = $this->_get_account_user();
         $products = Static_template_data::get('products');
         $wishlist = array_slice($products, 0, 4);
 
@@ -222,7 +257,7 @@ class account extends MY_Controller {
 
     public function notifications()
     {
-        $user          = Static_template_data::get('user');
+        $user          = $this->_get_account_user();
         $notifications = Static_template_data::get('notifications');
 
         $data = [

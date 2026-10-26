@@ -33,8 +33,19 @@ class MY_Controller extends CI_Controller {
         // 1. Resolve Active Tenant & Template from URL / Database
         $this->_resolve_tenant_and_template();
 
-        // 2. Load customer profile from DB
-        $this->current_user = Static_template_data::get('user');
+        // 2. Load customer profile from session if logged in
+        if ($this->session->userdata('user_logged_in')) {
+            $this->current_user = [
+                'id'         => (int) $this->session->userdata('user_id'),
+                'first_name' => $this->session->userdata('user_first_name'),
+                'last_name'  => $this->session->userdata('user_last_name'),
+                'email'      => $this->session->userdata('user_email'),
+                'phone'      => $this->session->userdata('user_phone'),
+                'avatar'     => $this->session->userdata('user_avatar') ?: ''
+            ];
+        } else {
+            $this->current_user = NULL;
+        }
 
         // 3. Load Store Settings from DB
         $this->store_settings = Static_template_data::get('settings');
@@ -344,11 +355,15 @@ class MY_Controller extends CI_Controller {
 
     public function is_logged_in()
     {
-        return TRUE;
+        return (bool) $this->session->userdata('user_logged_in');
     }
 
     public function require_login()
     {
+        if (!$this->is_logged_in()) {
+            $this->session->set_userdata('redirect_url', current_url());
+            redirect('home');
+        }
         return TRUE;
     }
 
@@ -364,12 +379,12 @@ class MY_Controller extends CI_Controller {
         $data['cart_count']           = $this->cart_count;
         $data['cart_total']           = $this->cart_total;
         $data['cart_items']           = isset($data['cart_items']) ? $data['cart_items'] : Static_template_data::get('cart_items');
-        $data['wishlist_count']       = isset($data['wishlist_count']) ? $data['wishlist_count'] : 4;
+        $data['wishlist_count']       = isset($data['wishlist_count']) ? $data['wishlist_count'] : ($this->is_logged_in() ? 4 : 0);
         $data['recommended_products'] = isset($data['recommended_products']) ? $data['recommended_products'] : array_slice($all_products, 0, 4);
         $data['store_settings']       = $this->store_settings;
         $data['currency_symbol']      = $this->store_settings['currency_symbol'] ?? '$';
         $data['currency_code']        = $this->store_settings['currency_code'] ?? 'USD';
-        $data['is_logged_in']         = TRUE;
+        $data['is_logged_in']         = $this->is_logged_in();
         $data['site_name']            = $this->site_name;
         $data['tenant']               = $this->tenant;
         $data['tenant_id']            = $this->tenant_id;

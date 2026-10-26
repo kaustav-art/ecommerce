@@ -676,12 +676,21 @@ if (!function_exists('elt_resolve_img')) {
             </a>
          </div>
          <div class="aq-bottom-menu-item">
-            <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
+            <?php if (!empty($is_logged_in)): ?>
+            <a href="<?= site_url('account'); ?>">
                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
                   <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                </svg>
                <span>Account</span>
             </a>
+            <?php else: ?>
+            <a href="#exampleModalToggle" data-bs-toggle="modal">
+               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
+                  <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+               </svg>
+               <span>Sign In</span>
+            </a>
+            <?php endif; ?>
          </div>
       </div>
    </div>
@@ -725,13 +734,23 @@ if (!function_exists('elt_resolve_img')) {
                <div class="aq-header-right-options text-end order-2 order-md-3">
                   <ul>
                      <li class="aq-header-top-account d-none d-md-inline-block">
-                        <a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">
+                        <?php if (!empty($is_logged_in)): ?>
+                        <a href="<?= site_url('account'); ?>" title="<?= html_escape($current_user['first_name'] ?? 'Account'); ?>">
                            <i>
                               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
                                  <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                               </svg>
                            </i>
                         </a>
+                        <?php else: ?>
+                        <a href="#exampleModalToggle" data-bs-toggle="modal" title="Sign In">
+                           <i>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 17 20" fill="none">
+                                 <path d="M16.212 18.75C16.212 15.267 12.747 12.45 8.481 12.45C4.215 12.45 0.75 15.267 0.75 18.75M12.9805 5.25C12.9805 7.73528 10.9657 9.75 8.48047 9.75C5.99519 9.75 3.98047 7.73528 3.98047 5.25C3.98047 2.76472 5.99519 0.75 8.48047 0.75C10.9657 0.75 12.9805 2.76472 12.9805 5.25Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                           </i>
+                        </a>
+                        <?php endif; ?>
                      </li>
                      <li class="aq-header-top-wishlist d-none d-md-inline-block">
                         <a href="<?= site_url('wishlist'); ?>" class="aq-wishlist-btn">

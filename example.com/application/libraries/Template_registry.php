@@ -152,8 +152,11 @@ class Template_registry {
             if (!empty($tpl['footer_view'])) {
                 $content .= $this->CI->load->view($tpl['footer_view'], $data, TRUE);
             }
-            if (!empty($tpl['modals_view']) && !$is_bazaro_home) {
+            if (!empty($tpl['modals_view']) && !$is_bazaro_home && file_exists(APPPATH . 'views/' . $tpl['modals_view'] . '.php')) {
                 $content .= $this->CI->load->view($tpl['modals_view'], $data, TRUE);
+            }
+            if (file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
+                $content .= $this->CI->load->view('layouts/auth_login_modal', $data, TRUE);
             }
             return $content;
         }
@@ -171,8 +174,11 @@ class Template_registry {
         if (!empty($tpl['footer_view'])) {
             $this->CI->load->view($tpl['footer_view'], $data);
         }
-        if (!empty($tpl['modals_view']) && !$is_bazaro_home) {
+        if (!empty($tpl['modals_view']) && !$is_bazaro_home && file_exists(APPPATH . 'views/' . $tpl['modals_view'] . '.php')) {
             $this->CI->load->view($tpl['modals_view'], $data);
+        }
+        if (file_exists(APPPATH . 'views/layouts/auth_login_modal.php')) {
+            $this->CI->load->view('layouts/auth_login_modal', $data);
         }
     }
 }
