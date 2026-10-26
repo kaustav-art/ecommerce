@@ -39,17 +39,30 @@ class MY_Controller extends CI_Controller {
             ];
 
             // Load current tenant and plan metadata
-            $this->tenant = $this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array() ?: [
-                'id'                  => 1,
-                'business_name'       => 'Codeulas Fashion Store',
-                'slug'                => 'fashion-store',
-                'template'            => 'fashion',
-                'status'              => 'active',
-                'subscription_status' => 'active',
-                'plan_id'             => 3
-            ];
+            $this->tenant = ($this->db->table_exists('saas_tenants'))
+                ? ($this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array() ?: [])
+                : [];
+            if (empty($this->tenant)) {
+                $s_name = 'Store';
+                $s_tpl  = 'fashion';
+                if ($this->db->table_exists('settings')) {
+                    foreach ($this->db->where('tenant_id', $this->tenant_id)->where_in('setting_key', ['site_name', 'active_template'])->get('settings')->result_array() as $sr) {
+                        if ($sr['setting_key'] === 'site_name' && !empty($sr['setting_value'])) $s_name = $sr['setting_value'];
+                        if ($sr['setting_key'] === 'active_template' && !empty($sr['setting_value'])) $s_tpl = $sr['setting_value'];
+                    }
+                }
+                $this->tenant = [
+                    'id'                  => $this->tenant_id,
+                    'business_name'       => $s_name,
+                    'slug'                => 'store',
+                    'template'            => $s_tpl,
+                    'status'              => 'active',
+                    'subscription_status' => 'active',
+                    'plan_id'             => 3
+                ];
+            }
 
-            if (!empty($this->tenant['plan_id'])) {
+            if (!empty($this->tenant['plan_id']) && $this->db->table_exists('saas_plans')) {
                 $this->tenant_plan = $this->db->where('id', (int) $this->tenant['plan_id'])->get('saas_plans')->row_array() ?: [];
             }
 
@@ -168,7 +181,7 @@ class MY_Controller extends CI_Controller {
             return null;
         }
 
-        $target_dir = FCPATH . '../website/assets/images/' . trim($subfolder, '/') . '/';
+        $target_dir = admin_storefront_fs_path('assets/images/' . trim($subfolder, '/') . '/');
         if (!is_dir($target_dir)) {
             @mkdir($target_dir, 0777, TRUE);
         }
@@ -196,7 +209,7 @@ class MY_Controller extends CI_Controller {
             return [];
         }
 
-        $target_dir = FCPATH . '../website/assets/images/' . trim($subfolder, '/') . '/';
+        $target_dir = admin_storefront_fs_path('assets/images/' . trim($subfolder, '/') . '/');
         if (!is_dir($target_dir)) {
             @mkdir($target_dir, 0777, TRUE);
         }

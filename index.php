@@ -363,7 +363,7 @@ $contactAddress = $settings['contact_address'] ?? '123 Commerce Way, Suite 500, 
         }
         .template-actions {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 12px;
         }
 
@@ -665,9 +665,6 @@ $contactAddress = $settings['contact_address'] ?? '123 Commerce Way, Suite 500, 
                     <div class="template-actions">
                         <a href="<?= htmlspecialchars($demoLink) ?>" target="_blank" class="btn btn-outline">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Demo
-                        </a>
-                        <a href="<?= htmlspecialchars($registerLink) ?>" class="btn btn-primary">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Select Template
                         </a>
                     </div>
                 </div>

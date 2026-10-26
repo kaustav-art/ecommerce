@@ -847,7 +847,7 @@ if (!empty($initial_variant)) {
                         <span>/</span>
                         <span><a href="<?= site_url('shop?preview_tpl=electronics'); ?>">shop</a></span>
                         <span>/</span>
-                        <span><a href="#">Osette backpack Bags</a></span>
+                        <span><a href="#"><?= html_escape($product['title'] ?? 'Product Details'); ?></a></span>
                      </div>
                   </div>
                </div>
@@ -857,6 +857,22 @@ if (!empty($initial_variant)) {
       <!-- breadcrumb area end -->
 
       <!-- product details area start -->
+      <?php
+      $elt_gallery_urls = [];
+      foreach ($all_images as $raw_img) {
+          $clean_g = ltrim((string)$raw_img, '/');
+          if (strpos($clean_g, 'http') === 0) {
+              $elt_gallery_urls[] = $clean_g;
+          } elseif (strpos($clean_g, 'assets/') === 0) {
+              $elt_gallery_urls[] = base_url($clean_g);
+          } else {
+              $elt_gallery_urls[] = base_url('assets/images/' . $clean_g);
+          }
+      }
+      while (count($elt_gallery_urls) < 4) {
+          $elt_gallery_urls[] = $elt_gallery_urls[0] ?? base_url('assets/images/products/electronics/elec-p-1.jpg');
+      }
+      ?>
       <div class="aq-product-details-thumbnails-style pb-120">
          <div class="container">
             <div class="row">
@@ -864,74 +880,22 @@ if (!empty($initial_variant)) {
                   <div class="product-details-slider-wrap">
                      <div class="product-slider-main-wrap p-relative mb-10">
                         <div class="product-slider-main slider-for p-relative">
+                           <?php foreach ($elt_gallery_urls as $g_url): ?>
                            <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg" alt="">
+                              <a class="popup-image" href="<?= $g_url; ?>">
+                                 <img src="<?= $g_url; ?>" alt="<?= html_escape($product['title'] ?? ''); ?>">
                               </a>
                            </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg" alt="">
-                              </a>
-                           </div>
-                           <div class="product-slider-for-img">
-                              <a class="popup-image" href="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg">
-                                 <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg" alt="">
-                              </a>
-                           </div>
+                           <?php endforeach; ?>
                         </div>
                         <div class="product-slider-arrow"></div>
                      </div>
                      <div class="product-slider-nav-2 slider-nav-2">
+                        <?php foreach ($elt_gallery_urls as $g_url): ?>
                         <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg" alt="">
+                           <img src="<?= $g_url; ?>" alt="<?= html_escape($product['title'] ?? ''); ?>">
                         </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-1.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-2.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-3.jpg" alt="">
-                        </div>
-                        <div class="product-slider-nav-img">
-                           <img src="<?= $bazaro; ?>img/fashion-1/product/product-10/thumb-4.jpg" alt="">
-                        </div>
+                        <?php endforeach; ?>
                      </div>
                   </div>
                </div>
@@ -1390,50 +1354,40 @@ if (!empty($initial_variant)) {
                         <div class="tab-pane fade show active" id="nav-description" role="tabpanel" aria-labelledby="nav-description-tab" tabindex="0">
                            <div class="product-details-tab-item">
                               <div class="product-details-desc-wrap">
-                                 <h3 class="product-details-desc-title">Fashion Clothes Outfits for Women</h3>
-                                 <p class="mb-50">
-                                    At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias
-                                    excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum
-                                    facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil
+                                 <h3 class="product-details-desc-title"><?= html_escape($product['title'] ?? 'Product Overview'); ?></h3>
+                                 <p class="mb-30">
+                                    <?= nl2br(html_escape(!empty($product['description']) ? $product['description'] : ($product['short_description'] ?? ''))); ?>
                                  </p>
                                  <div class="row">
                                     <div class="col-xl-8">
                                        <div class="row">
+                                          <?php if (!empty($product_highlights)): ?>
                                           <div class="col-xl-6">
                                              <div class="product-details-desc-list">
-                                                <h4 class="product-details-desc-list-title">Features</h4>
+                                                <h4 class="product-details-desc-list-title">Key Highlights</h4>
                                                 <ul>
-                                                   <li>Cutaway collar</li>
-                                                   <li>Chest patch pocket</li>
-                                                   <li>Babaton embroidered crest</li>
-                                                   <li>Adjustable sleeve tabs</li>
+                                                   <?php foreach ($product_highlights as $hl): ?>
+                                                      <li><strong><?= html_escape($hl['key'] ?? $hl['name'] ?? ''); ?>:</strong> <?= html_escape($hl['value'] ?? ''); ?></li>
+                                                   <?php endforeach; ?>
                                                 </ul>
                                              </div>
                                           </div>
+                                          <?php endif; ?>
                                           <div class="col-xl-6">
                                              <div class="product-details-desc-list">
-                                                <h4 class="product-details-desc-list-title">Composition</h4>
+                                                <h4 class="product-details-desc-list-title">Warranty &amp; Package</h4>
                                                 <ul>
-                                                   <li>Care: Hand wash</li>
-                                                   <li>Content: 100% LENZING™ ECOVERO™ Viscose</li>
-                                                   <li>Imported</li>
+                                                   <li>Warranty: <?= html_escape($product['warranty_info'] ?? '1 Year Official Manufacturer Warranty'); ?></li>
+                                                   <li>SKU: <?= html_escape($initial_sku); ?></li>
+                                                   <li>100% Authentic Sealed Package</li>
                                                 </ul>
-                                             </div>
-                                          </div>
-                                          <div class="col-xl-6">
-                                             <div class="product-details-desc-icon-wrap">
-                                                <h4 class="product-details-desc-list-title">Washing Instructions</h4>
-                                                <div class="product-details-desc-icon">
-                                                   <img src="<?= $bazaro; ?>img/icon/washing-img.png" alt="">
-                                                </div>
-                                                <p>Machine wash, no ironing, don’t dry clean, don’t tumble dry</p>
                                              </div>
                                           </div>
                                        </div>
                                     </div>
                                     <div class="col-xl-4">
                                        <div class="product-details-desc-img">
-                                          <img src="<?= $bazaro; ?>img/product-details/product-desc-img.jpg" alt="">
+                                          <img src="<?= $elt_gallery_urls[0] ?? ''; ?>" alt="<?= html_escape($product['title'] ?? ''); ?>" style="border-radius:12px;max-height:260px;object-fit:contain;">
                                        </div>
                                     </div>
                                  </div>
@@ -1448,34 +1402,23 @@ if (!empty($initial_variant)) {
                                        <h4 class="product-details-additional-info-title">Additional information</h4>
                                        <table>
                                           <tbody>
-                                             <tr>
-                                                <td>Brand</td>
-                                                <td>Sulwhasoo</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Color</td>
-                                                <td>Orange, Dark, Pink</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Use for</td>
-                                                <td>Whole Body</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Product Dimensions</td>
-                                                <td>2.04 x 2.66 x 5.4 inches; 1.7 Ounces</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Item Volume</td>
-                                                <td>50 Milliliters</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Item Form</td>
-                                                <td>Cream</td>
-                                             </tr>
-                                             <tr>
-                                                <td>Country of Origin</td>
-                                                <td>USA</td>
-                                             </tr>
+                                             <?php if (!empty($merged_specs)): ?>
+                                                <?php foreach ($merged_specs as $msp): ?>
+                                                <tr>
+                                                   <td><?= html_escape($msp['name']); ?></td>
+                                                   <td><?= html_escape($msp['value']); ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                             <?php else: ?>
+                                                <tr>
+                                                   <td>Brand</td>
+                                                   <td><?= html_escape($product['brand_name'] ?? 'Official Brand'); ?></td>
+                                                </tr>
+                                                <tr>
+                                                   <td>Category</td>
+                                                   <td><?= html_escape($product['category_name'] ?? 'Electronics'); ?></td>
+                                                </tr>
+                                             <?php endif; ?>
                                           </tbody>
                                        </table>
                                     </div>

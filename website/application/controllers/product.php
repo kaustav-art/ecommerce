@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Product Controller
- * Renders the single common static Product Details page for all product links.
+ * Renders the database-driven Product Details page across all 3 templates.
  */
 class product extends MY_Controller {
 
@@ -19,38 +19,45 @@ class product extends MY_Controller {
 
     public function detail($slug = 'common')
     {
-        // Always load the single common static product regardless of slug
-        $product      = Static_template_data::get('common_product');
         $all_products = Static_template_data::get('products');
+        $product      = Static_template_data::get('common_product');
+
+        $clean_slug = trim((string)$slug);
+        if ($clean_slug !== '' && $clean_slug !== 'common' && !empty($all_products)) {
+            foreach ($all_products as $p) {
+                if ((!empty($p['slug']) && strcasecmp($p['slug'], $clean_slug) === 0) || (is_numeric($clean_slug) && (int)$p['id'] === (int)$clean_slug)) {
+                    $product = $p;
+                    break;
+                }
+            }
+        }
 
         if ($this->active_template === 'grocery') {
             $grc_products = $this->get_dynamic_template_products('template3');
             if (!empty($grc_products)) {
                 $matched_grc = null;
                 foreach ($grc_products as $gp) {
-                    if (!empty($gp['slug']) && strcasecmp($gp['slug'], (string)$slug) === 0) {
+                    if (!empty($gp['slug']) && strcasecmp($gp['slug'], $clean_slug) === 0) {
                         $matched_grc = $gp;
                         break;
                     }
                 }
-                if (!$matched_grc) {
+                if (!$matched_grc && !empty($product['slug'])) {
                     foreach ($grc_products as $gp) {
-                        if (!empty($gp['slug']) && $gp['slug'] === 'sweet-red-strawberries-box') {
+                        if (!empty($gp['slug']) && strcasecmp($gp['slug'], $product['slug']) === 0) {
                             $matched_grc = $gp;
                             break;
                         }
                     }
                 }
-                if (!$matched_grc) {
-                    $matched_grc = $grc_products[0];
+                if ($matched_grc) {
+                    $product = array_merge($product, $matched_grc);
                 }
-                $product      = array_merge($product, $matched_grc);
-                $all_products = $grc_products;
             }
         }
 
         $other_products = array_values(array_filter($all_products, function($p) use ($product) {
-            return (int)$p['id'] !== (int)$product['id'];
+            return (int)($p['id'] ?? 0) !== (int)($product['id'] ?? -1);
         }));
 
         $related_products           = array_slice($other_products, 0, 8);
@@ -58,7 +65,7 @@ class product extends MY_Controller {
         $recently_viewed_products   = array_slice($other_products, 2, 4);
 
         $data = [
-            'title'                      => $product['title'] . ' - ' . $this->site_name,
+            'title'                      => ($product['title'] ?? 'Product Details') . ' - ' . $this->site_name,
             'active_page'                => 'shop',
             'product'                    => $product,
             'related_products'           => $related_products,
@@ -73,19 +80,27 @@ class product extends MY_Controller {
 
     public function get_variant_ajax()
     {
-        $variant_id = (int) $this->input->get('variant_id');
-        $product    = Static_template_data::get('common_product');
-        $variants   = $product['variants'] ?? [];
+        $variant_id   = (int) $this->input->get('variant_id');
+        $all_products = Static_template_data::get('products');
+        $matched      = NULL;
 
-        $matched = NULL;
-        foreach ($variants as $v) {
-            if ((int)$v['id'] === $variant_id) {
-                $matched = $v;
-                break;
+        foreach ($all_products as $p) {
+            if (!empty($p['variants'])) {
+                foreach ($p['variants'] as $v) {
+                    if ((int)$v['id'] === $variant_id) {
+                        $matched = $v;
+                        break 2;
+                    }
+                }
             }
         }
-        if (!$matched && !empty($variants[0])) {
-            $matched = $variants[0];
+
+        if (!$matched) {
+            $product  = Static_template_data::get('common_product');
+            $variants = $product['variants'] ?? [];
+            if (!empty($variants[0])) {
+                $matched = $variants[0];
+            }
         }
 
         if (!$matched) {
@@ -113,8 +128,8 @@ class product extends MY_Controller {
 
     public function review()
     {
-        $slug = $this->input->post('product_slug', TRUE) ?: 'v-neck-cotton-t-shirt';
-        $this->session->set_flashdata('success', 'Thank you! Your review has been published (Template Demo Mode).');
+        $slug = $this->input->post('product_slug', TRUE) ?: 'common';
+        $this->session->set_flashdata('success', 'Thank you! Your review has been submitted.');
         redirect('product/' . $slug);
     }
 }

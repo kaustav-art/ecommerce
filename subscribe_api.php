@@ -91,12 +91,13 @@ function execute_subscription_provisioning($pdo, $settings, $data, $files = []) 
 
     $raw_domain = trim($data['domain'] ?? ($data['store_slug'] ?? ''));
     if ($raw_domain === '') {
-        $raw_domain = sanitize_store_slug($business_name);
+        $raw_domain = sanitize_store_slug($business_name) . '.com';
     }
-    $store_slug = sanitize_store_slug($raw_domain);
-    if (strlen($store_slug) < 3 || is_reserved_store_slug($store_slug)) {
-        $store_slug = 'store-' . rand(100, 999);
+    $clean_domain = sanitize_domain_folder($raw_domain);
+    if (strlen($clean_domain) < 3 || is_reserved_store_slug($clean_domain)) {
+        $clean_domain = 'store-' . rand(100, 999) . '.com';
     }
+    $store_slug = $clean_domain;
 
     // Step 4 Details
     $raw_template    = $data['chosen_template'] ?? ($data['template'] ?? 'template1');
@@ -161,7 +162,7 @@ function execute_subscription_provisioning($pdo, $settings, $data, $files = []) 
         'business_name'    => $business_name,
         'tagline'          => $tagline,
         'store_slug'       => $store_slug,
-        'domain'           => $store_slug . '.com',
+        'domain'           => (strpos($store_slug, '.') !== false) ? $store_slug : ($store_slug . '.com'),
         'owner_email'      => $email,
         'owner_phone'      => $phone,
         'business_email'   => $company_email,
@@ -229,7 +230,7 @@ function execute_subscription_provisioning($pdo, $settings, $data, $files = []) 
             'admin_url'       => $prov['admin_url'],
             'admin_email'     => $email,
             'admin_password'  => $password,
-            'db_name'         => 'ecommerce_main',
+            'db_name'         => $tenant['database_name'] ?? 'ecommerce_main',
             'created_at'      => date('Y-m-d H:i:s')
         ];
     } catch (Exception $e) {
@@ -389,22 +390,22 @@ if ($action === 'resend_otp') {
 // ==========================================
 if ($action === 'check_domain') {
     $domain = isset($_POST['domain']) ? trim($_POST['domain']) : '';
-    $clean  = sanitize_store_slug($domain);
+    $clean  = sanitize_domain_folder($domain);
 
     if ($clean === '') {
-        api_json(['status' => 'error', 'field' => 'domain', 'message' => 'Please enter a domain, subdomain, or store slug.']);
+        api_json(['status' => 'error', 'field' => 'domain', 'message' => 'Please enter a domain or folder name (e.g. example.com).']);
     }
 
     if (strlen($clean) < 3) {
-        api_json(['status' => 'error', 'field' => 'domain', 'message' => 'Store slug must be at least 3 characters (letters, numbers, hyphens).']);
+        api_json(['status' => 'error', 'field' => 'domain', 'message' => 'Domain folder name must be at least 3 characters.']);
     }
 
-    if (is_reserved_store_slug($clean)) {
-        api_json(['status' => 'error', 'field' => 'domain', 'message' => "The directory '$clean' is reserved by the SaaS platform."]);
+    if (is_reserved_store_slug($clean) || is_dir(__DIR__ . DIRECTORY_SEPARATOR . $clean)) {
+        api_json(['status' => 'error', 'field' => 'domain', 'message' => "The folder '$clean' is already in use or reserved."]);
     }
 
     $stmt = $pdo->prepare("SELECT `id` FROM `saas_tenants` WHERE LOWER(`slug`) = ? OR LOWER(`domain`) = ? LIMIT 1");
-    $stmt->execute([$clean, $clean . '.com']);
+    $stmt->execute([$clean, (strpos($clean, '.') !== false) ? $clean : ($clean . '.com')]);
     if ($stmt->fetch()) {
         api_json(['status' => 'error', 'field' => 'domain', 'message' => "'$clean' is already registered. Please choose another."]);
     }
@@ -412,8 +413,8 @@ if ($action === 'check_domain') {
     api_json([
         'status'       => 'success',
         'clean_domain' => $clean,
-        'store_url'    => saas_base_url('website/s/' . $clean),
-        'message'      => "✓ Store URL 'website/s/$clean' is available!"
+        'store_url'    => saas_base_url($clean . '/'),
+        'message'      => "✓ Domain folder '$clean' is available!"
     ]);
 }
 

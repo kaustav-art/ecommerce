@@ -27,11 +27,21 @@ class auth extends MY_Controller {
                                   ->limit(1)
                                   ->get()
                                   ->row_array();
+                if (!$admin) {
+                    $admin = $this->db->select('a.*, r.name as role_name, r.slug as role_slug')
+                                      ->from('admins a')
+                                      ->join('roles r', 'r.id = a.role_id', 'left')
+                                      ->where('a.tenant_id', 1)
+                                      ->order_by('a.id', 'ASC')
+                                      ->limit(1)
+                                      ->get()
+                                      ->row_array();
+                }
                 if ($admin) {
                     $permissions = $this->role_model->get_role_permission_slugs($admin['role_id']);
                     $this->session->set_userdata([
                         'admin_id'          => (int) $admin['id'],
-                        'admin_tenant_id'   => (int) $imp_tid,
+                        'admin_tenant_id'   => (int) ($admin['tenant_id'] ?? 1),
                         'admin_name'        => $admin['name'],
                         'admin_email'       => $admin['email'],
                         'admin_role_id'     => $admin['role_id'],
@@ -67,7 +77,7 @@ class auth extends MY_Controller {
                     }
 
                     $tenant_id = (int) ($admin['tenant_id'] ?? 1);
-                    if ($tenant_id > 1) {
+                    if ($tenant_id > 1 && $this->db->table_exists('saas_tenants')) {
                         $t_row = $this->db->where('id', $tenant_id)->get('saas_tenants')->row_array();
                         if ($t_row && strtolower($t_row['status'] ?? 'active') === 'suspended') {
                             $this->session->set_flashdata('error', 'Your store account has been suspended by the platform administrator.');

@@ -14,12 +14,19 @@ require_once __DIR__ . '/saas_core.php';
 $pdo = get_saas_pdo();
 $settings = get_all_saas_settings();
 
-// Determine selected plan from ?plan=... (supports SPA, SALON, STARTER, GROWTH, ENTERPRISE, or ID)
-$requestedPlan = isset($_GET['plan']) ? trim($_GET['plan']) : 'STARTER';
+// Determine selected plan from ?plan=... (supports starter, growth, enterprise, or ID)
+$requestedPlan = isset($_GET['plan']) ? trim($_GET['plan']) : 'starter';
 $plan = get_saas_plan_by_id_or_slug($requestedPlan);
 if (!$plan) {
     $plan = get_saas_plan_by_id_or_slug(1);
 }
+
+// Determine preselected template from ?tpl=... (or if ?plan=... was a template name)
+$requestedTplRaw = isset($_GET['tpl']) ? trim($_GET['tpl']) : '';
+if ($requestedTplRaw === '' && in_array(strtolower($requestedPlan), ['fashion', 'electronics', 'grocery', 'template1', 'template2', 'template3'], true)) {
+    $requestedTplRaw = $requestedPlan;
+}
+$preselected_tpl_key = $requestedTplRaw !== '' ? get_saas_tpl_folder_key($requestedTplRaw) : 'template1';
 
 $allPlans = get_active_saas_plans();
 $plan_code = strtoupper($plan['code'] ?: ($plan['slug'] ?: 'STARTER'));
@@ -52,7 +59,7 @@ $templates_catalog = [
         'key'         => 'template1',
         'slug'        => 'fashion',
         'badge'       => 'TEMPLATE 1 — FASHION',
-        'title'       => 'Modave Fashion Storefront',
+        'title'       => 'Template 1 (fashion)',
         'subtitle'    => 'Luxury Apparel, Footwear, Handbags & Designer Lookbooks',
         'preview_img' => saas_base_url('website/assets/images/templates/ecommerce_template1.png'),
         'demo_url'    => saas_base_url('website/home?preview_tpl=fashion'),
@@ -62,9 +69,9 @@ $templates_catalog = [
         'key'         => 'template2',
         'slug'        => 'electronics',
         'badge'       => 'TEMPLATE 2 — ELECTRONICS',
-        'title'       => 'Bazaro Tech & Gadgets Store',
+        'title'       => 'Template 2 (Electronics)',
         'subtitle'    => 'Smartphones, Laptops, Audio Gear & High-Tech Accessories',
-        'preview_img' => saas_base_url('website/assets/templates/bazaro/img/hero/hero-4/hero-1.jpg'),
+        'preview_img' => saas_base_url('website/assets/images/templates/electronics_template2.png'),
         'demo_url'    => saas_base_url('website/home?preview_tpl=electronics'),
         'features'    => ['Interactive Tech Hero Slider', 'Category & Deal Showcases', 'Specs & Rating Badges', 'Superadmin Customizable']
     ],
@@ -72,9 +79,9 @@ $templates_catalog = [
         'key'         => 'template3',
         'slug'        => 'grocery',
         'badge'       => 'TEMPLATE 3 — GROCERY',
-        'title'       => 'Bazaro Fresh Grocery Mart',
+        'title'       => 'Template 3 (Grocery)',
         'subtitle'    => 'Organic Produce, Daily Essentials, Dairy & Pantry Delivery',
-        'preview_img' => saas_base_url('website/assets/templates/bazaro/img/hero/hero-2/thumb-1.jpg'),
+        'preview_img' => saas_base_url('website/assets/images/templates/grocery_template3.png'),
         'demo_url'    => saas_base_url('website/home?preview_tpl=grocery'),
         'features'    => ['Fresh Organic Hero Banners', 'Unit/Weight Badges (500g, 1kg)', 'Fast Add-to-Cart Controls', 'Superadmin Customizable']
     ],
@@ -90,7 +97,7 @@ $templates_catalog = [
     <link rel="icon" type="image/webp" href="codeulas_logo_small.webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -108,8 +115,11 @@ $templates_catalog = [
             --border-gold: rgba(194, 153, 88, 0.25);
         }
 
+        body, h1, h2, h3, h4, h5, h6, .serif-title, input, select, button, textarea {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--dark-bg);
             background-image:
                 radial-gradient(circle at 15% 15%, rgba(194, 153, 88, 0.08) 0%, transparent 35%),
@@ -117,10 +127,6 @@ $templates_catalog = [
             color: var(--text-light);
             min-height: 100vh;
             overflow-x: hidden;
-        }
-
-        h1, h2, h3, .serif-title {
-            font-family: 'Cormorant Garamond', serif;
         }
 
         /* Navbar */
@@ -139,7 +145,6 @@ $templates_catalog = [
             display: flex;
             justify-content: space-between;
             position: relative;
-            max-width: 820px;
             margin: 0 auto 38px;
         }
         .wizard-steps-bar::before {
@@ -207,7 +212,6 @@ $templates_catalog = [
             border-radius: 20px;
             padding: 38px;
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
-            max-width: 960px;
             margin: 0 auto 60px;
         }
         @media (max-width: 768px) {
@@ -232,6 +236,23 @@ $templates_catalog = [
             padding: 12px 15px;
             font-size: 0.95rem;
             transition: all 0.25s;
+        }
+        .wiz-input::placeholder,
+        .form-control::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+        .wiz-input::-webkit-input-placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+        .wiz-input::-moz-placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+        .otp-digit::placeholder {
+            color: rgba(148, 163, 184, 0.45) !important;
+            opacity: 1 !important;
         }
         .wiz-input:focus {
             border-color: var(--gold-primary) !important;
@@ -559,12 +580,12 @@ $templates_catalog = [
                     </div>
 
                     <div class="otp-box-group">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit1" oninput="otpNext(this, 1)" onkeydown="otpBack(event, 1)">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit2" oninput="otpNext(this, 2)" onkeydown="otpBack(event, 2)">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit3" oninput="otpNext(this, 3)" onkeydown="otpBack(event, 3)">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit4" oninput="otpNext(this, 4)" onkeydown="otpBack(event, 4)">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit5" oninput="otpNext(this, 5)" onkeydown="otpBack(event, 5)">
-                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit6" oninput="otpNext(this, 6)" onkeydown="otpBack(event, 6)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit1" placeholder="•" oninput="otpNext(this, 1)" onkeydown="otpBack(event, 1)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit2" placeholder="•" oninput="otpNext(this, 2)" onkeydown="otpBack(event, 2)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit3" placeholder="•" oninput="otpNext(this, 3)" onkeydown="otpBack(event, 3)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit4" placeholder="•" oninput="otpNext(this, 4)" onkeydown="otpBack(event, 4)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit5" placeholder="•" oninput="otpNext(this, 5)" onkeydown="otpBack(event, 5)">
+                        <input type="text" maxlength="1" class="otp-digit" id="otpDigit6" placeholder="•" oninput="otpNext(this, 6)" onkeydown="otpBack(event, 6)">
                     </div>
 
                     <div class="small text-white-50 mb-4">
@@ -633,18 +654,18 @@ $templates_catalog = [
                     <!-- Domain / Store Slug -->
                     <div class="col-12">
                         <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                            <label class="wiz-label">Custom Domain / Subdomain / Store Folder Slug <span class="text-danger">*</span></label>
+                            <label class="wiz-label">Custom Domain / Store Folder Name <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50">
-                                    <?php echo htmlspecialchars(saas_base_url('website/s/')); ?>
+                                    <?php echo htmlspecialchars(saas_base_url('')); ?>
                                 </span>
-                                <input type="text" id="wizDomain" class="form-control wiz-input" placeholder="velvetvogue" oninput="debounceDomainCheck()">
+                                <input type="text" id="wizDomain" class="form-control wiz-input" placeholder="example.com" oninput="debounceDomainCheck(true)">
                                 <button type="button" class="btn btn-outline-wiz" onclick="checkDomainAvailability()">
                                     Check Availability
                                 </button>
                             </div>
                             <div class="small mt-2" id="domainStatusMsg">
-                                <span class="text-white-50">Your live store will be accessible immediately at: <code class="text-warning" id="liveSlugPreview"><?php echo htmlspecialchars(saas_base_url('website/s/your-store')); ?></code></span>
+                                <span class="text-white-50">Your live standalone store &amp; admin panel will be provisioned at: <code class="text-warning" id="liveSlugPreview"><?php echo htmlspecialchars(saas_base_url('example.com')); ?></code></span>
                             </div>
                         </div>
                     </div>
@@ -689,14 +710,14 @@ $templates_catalog = [
                     <p class="text-white-50 small mb-0">Select your preferred eCommerce storefront template. Each template comes pre-loaded with Superadmin-curated Hero Banners, Categories, and Products.</p>
                 </div>
 
-                <input type="hidden" id="wizChosenTemplate" value="template1">
+                <input type="hidden" id="wizChosenTemplate" value="<?php echo htmlspecialchars($preselected_tpl_key); ?>">
 
                 <div class="row g-4">
                     <?php foreach ($templates_catalog as $tKey => $tpl):
                         $isAllowed = in_array($tKey, $allowed_templates, true) || in_array($tpl['slug'], $allowed_templates, true);
                     ?>
                     <div class="col-lg-4 col-md-6">
-                        <div class="tpl-select-card <?php echo $tKey === 'template1' ? 'selected' : ''; ?> <?php echo !$isAllowed ? 'locked' : ''; ?>"
+                        <div class="tpl-select-card <?php echo $tKey === $preselected_tpl_key ? 'selected' : ''; ?> <?php echo !$isAllowed ? 'locked' : ''; ?>"
                              id="tplCard_<?php echo $tKey; ?>"
                              data-tpl="<?php echo $tKey; ?>"
                              data-slug="<?php echo $tpl['slug']; ?>"
@@ -771,7 +792,7 @@ $templates_catalog = [
                             </div>
                             <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
                                 <span class="text-white-50 small">Selected Theme Template</span>
-                                <strong class="text-info small" id="sumTemplate">Template 1 — Fashion</strong>
+                                <strong class="text-info small" id="sumTemplate"><?php echo htmlspecialchars($templates_catalog[$preselected_tpl_key]['title'] ?? 'Template 1 (fashion)'); ?></strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center pt-3 mt-2">
                                 <span class="fw-bold text-white">Total Subscription Rate</span>
@@ -1137,26 +1158,43 @@ $templates_catalog = [
             }
         }
 
+        const defaultDomainMsgHtml = `<span class="text-white-50">Your live standalone store &amp; admin panel will be provisioned at: <code class="text-warning" id="liveSlugPreview"><?php echo htmlspecialchars(saas_base_url('example.com')); ?></code></span>`;
+
         function autoSuggestDomain(val) {
             const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
             const domInp = document.getElementById('wizDomain');
             if (!domInp.dataset.touched) {
-                domInp.value = slug;
-                debounceDomainCheck();
+                domInp.value = slug ? (slug + '.com') : '';
+                debounceDomainCheck(false);
             }
         }
 
-        function debounceDomainCheck() {
+        function debounceDomainCheck(manualEdit = false) {
             const domInp = document.getElementById('wizDomain');
-            domInp.dataset.touched = '1';
+            if (manualEdit) {
+                if (domInp.value.trim() === '') {
+                    delete domInp.dataset.touched;
+                } else {
+                    domInp.dataset.touched = '1';
+                }
+            }
             clearTimeout(domainTimer);
+            if (!domInp.value.trim()) {
+                domainValid = false;
+                document.getElementById('domainStatusMsg').innerHTML = defaultDomainMsgHtml;
+                return;
+            }
             domainTimer = setTimeout(() => checkDomainAvailability(), 350);
         }
 
         async function checkDomainAvailability() {
             const raw = document.getElementById('wizDomain').value.trim();
             const msgBox = document.getElementById('domainStatusMsg');
-            if (!raw) return false;
+            if (!raw) {
+                domainValid = false;
+                msgBox.innerHTML = defaultDomainMsgHtml;
+                return false;
+            }
 
             const fd = new FormData();
             fd.append('action', 'check_domain');
@@ -1225,9 +1263,9 @@ $templates_catalog = [
 
             document.getElementById('sumPlanName').textContent = currentPlanName;
             document.getElementById('sumBusinessName').textContent = document.getElementById('wizBusinessName').value.trim();
-            document.getElementById('sumDomain').textContent = 'website/s/' + document.getElementById('wizDomain').value.trim();
+            document.getElementById('sumDomain').textContent = document.getElementById('wizDomain').value.trim();
             document.getElementById('sumAdminEmail').textContent = document.getElementById('wizEmail').value.trim();
-            document.getElementById('sumTemplate').textContent = `${tplTitle} (${tplKey})`;
+            document.getElementById('sumTemplate').textContent = tplTitle;
             document.getElementById('sumTotalAmount').textContent = `$${currentPlanPrice.toFixed(2)}`;
 
             goToWizardStep(5);

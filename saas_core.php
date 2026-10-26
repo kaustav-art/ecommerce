@@ -22,8 +22,10 @@ function get_saas_pdo() {
 
 function get_saas_mysqli() {
     static $mysqli = null;
-    if ($mysqli === null) {
-        mysqli_report(MYSQLI_REPORT_OFF);
+    if ($mysqli === null && class_exists('mysqli')) {
+        if (function_exists('mysqli_report')) {
+            mysqli_report(MYSQLI_REPORT_OFF);
+        }
         $mysqli = new mysqli('localhost', 'root', '', 'ecommerce_main');
         $mysqli->set_charset('utf8mb4');
     }
@@ -122,10 +124,16 @@ function get_saas_plan_by_id_or_slug($identifier) {
         $stmt->execute([$clean, $clean]);
         $row = $stmt->fetch();
 
-        // Map reference project codes (SALON, SPA, SALON_SPA) if passed in ?plan=SPA
+        // Map legacy or reference project codes (STARTER, GROWTH, ENTERPRISE, FASHION, ELECTRONICS, GROCERY, SALON, SPA)
         if (!$row) {
             $upper = strtoupper($clean);
-            $mappedId = ($upper === 'SALON') ? 1 : (($upper === 'SPA') ? 2 : 3);
+            if (in_array($upper, ['STARTER', 'STARTER_FASHION', 'FASHION', 'SALON'], true)) {
+                $mappedId = 1;
+            } elseif (in_array($upper, ['GROWTH', 'GROWTH_PRO', 'ELECTRONICS', 'SPA'], true)) {
+                $mappedId = 2;
+            } else {
+                $mappedId = 3;
+            }
             $stmt2 = $pdo->prepare("SELECT * FROM `saas_plans` WHERE `id` = ? LIMIT 1");
             $stmt2->execute([$mappedId]);
             $row = $stmt2->fetch();
@@ -162,14 +170,209 @@ function sanitize_store_slug($input) {
     return trim($slug, '-');
 }
 
+function sanitize_domain_folder($input) {
+    $d = strtolower(trim((string)$input));
+    $d = preg_replace('/^https?:\/\//', '', $d);
+    $d = preg_replace('/^www\./', '', $d);
+    $d = explode('/', $d)[0];
+    $d = preg_replace('/[^a-z0-9\-\.]/', '-', $d);
+    $d = preg_replace('/\.+/', '.', $d);
+    $d = preg_replace('/-+/', '-', $d);
+    return trim($d, '-.');
+}
+
 function is_reserved_store_slug($slug) {
+    $clean = strtolower(trim((string)$slug));
+    $base  = preg_replace('/\.[a-z]{2,6}$/', '', $clean);
     $reserved = [
         'admin', 'admin-template', 'website', 'superadmin', 'templates', 'database',
         'referance-project', 'assets', 'uploads', 'system', 'application', 'vendor',
         'install', 'api', 'login', 'register', 'subscribe', 'checkout', 'cart', 'shop',
         'product', 'order', 'account', 'payment', 'page', 'home', 's', 'store', 'demo'
     ];
-    return in_array(strtolower($slug), $reserved, true);
+    return in_array($clean, $reserved, true) || in_array($base, $reserved, true);
+}
+
+function rrmdir_saas($dir) {
+    if (!is_dir($dir)) return;
+    $items = @scandir($dir);
+    if (!$items) return;
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            rrmdir_saas($path);
+        } else {
+            @unlink($path);
+        }
+    }
+    @rmdir($dir);
+}
+
+/**
+ * Provision a standalone physical domain folder (e.g. C:\xampp\htdocs\ecommerce\example.com)
+ * with storefront at root, admin panel at /admin, unselected templates pruned,
+ * and a dedicated MySQL database seeded with ONLY the chosen template's data.
+ */
+function provision_tenant_standalone_folder_and_db($cleanDomain, $chosenTemplate, $tplFolderKey, $ownerConfig) {
+    $rootDir   = __DIR__;
+    $targetDir = $rootDir . DIRECTORY_SEPARATOR . $cleanDomain;
+    $srcWeb    = $rootDir . DIRECTORY_SEPARATOR . 'website';
+    $srcAdmin  = $rootDir . DIRECTORY_SEPARATOR . 'admin';
+
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0777, true);
+    }
+
+    // 1. Copy website -> {cleanDomain} and admin -> {cleanDomain}/admin using fast robocopy on Windows
+    if (stripos(PHP_OS, 'WIN') === 0) {
+        $cmdWeb = sprintf('robocopy %s %s /E /XD .git node_modules /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcWeb), escapeshellarg($targetDir));
+        @shell_exec($cmdWeb);
+        $targetAdmin = $targetDir . DIRECTORY_SEPARATOR . 'admin';
+        $cmdAdm = sprintf('robocopy %s %s /E /XD .git node_modules /NFL /NDL /NJH /NJS /NC /NS /NP', escapeshellarg($srcAdmin), escapeshellarg($targetAdmin));
+        @shell_exec($cmdAdm);
+    }
+
+    // 2. Prune unselected template view folders so the project folder contains only the chosen template + common inner pages
+    $viewsDir = $targetDir . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'views';
+    foreach (['template1', 'template2', 'template3'] as $tFolder) {
+        if ($tFolder !== $tplFolderKey) {
+            $prunePath = $viewsDir . DIRECTORY_SEPARATOR . $tFolder;
+            if (is_dir($prunePath)) {
+                rrmdir_saas($prunePath);
+            }
+        }
+    }
+
+    // 3. Create dedicated MySQL database for this domain & seed ONLY the chosen template's data
+    $dbSuffix     = substr(preg_replace('/[^a-z0-9_]/', '_', $cleanDomain), 0, 36);
+    $tenantDbName = 'ecommerce_t_' . trim($dbSuffix, '_');
+    $srcTenantId  = ($chosenTemplate === 'grocery') ? 2 : (($chosenTemplate === 'electronics') ? 3 : 1);
+
+    $serverPdo = new PDO('mysql:host=localhost;charset=utf8mb4', 'root', '', [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+    $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$tenantDbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+    $mainTables = $serverPdo->query("SHOW TABLES FROM `ecommerce_main`")->fetchAll(PDO::FETCH_COLUMN);
+    $serverPdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+
+    foreach ($mainTables as $tbl) {
+        if (strpos($tbl, 'saas_') === 0) continue; // Skip SaaS superadmin tables in tenant's dedicated DB
+        $createRow = $serverPdo->query("SHOW CREATE TABLE `ecommerce_main`.`{$tbl}`")->fetch(PDO::FETCH_NUM);
+        if (!empty($createRow[1])) {
+            $serverPdo->exec("DROP TABLE IF EXISTS `{$tenantDbName}`.`{$tbl}`");
+            $serverPdo->exec(preg_replace('/^CREATE TABLE /i', "CREATE TABLE `{$tenantDbName}`.", $createRow[1], 1));
+        }
+    }
+
+    // Copy shared reference tables
+    foreach (['permissions', 'role_permissions', 'customer_groups'] as $sharedTbl) {
+        if (in_array($sharedTbl, $mainTables, true)) {
+            $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`{$sharedTbl}` SELECT * FROM `ecommerce_main`.`{$sharedTbl}`");
+        }
+    }
+
+    // Copy tenant-scoped tables for ONLY the chosen template ($srcTenantId) and normalize tenant_id = 1 in the tenant's DB
+    $tenantScopedTables = [
+        'categories', 'banners', 'brands', 'products', 'attributes', 'attribute_values',
+        'product_variants', 'reviews', 'users', 'user_addresses', 'cart_items',
+        'orders', 'order_items', 'notifications', 'payment_gateways', 'coupons'
+    ];
+    foreach ($tenantScopedTables as $tTbl) {
+        if (!in_array($tTbl, $mainTables, true)) continue;
+        $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`{$tTbl}` SELECT * FROM `ecommerce_main`.`{$tTbl}` WHERE `tenant_id` = {$srcTenantId}");
+        $serverPdo->exec("UPDATE `{$tenantDbName}`.`{$tTbl}` SET `tenant_id` = 1");
+    }
+
+    // Copy product child tables (product_specifications, product_attributes, product_variant_values) for the copied products/variants
+    $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`product_specifications`
+        SELECT ps.* FROM `ecommerce_main`.`product_specifications` ps
+        JOIN `ecommerce_main`.`products` p ON p.id = ps.product_id
+        WHERE p.tenant_id = {$srcTenantId}");
+
+    $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`product_attributes`
+        SELECT pa.* FROM `ecommerce_main`.`product_attributes` pa
+        JOIN `ecommerce_main`.`products` p ON p.id = pa.product_id
+        WHERE p.tenant_id = {$srcTenantId}");
+
+    $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`product_variant_values`
+        SELECT pvv.* FROM `ecommerce_main`.`product_variant_values` pvv
+        JOIN `ecommerce_main`.`product_variants` pv ON pv.id = pvv.variant_id
+        WHERE pv.tenant_id = {$srcTenantId}");
+
+    // Copy template_* tables for ONLY the chosen template ($tplFolderKey)
+    foreach (['template_categories', 'template_hero_banners', 'template_products', 'template_layout_settings'] as $tplTbl) {
+        if (!in_array($tplTbl, $mainTables, true)) continue;
+        $stmt = $serverPdo->prepare("INSERT INTO `{$tenantDbName}`.`{$tplTbl}` SELECT * FROM `ecommerce_main`.`{$tplTbl}` WHERE `template_key` = ?");
+        $stmt->execute([$tplFolderKey]);
+    }
+
+    // Seed Role & Owner Admin Account in tenant DB (tenant_id = 1)
+    $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`roles` (`id`, `tenant_id`, `name`, `slug`, `description`, `is_system`)
+        VALUES (1, 1, 'Store Owner', 'super-admin', 'Full unrestricted control of tenant store', 1)");
+
+    $admStmt = $serverPdo->prepare("INSERT INTO `{$tenantDbName}`.`admins`
+        (`id`, `tenant_id`, `role_id`, `name`, `email`, `password`, `phone`, `avatar`, `status`)
+        VALUES (1, 1, 1, ?, ?, ?, ?, 'default-avatar.png', 'active')");
+    $admStmt->execute([
+        $ownerConfig['owner_name'],
+        $ownerConfig['owner_email'],
+        $ownerConfig['password_hash'],
+        $ownerConfig['owner_phone']
+    ]);
+
+    // Seed Store Settings in tenant DB (tenant_id = 1)
+    $serverPdo->exec("INSERT INTO `{$tenantDbName}`.`settings` (`tenant_id`, `setting_key`, `setting_value`, `setting_group`)
+        SELECT 1, `setting_key`, `setting_value`, `setting_group` FROM `ecommerce_main`.`settings` WHERE `tenant_id` = {$srcTenantId}");
+
+    $overrideSettings = [
+        ['site_name', $ownerConfig['business_name'], 'general'],
+        ['site_email', $ownerConfig['owner_email'], 'general'],
+        ['admin_email', $ownerConfig['owner_email'], 'general'],
+        ['site_phone', $ownerConfig['owner_phone'] ?: '+1 (800) 555-0199', 'general'],
+        ['support_phone', $ownerConfig['owner_phone'] ?: '+1 (800) 555-0199', 'general'],
+        ['site_address', $ownerConfig['address'], 'general'],
+        ['store_address', $ownerConfig['address'], 'general'],
+        ['currency_code', $ownerConfig['currency_code'], 'general'],
+        ['currency', $ownerConfig['currency_code'], 'general'],
+        ['currency_symbol', $ownerConfig['currency_symbol'], 'general'],
+        ['active_template', $chosenTemplate, 'general'],
+    ];
+    if (!empty($ownerConfig['logo'])) {
+        $overrideSettings[] = ['site_logo', $ownerConfig['logo'], 'general'];
+    }
+    if (!empty($ownerConfig['favicon'])) {
+        $overrideSettings[] = ['site_favicon', $ownerConfig['favicon'], 'general'];
+    }
+    $upSet = $serverPdo->prepare("INSERT INTO `{$tenantDbName}`.`settings` (`tenant_id`, `setting_key`, `setting_value`, `setting_group`)
+        VALUES (1, ?, ?, ?) ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`)");
+    foreach ($overrideSettings as $os) {
+        $upSet->execute([$os[0], $os[1], $os[2]]);
+    }
+
+    $serverPdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+    // 4. Rewire database.php in both storefront and admin inside {cleanDomain}
+    $dbConfigFiles = [
+        $targetDir . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.php',
+        $targetDir . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.php',
+    ];
+    foreach ($dbConfigFiles as $cfgPath) {
+        if (file_exists($cfgPath)) {
+            $cfgContent = file_get_contents($cfgPath);
+            $cfgContent = preg_replace("/'database'\s*=>\s*'[^']*'/", "'database' => '{$tenantDbName}'", $cfgContent);
+            file_put_contents($cfgPath, $cfgContent);
+        }
+    }
+
+    return [
+        'folder_path'   => $targetDir,
+        'database_name' => $tenantDbName,
+        'website_url'   => saas_base_url($cleanDomain . '/'),
+        'admin_url'     => saas_base_url($cleanDomain . '/admin/auth/login'),
+    ];
 }
 
 function saas_db() {
@@ -253,11 +456,16 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
     }
     $tplFolderKey = get_saas_tpl_folder_key($chosenTemplate);
 
-    $storeSlug    = sanitize_store_slug($payment['store_slug'] ?: ($setup['store_slug'] ?? $payment['business_name']));
-    if (empty($storeSlug) || is_reserved_store_slug($storeSlug)) {
-        $storeSlug = 'store-' . strtolower(substr(md5($paymentOrderNumber), 0, 6));
+    $rawDomainInput = $setup['domain'] ?? ($payment['store_slug'] ?: ($setup['store_slug'] ?? $payment['business_name']));
+    $cleanDomain    = sanitize_domain_folder($rawDomainInput);
+    if (empty($cleanDomain) || is_reserved_store_slug($cleanDomain)) {
+        $cleanDomain = 'store-' . strtolower(substr(md5($paymentOrderNumber), 0, 6)) . '.com';
     }
-    $domain       = $setup['domain'] ?? ($storeSlug . '.com');
+    $storeSlug    = sanitize_store_slug($cleanDomain);
+    if (empty($storeSlug)) {
+        $storeSlug = $cleanDomain;
+    }
+    $domain       = (strpos($cleanDomain, '.') !== false) ? $cleanDomain : ($cleanDomain . '.com');
     $businessName = $payment['business_name'] ?: ($setup['business_name'] ?? 'My Store');
     $tagline      = $setup['tagline'] ?? ('Official Online Store of ' . $businessName);
     $ownerName    = $payment['customer_name'] ?: ($setup['owner_name'] ?? 'Store Owner');
@@ -275,12 +483,33 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
     }
 
     try {
-        $pdo->beginTransaction();
-
-        // Check if slug/domain already exists in saas_tenants (e.g. renewal or pre-created pending tenant)
+        // Check if slug/domain already exists in saas_tenants
         $chkStmt = $pdo->prepare("SELECT * FROM `saas_tenants` WHERE `slug` = ? OR `domain` = ? LIMIT 1");
-        $chkStmt->execute([$storeSlug, $domain]);
+        $chkStmt->execute([$cleanDomain, $domain]);
         $existingTenant = $chkStmt->fetch();
+
+        if ($existingTenant && (int)$existingTenant['id'] > 3 && $existingTenant['admin_email'] !== $ownerEmail) {
+            $cleanDomain    = $storeSlug . '-' . rand(100, 999) . '.com';
+            $domain         = $cleanDomain;
+            $existingTenant = null;
+        }
+
+        // Provision Standalone Domain Folder + Dedicated Database seeded with ONLY the chosen template's data
+        $standalone = provision_tenant_standalone_folder_and_db($cleanDomain, $chosenTemplate, $tplFolderKey, [
+            'owner_name'      => $ownerName,
+            'owner_email'     => $ownerEmail,
+            'owner_phone'     => $ownerPhone,
+            'password_hash'   => $passwordHash,
+            'business_name'   => $businessName,
+            'tagline'         => $tagline,
+            'address'         => $address,
+            'currency_code'   => $currencyCode,
+            'currency_symbol' => $currencySym,
+            'logo'            => $logoPath,
+            'favicon'         => $faviconPath,
+        ]);
+
+        $pdo->beginTransaction();
 
         $durationDays = max(1, (int)($plan['duration_days'] ?? 30));
         $trialDays    = max(0, (int)($plan['trial_days'] ?? 0));
@@ -289,29 +518,22 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
         $trialEndsAt  = $trialDays > 0 ? date('Y-m-d H:i:s', strtotime("+{$trialDays} days")) : null;
         $licenseKey   = 'LIC-' . strtoupper(substr($chosenTemplate, 0, 3)) . '-' . date('Y') . '-' . strtoupper(substr(md5($paymentOrderNumber), 0, 6));
 
-        $websiteUrl   = saas_base_url('website/s/' . $storeSlug);
-        $adminUrl     = saas_base_url('admin/auth/login');
-        $folderPath   = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'website';
-
-        if ($existingTenant && (int)$existingTenant['id'] > 3 && $existingTenant['admin_email'] !== $ownerEmail) {
-            // Avoid slug collision with another user's tenant
-            $storeSlug  = $storeSlug . '-' . rand(100, 999);
-            $domain     = $storeSlug . '.com';
-            $websiteUrl = saas_base_url('website/s/' . $storeSlug);
-            $existingTenant = null;
-        }
+        $websiteUrl   = $standalone['website_url'];
+        $adminUrl     = $standalone['admin_url'];
+        $folderPath   = $standalone['folder_path'];
+        $tenantDbName = $standalone['database_name'];
 
         if ($existingTenant) {
             $tenantId   = (int)$existingTenant['id'];
             $tenantCode = $existingTenant['tenant_code'] ?: ('TNT-' . date('Y') . '-' . str_pad($tenantId, 4, '0', STR_PAD_LEFT));
             $updTenant  = $pdo->prepare("UPDATE `saas_tenants` SET
-                `plan_id` = ?, `business_name` = ?, `tagline` = ?, `template` = ?,
+                `plan_id` = ?, `business_name` = ?, `tagline` = ?, `folder_path` = ?, `database_name` = ?, `template` = ?,
                 `payment_status` = 'paid', `amount_paid` = ?, `payment_method` = ?, `transaction_id` = ?,
                 `subscription_status` = 'active', `subscription_expires_at` = ?, `license_key` = ?,
                 `website_url` = ?, `admin_url` = ?, `status` = 'active', `updated_at` = NOW()
                 WHERE `id` = ?");
             $updTenant->execute([
-                (int)$plan['id'], $businessName, $tagline, $chosenTemplate,
+                (int)$plan['id'], $businessName, $tagline, $folderPath, $tenantDbName, $chosenTemplate,
                 (float)$payment['amount'], $payment['gateway'], $transactionId,
                 $endDate, $licenseKey, $websiteUrl, $adminUrl, $tenantId
             ]);
@@ -322,9 +544,9 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
                  `admin_name`, `admin_email`, `admin_phone`, `business_email`, `business_phone`, `business_address`,
                  `currency_code`, `currency_symbol`, `logo`, `favicon`, `website_url`, `admin_url`,
                  `payment_status`, `amount_paid`, `payment_method`, `transaction_id`, `subscription_status`, `subscription_expires_at`, `status`, `installed_at`)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ecommerce_main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, 'active', ?, 'active', NOW())");
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?, ?, ?, 'active', ?, 'active', NOW())");
             $insTenant->execute([
-                $tenantCode, (int)$plan['id'], $licenseKey, $businessName, $tagline, $storeSlug, $domain, $folderPath, $chosenTemplate,
+                $tenantCode, (int)$plan['id'], $licenseKey, $businessName, $tagline, $cleanDomain, $domain, $folderPath, $tenantDbName, $chosenTemplate,
                 $ownerName, $ownerEmail, $ownerPhone, $ownerEmail, $ownerPhone, $address,
                 $currencyCode, $currencySym, $logoPath, $faviconPath, $websiteUrl, $adminUrl,
                 (float)$payment['amount'], $payment['gateway'], $transactionId, $endDate

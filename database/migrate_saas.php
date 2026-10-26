@@ -317,9 +317,9 @@ foreach ($templatesData as $tpl) {
 // Update saas_plans with full SaaS fields
 $plansUpdate = [
     1 => [
-        'code' => 'STARTER_FASHION',
+        'code' => 'STARTER',
         'name' => 'Starter Store Plan',
-        'slug' => 'fashion',
+        'slug' => 'starter',
         'template' => 'fashion',
         'subtitle' => 'Ideal for New Boutiques & Single-Niche Stores',
         'price' => 29.00,
@@ -349,9 +349,9 @@ $plansUpdate = [
         'sort_order' => 1
     ],
     2 => [
-        'code' => 'GROWTH_PRO',
+        'code' => 'GROWTH',
         'name' => 'Growth Pro Plan',
-        'slug' => 'electronics',
+        'slug' => 'growth',
         'template' => 'electronics',
         'subtitle' => 'Best for Growing Retailers & Multi-Category Brands',
         'price' => 59.00,
@@ -381,9 +381,9 @@ $plansUpdate = [
         'sort_order' => 2
     ],
     3 => [
-        'code' => 'ENTERPRISE_UNLIMITED',
+        'code' => 'ENTERPRISE',
         'name' => 'Enterprise Unlimited',
-        'slug' => 'grocery',
+        'slug' => 'enterprise',
         'template' => 'grocery',
         'subtitle' => 'For High-Volume Supermarkets, Tech Chains & Enterprises',
         'price' => 99.00,

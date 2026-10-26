@@ -46,7 +46,7 @@ class categories extends MY_Controller {
 
                 // Handle category image file upload
                 if (!empty($_FILES['image_file']['name'])) {
-                    $upload_path = FCPATH . '../website/assets/images/categories/';
+                    $upload_path = admin_storefront_fs_path('assets/images/categories/');
                     if (!is_dir($upload_path)) {
                         @mkdir($upload_path, 0777, TRUE);
                     }

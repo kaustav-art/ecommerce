@@ -6,10 +6,9 @@ require_once APPPATH . 'libraries/Static_template_data.php';
 /**
  * MY_Controller
  * Base Controller for Multi-Template E-Commerce Storefront
- * - Header Categories, Hero Banners, and Home Page Showcase Products are dynamically loaded
- *   from the Superadmin panel (`template_categories`, `template_hero_banners`, `template_products`).
- * - Inner pages (Shop, Common Product Details, Common Order Details, Cart, Checkout, Account)
- *   operate as a static template using Static_template_data.
+ * - 100% Database-Driven across Fashion (template1), Electronics (template2), and Grocery (template3).
+ * - Supports both Superadmin Demo/Preview mode in `ecommerce_main` and standalone provisioned
+ *   tenant domain folders (e.g. `ecommerce/example.com/`) with dedicated tenant databases.
  */
 class MY_Controller extends CI_Controller {
 
@@ -27,22 +26,23 @@ class MY_Controller extends CI_Controller {
     public function __construct()
     {
         parent::__construct();
+        $this->load->database();
         $this->load->helper(['url', 'html', 'form', 'text', 'string', 'security', 'date']);
         $this->load->library(['session', 'form_validation', 'template_registry']);
 
-        // 1. Resolve Active Template
+        // 1. Resolve Active Tenant & Template from URL / Database
         $this->_resolve_tenant_and_template();
 
-        // 2. Always set static logged-in customer (No login page; always show after-login dropdown menu)
+        // 2. Load customer profile from DB
         $this->current_user = Static_template_data::get('user');
 
-        // 3. Static Store Settings
+        // 3. Load Store Settings from DB
         $this->store_settings = Static_template_data::get('settings');
         $this->site_name      = !empty($this->store_settings['site_name']) ? $this->store_settings['site_name'] : 'Store';
 
-        // 4. Static Cart Summary
+        // 4. Load Cart Summary from DB
         $cart_summary     = Static_template_data::get('cart_summary');
-        $this->cart_count = (int) ($cart_summary['item_count'] ?? 2);
+        $this->cart_count = (int) ($cart_summary['item_count'] ?? 0);
         $this->cart_total = (float) ($cart_summary['subtotal'] ?? 0.00);
     }
 
@@ -52,28 +52,66 @@ class MY_Controller extends CI_Controller {
             $this->session->unset_userdata('preview_tpl');
         }
 
+        $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
+
         if ($preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
             $canonical_tpl         = $this->template_registry->get_canonical_key($preview_param);
             $this->is_preview_mode = TRUE;
             $this->active_template = $canonical_tpl;
-            $this->tenant_id       = 1;
-            $this->tenant          = [
-                'id'            => 1,
+            if ($db_name === 'ecommerce_main') {
+                $this->tenant_id = ($canonical_tpl === 'electronics') ? 3 : (($canonical_tpl === 'grocery') ? 2 : 1);
+            } else {
+                $this->tenant_id = 1;
+            }
+            $this->tenant = [
+                'id'            => $this->tenant_id,
                 'business_name' => ucfirst($canonical_tpl) . ' Store',
-                'slug'          => 'fashion-store',
+                'slug'          => $canonical_tpl . '-store',
                 'template'      => $canonical_tpl
             ];
             return;
         }
 
-        $this->tenant_id       = 1;
-        $this->active_template = 'fashion';
+        // Check if running inside a provisioned tenant database or `/s/{slug}` route
+        $uri_seg1 = strtolower((string)$this->uri->segment(1));
+        $uri_seg2 = strtolower((string)$this->uri->segment(2));
+        if ($db_name === 'ecommerce_main' && $uri_seg1 === 's' && $uri_seg2 !== '' && $this->db->table_exists('saas_tenants')) {
+            $t_row = $this->db->where('slug', $uri_seg2)->or_where('domain', $uri_seg2)->get('saas_tenants')->row_array();
+            if ($t_row) {
+                $this->tenant_id       = (int)$t_row['id'];
+                $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
+                $this->tenant          = $t_row;
+                return;
+            }
+        }
+
+        // Standalone tenant database or default main database
+        $this->tenant_id = 1;
+        $tpl_from_settings = 'fashion';
+        $site_name_setting = 'Store';
+
+        if (isset($this->db) && $this->db->table_exists('settings')) {
+            $rows = $this->db->where('tenant_id', $this->tenant_id)
+                             ->where_in('setting_key', ['active_template', 'template', 'site_name'])
+                             ->get('settings')
+                             ->result_array();
+            foreach ($rows as $r) {
+                if (in_array($r['setting_key'], ['active_template', 'template'], true) && !empty($r['setting_value'])) {
+                    $tpl_from_settings = $this->template_registry->get_canonical_key($r['setting_value']);
+                }
+                if ($r['setting_key'] === 'site_name' && !empty($r['setting_value'])) {
+                    $site_name_setting = $r['setting_value'];
+                }
+            }
+        }
+
+        $this->active_template = $tpl_from_settings;
         $this->tenant          = [
-            'id'            => 1,
-            'business_name' => 'Store',
-            'slug'          => 'fashion-store',
-            'template'      => 'fashion'
+            'id'            => $this->tenant_id,
+            'business_name' => $site_name_setting,
+            'slug'          => 'store',
+            'template'      => $this->active_template
         ];
     }
 
@@ -88,17 +126,49 @@ class MY_Controller extends CI_Controller {
             if (strpos($path, 'assets/images/') === 0) {
                 return substr($path, strlen('assets/images/'));
             }
+        } else {
+            // For template2 and template3, if image is relative to assets/images/ (e.g. products/... or categories/...), prefix assets/images/
+            if ($path !== '' && strpos($path, 'assets/') !== 0 && strpos($path, 'http') !== 0) {
+                if (file_exists(FCPATH . 'assets/images/' . $path)) {
+                    return 'assets/images/' . $path;
+                }
+            }
         }
         return $path;
     }
 
     /**
-     * Fetch dynamic Categories from Superadmin (`template_categories`)
+     * Fetch dynamic Categories from Database
+     * - In provisioned tenant stores (or when tenant categories exist), reads from `categories` table
+     *   so Admin Panel edits reflect immediately on the storefront.
+     * - In Superadmin preview mode on `ecommerce_main`, syncs with `template_categories`.
      */
     public function get_dynamic_template_categories($tpl_key = null)
     {
         $tpl_key = $tpl_key ?: $this->template_registry->get_tpl_key($this->active_template);
+        $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $cats = [];
+
+        // If running in a dedicated tenant DB, read directly from `categories` table (managed by Admin panel)
+        if ($db_name !== 'ecommerce_main' && isset($this->db) && $this->db->table_exists('categories')) {
+            $tree = Static_template_data::get('category_tree');
+            if (!empty($tree)) {
+                foreach ($tree as $c) {
+                    $cats[] = [
+                        'id'            => (int)$c['id'],
+                        'name'          => $c['name'],
+                        'slug'          => $c['slug'],
+                        'subtitle'      => $c['description'] ?: ($c['product_count'] . ' Products'),
+                        'image'         => $this->normalize_tpl_image($c['raw_image'] ?? $c['image'], $tpl_key),
+                        'raw_image'     => $c['raw_image'] ?? $c['image'],
+                        'product_count' => (int)($c['product_count'] ?? 12),
+                        'children'      => $c['children'] ?? []
+                    ];
+                }
+                return $cats;
+            }
+        }
+
         if (isset($this->db) && $this->db->table_exists('template_categories')) {
             $rows = $this->db->where('template_key', $tpl_key)
                              ->where('status', 'active')
@@ -127,12 +197,42 @@ class MY_Controller extends CI_Controller {
     }
 
     /**
-     * Fetch dynamic Hero Banners from Superadmin (`template_hero_banners`)
+     * Fetch dynamic Hero Banners from Database
      */
     public function get_dynamic_template_banners($tpl_key = null)
     {
         $tpl_key = $tpl_key ?: $this->template_registry->get_tpl_key($this->active_template);
+        $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $banners = [];
+
+        // In dedicated tenant DB, read directly from `banners` table (managed by Admin panel)
+        if ($db_name !== 'ecommerce_main' && isset($this->db) && $this->db->table_exists('banners')) {
+            $rows = $this->db->where('tenant_id', $this->tenant_id)
+                             ->where('status', 'active')
+                             ->order_by('sort_order', 'ASC')
+                             ->order_by('id', 'ASC')
+                             ->get('banners')
+                             ->result_array();
+            foreach ($rows as $hb) {
+                $banners[] = [
+                    'id'          => (int)$hb['id'],
+                    'subtitle'    => $hb['subtitle'] ?? '',
+                    'badge'       => $hb['subtitle'] ?? '',
+                    'title'       => $hb['title'],
+                    'description' => $hb['subtitle'] ?? '',
+                    'button_text' => $hb['button_text'] ?: 'Explore Collection',
+                    'button_link' => $hb['button_link'] ?: 'shop',
+                    'button_url'  => $hb['button_link'] ?: 'shop',
+                    'link_url'    => $hb['button_link'] ?: 'shop',
+                    'image'       => $this->normalize_tpl_image($hb['image'], $tpl_key),
+                    'raw_image'   => $hb['image']
+                ];
+            }
+            if (!empty($banners)) {
+                return $banners;
+            }
+        }
+
         if (isset($this->db) && $this->db->table_exists('template_hero_banners')) {
             $rows = $this->db->where('template_key', $tpl_key)
                              ->where('status', 'active')
@@ -163,12 +263,28 @@ class MY_Controller extends CI_Controller {
     }
 
     /**
-     * Fetch dynamic Showcase Products from Superadmin (`template_products`)
+     * Fetch dynamic Showcase Products from Database
      */
     public function get_dynamic_template_products($tpl_key = null)
     {
         $tpl_key = $tpl_key ?: $this->template_registry->get_tpl_key($this->active_template);
+        $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $products = [];
+
+        // In dedicated tenant DB, read directly from `products` table (managed by Admin panel)
+        if ($db_name !== 'ecommerce_main') {
+            $db_prods = Static_template_data::get('products');
+            if (!empty($db_prods)) {
+                foreach ($db_prods as &$dp) {
+                    $dp['image']         = $this->normalize_tpl_image($dp['main_image'], $tpl_key);
+                    $dp['primary_image'] = $dp['image'];
+                    $dp['hover_image']   = $this->normalize_tpl_image($dp['hover_image'] ?? $dp['main_image'], $tpl_key);
+                }
+                unset($dp);
+                return $db_prods;
+            }
+        }
+
         if (isset($this->db) && $this->db->table_exists('template_products')) {
             $rows = $this->db->where('template_key', $tpl_key)
                              ->where('status', 'active')
