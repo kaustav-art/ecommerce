@@ -23,6 +23,32 @@ class product extends MY_Controller {
         $product      = Static_template_data::get('common_product');
         $all_products = Static_template_data::get('products');
 
+        if ($this->active_template === 'grocery') {
+            $grc_products = $this->get_dynamic_template_products('template3');
+            if (!empty($grc_products)) {
+                $matched_grc = null;
+                foreach ($grc_products as $gp) {
+                    if (!empty($gp['slug']) && strcasecmp($gp['slug'], (string)$slug) === 0) {
+                        $matched_grc = $gp;
+                        break;
+                    }
+                }
+                if (!$matched_grc) {
+                    foreach ($grc_products as $gp) {
+                        if (!empty($gp['slug']) && $gp['slug'] === 'sweet-red-strawberries-box') {
+                            $matched_grc = $gp;
+                            break;
+                        }
+                    }
+                }
+                if (!$matched_grc) {
+                    $matched_grc = $grc_products[0];
+                }
+                $product      = array_merge($product, $matched_grc);
+                $all_products = $grc_products;
+            }
+        }
+
         $other_products = array_values(array_filter($all_products, function($p) use ($product) {
             return (int)$p['id'] !== (int)$product['id'];
         }));

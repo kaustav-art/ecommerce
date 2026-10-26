@@ -17,16 +17,20 @@
    <link rel="shortcut icon" type="image/webp" href="<?= $web_favicon; ?>">
    <link rel="icon" type="image/webp" href="<?= $web_favicon; ?>">
 
-   <?php if (!$is_home_page): ?>
-   <!-- Core Storefront Styles for Inner Pages (Shop, Product Detail, Cart, Checkout, Account) -->
-   <link rel="stylesheet" href="<?= base_url('assets/fonts/fonts.css'); ?>">
+   <?php
+   $is_grc_product_page = (($this->uri->segment(1) ?? '') === 'product');
+   ?>
    <link rel="stylesheet" href="<?= base_url('assets/fonts/font-icons.css'); ?>">
+   <?php if (!$is_home_page && !$is_grc_product_page): ?>
+   <!-- Core Storefront Styles for Inner Pages (Shop, Cart, Checkout, Account) -->
+   <link rel="stylesheet" href="<?= base_url('assets/fonts/fonts.css'); ?>">
    <link rel="stylesheet" href="<?= base_url('assets/css/styles.css'); ?>">
    <?php endif; ?>
 
    <!-- Bazaro Grocery Template CSS -->
    <link rel="stylesheet" href="<?= $bazaro; ?>css/bootstrap.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/animate.css">
+   <link rel="stylesheet" href="<?= $bazaro; ?>css/slick.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/nice-select.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/custom-animation.css">
    <link rel="stylesheet" href="<?= $bazaro; ?>css/swiper-bundle.css">
