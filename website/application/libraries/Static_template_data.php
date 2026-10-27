@@ -27,7 +27,7 @@ class Static_template_data {
             $activeTpl = strtolower(trim((string)$force_tpl));
         } elseif ($CI && !empty($CI->active_template)) {
             $activeTpl = strtolower(trim((string)$CI->active_template));
-        } elseif (!empty($_GET['preview_tpl'])) {
+        } elseif ($dbName === 'ecommerce_main' && !empty($_GET['preview_tpl'])) {
             $p = strtolower(trim((string)$_GET['preview_tpl']));
             if (in_array($p, ['electronics', 'template2'], true)) {
                 $activeTpl = 'electronics';
@@ -155,35 +155,85 @@ class Static_template_data {
             $banners[] = $b;
         }
 
-        // 3. Categories (all_categories, root_categories, category_tree)
-        $catStmt = $pdo->prepare("SELECT c.*, (SELECT COUNT(*) FROM `products` p WHERE p.category_id = c.id AND p.tenant_id = c.tenant_id AND p.status = 'published') AS product_count
+        // 3. Categories (all_categories, root_categories, category_tree) with recursive descendant rollup
+        $catStmt = $pdo->prepare("SELECT c.*, (SELECT COUNT(*) FROM `products` p WHERE p.category_id = c.id AND p.tenant_id = c.tenant_id AND p.status = 'published') AS direct_product_count
             FROM `categories` c WHERE c.tenant_id = ? AND c.status = 'active' ORDER BY c.sort_order ASC, c.id ASC");
         $catStmt->execute([$tenantId]);
-        $allCategories = [];
-        $rootCategories = [];
-        $childrenByParent = [];
-        foreach ($catStmt->fetchAll() as $c) {
-            $c['id'] = (int)$c['id'];
-            $c['parent_id'] = (int)$c['parent_id'];
-            $c['product_count'] = max(1, (int)$c['product_count']);
+        $rawCats = $catStmt->fetchAll();
+
+        $catById = [];
+        $childrenIdsByParent = [];
+        foreach ($rawCats as $c) {
+            $cid = (int)$c['id'];
+            $pid = (int)$c['parent_id'];
+            $c['id'] = $cid;
+            $c['parent_id'] = $pid;
+            $c['direct_product_count'] = (int)$c['direct_product_count'];
             $c['raw_image'] = $c['image'];
             if ($activeTpl === 'fashion' || $activeTpl === 'template1') {
                 $c['image'] = self::normalize_img($c['image']);
             }
-            $allCategories[] = $c;
+            $catById[$cid] = $c;
+            $childrenIdsByParent[$pid][] = $cid;
+        }
+
+        // Helper closure to collect all descendant IDs & slugs and sum product_count recursively
+        $computeDescendantInfo = function($cid, &$visited = []) use (&$computeDescendantInfo, &$catById, &$childrenIdsByParent) {
+            if (isset($visited[$cid]) || !isset($catById[$cid])) {
+                return ['ids' => [], 'slugs' => [], 'names' => [], 'count' => 0];
+            }
+            $visited[$cid] = true;
+            $node = $catById[$cid];
+            $ids   = [$cid];
+            $slugs = !empty($node['slug']) ? [strtolower($node['slug'])] : [];
+            $names = !empty($node['name']) ? [strtolower($node['name'])] : [];
+            $count = (int)$node['direct_product_count'];
+
+            foreach ($childrenIdsByParent[$cid] ?? [] as $childId) {
+                $sub = $computeDescendantInfo($childId, $visited);
+                $ids   = array_merge($ids, $sub['ids']);
+                $slugs = array_merge($slugs, $sub['slugs']);
+                $names = array_merge($names, $sub['names']);
+                $count += $sub['count'];
+            }
+            return [
+                'ids'   => array_values(array_unique($ids)),
+                'slugs' => array_values(array_unique($slugs)),
+                'names' => array_values(array_unique($names)),
+                'count' => $count,
+            ];
+        };
+
+        $allCategories = [];
+        $rootCategories = [];
+        $childrenByParent = [];
+        foreach ($catById as $cid => $c) {
+            $desc = $computeDescendantInfo($cid);
+            $c['descendant_ids']   = $desc['ids'];
+            $c['descendant_slugs'] = $desc['slugs'];
+            $c['descendant_names'] = $desc['names'];
+            $c['product_count']    = ($dbName === 'ecommerce_main') ? max(1, (int)$desc['count']) : (int)$desc['count'];
+            $catById[$cid]         = $c;
+            $allCategories[]       = $c;
             if ($c['parent_id'] === 0) {
                 $rootCategories[] = $c;
             } else {
                 $childrenByParent[$c['parent_id']][] = $c;
             }
         }
+
+        $buildTree = function($parentId) use (&$buildTree, &$childrenByParent) {
+            $branch = [];
+            foreach ($childrenByParent[$parentId] ?? [] as $child) {
+                $child['children'] = $buildTree($child['id']);
+                $branch[] = $child;
+            }
+            return $branch;
+        };
+
         $categoryTree = [];
         foreach ($rootCategories as $rc) {
-            $rc['children'] = $childrenByParent[$rc['id']] ?? [];
-            foreach ($rc['children'] as &$child) {
-                $child['children'] = $childrenByParent[$child['id']] ?? [];
-            }
-            unset($child);
+            $rc['children'] = $buildTree($rc['id']);
             $categoryTree[] = $rc;
         }
 
@@ -194,7 +244,7 @@ class Static_template_data {
         $brands = [];
         foreach ($brStmt->fetchAll() as $br) {
             $br['id'] = (int)$br['id'];
-            $br['product_count'] = max(1, (int)$br['product_count']);
+            $br['product_count'] = ($dbName === 'ecommerce_main') ? max(1, (int)$br['product_count']) : (int)$br['product_count'];
             $brands[] = $br;
         }
 
@@ -266,9 +316,11 @@ class Static_template_data {
             $colorsList = [];
             $sizesList = [];
 
-            foreach ($pVars as $pv) {
+            foreach ($pVars as &$pv) {
+                $varLabelParts = [];
                 foreach ($pv['values'] as $val) {
                     $aSlug = $val['attribute_slug'];
+                    $varLabelParts[] = $val['attribute_value'];
                     if (!isset($pAttrs[$aSlug])) {
                         $pAttrs[$aSlug] = [
                             'id'     => (int)$val['attribute_id'],
@@ -301,7 +353,16 @@ class Static_template_data {
                         }
                     }
                 }
+                if (!empty($varLabelParts)) {
+                    $pv['variant_label'] = implode(' / ', $varLabelParts);
+                } elseif (!empty($pv['title']) && strpos($pv['title'], '/') !== false) {
+                    $parts = explode('/', $pv['title']);
+                    $pv['variant_label'] = trim((string)end($parts));
+                } else {
+                    $pv['variant_label'] = !empty($pv['title']) ? $pv['title'] : ('Variant #' . $pv['id']);
+                }
             }
+            unset($pv);
             foreach ($pAttrs as &$attrInfo) {
                 $attrInfo['values'] = array_values($attrInfo['values']);
             }
@@ -309,6 +370,20 @@ class Static_template_data {
 
             $regPrice = (float)$p['price'];
             $salePrice = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0) ? (float)$p['sale_price'] : null;
+            $unitLabel = trim((string)($p['unit_label'] ?? ''));
+
+            // If variable product has variants, enrich default unit_label and fallback sale_price from first variant
+            if (!empty($pVars)) {
+                if ($unitLabel === '' && !empty($pVars[0]['variant_label'])) {
+                    $unitLabel = $pVars[0]['variant_label'];
+                }
+                if ($salePrice === null && !empty($pVars[0]['sale_price']) && (float)$pVars[0]['sale_price'] > 0) {
+                    $salePrice = (float)$pVars[0]['sale_price'];
+                    if (!empty($pVars[0]['price']) && (float)$pVars[0]['price'] > 0) {
+                        $regPrice = (float)$pVars[0]['price'];
+                    }
+                }
+            }
 
             $p['id']                     = $pid;
             $p['name']                   = $p['title'];
@@ -319,7 +394,8 @@ class Static_template_data {
             $p['regular_price']          = $regPrice;
             $p['price']                  = $regPrice;
             $p['sale_price']             = $salePrice;
-            $p['unit_value']             = $p['unit_label'] ?? '';
+            $p['unit_label']             = $unitLabel;
+            $p['unit_value']             = $unitLabel;
             $p['badge_text']             = $salePrice ? 'Sale' : 'Featured';
             $p['is_bestseller']          = (int)($p['is_trending'] ?? 1);
             $p['is_sale']                = $salePrice ? 1 : 0;

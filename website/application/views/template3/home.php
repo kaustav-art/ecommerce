@@ -292,10 +292,11 @@ if (!function_exists('grc_product_img')) {
 
                <!-- Category-Filtered Tab Panes -->
                <?php foreach ($tab_cats as $tcat):
-                  $cat_prods = array_values(array_filter($all_prods, function($item) use ($tcat) {
-                     return (int)($item['category_id'] ?? 0) === (int)$tcat['id'];
+                  $allowed_ids = !empty($tcat['descendant_ids']) ? array_map('intval', $tcat['descendant_ids']) : [(int)$tcat['id']];
+                  $cat_prods = array_values(array_filter($all_prods, function($item) use ($allowed_ids) {
+                     return in_array((int)($item['category_id'] ?? 0), $allowed_ids, true);
                   }));
-                  if (empty($cat_prods)) {
+                  if (empty($cat_prods) && empty($is_user_project)) {
                      $cat_prods = array_slice($all_prods, 0, 5);
                   }
                ?>

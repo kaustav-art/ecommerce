@@ -1372,19 +1372,17 @@ if (!function_exists('elt_resolve_img')) {
 
       <script>
       document.addEventListener('DOMContentLoaded', function() {
-         // Propagate ?preview_tpl=electronics only in Template Demo Mode
+<?php if (empty($is_user_project)): ?>
          var siteBase = '<?= rtrim(base_url(), "/"); ?>';
-         var isUserProject = <?= !empty($is_user_project) ? 'true' : 'false'; ?>;
-         if (!isUserProject) {
-            document.querySelectorAll('a[href]').forEach(function(a) {
-               var href = a.getAttribute('href');
-               if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-               if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-                  var sep = href.indexOf('?') === -1 ? '?' : '&';
-                  a.setAttribute('href', href + sep + 'preview_tpl=electronics');
-               }
-            });
-         }
+         document.querySelectorAll('a[href]').forEach(function(a) {
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+            if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+               var sep = href.indexOf('?') === -1 ? '?' : '&';
+               a.setAttribute('href', href + sep + 'preview_tpl=electronics');
+            }
+         });
+<?php endif; ?>
 
          // 0. Sync Sticky Top Bar (Logo + Search Bar) Height with Header Padding
          var stickyTopBar = document.querySelector('.aq-header-area.elt-sticky-top-bar');
@@ -1435,7 +1433,7 @@ if (!function_exists('elt_resolve_img')) {
                }
 
                autoTimer = setTimeout(function() {
-                  var autoUrl = '<?= site_url("shop/autocomplete"); ?>' + (isUserProject ? '?q=' : '?preview_tpl=electronics&q=') + encodeURIComponent(query);
+                  var autoUrl = '<?= site_url("shop/autocomplete"); ?><?= empty($is_user_project) ? "?preview_tpl=electronics&q=" : "?q="; ?>' + encodeURIComponent(query);
                   fetch(autoUrl)
                      .then(function(res) { return res.json(); })
                      .then(function(data) {
@@ -1443,9 +1441,11 @@ if (!function_exists('elt_resolve_img')) {
                            var html = '';
                            data.results.forEach(function(item) {
                               var itemUrl = item.url || '#';
-                              if (!isUserProject && itemUrl.indexOf('preview_tpl=') === -1 && itemUrl !== '#') {
+                              <?php if (empty($is_user_project)): ?>
+                              if (itemUrl.indexOf('preview_tpl=') === -1 && itemUrl !== '#') {
                                  itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=electronics';
                               }
+                              <?php endif; ?>
                               html += '<a href="' + itemUrl + '" class="store-auto-item">';
                               html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= $bazaro; ?>img/electronics/arrival-product/product-1/product-1.jpg\'">';
                               html += '  <div class="flex-grow-1 overflow-hidden">';
@@ -1455,7 +1455,7 @@ if (!function_exists('elt_resolve_img')) {
                               html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                               html += '</a>';
                            });
-                           var viewAllUrl = '<?= site_url("shop"); ?>' + (isUserProject ? '?q=' : '?preview_tpl=electronics&q=') + encodeURIComponent(query);
+                           var viewAllUrl = '<?= site_url("shop"); ?><?= empty($is_user_project) ? "?preview_tpl=electronics&q=" : "?q="; ?>' + encodeURIComponent(query);
                            html += '<a href="' + viewAllUrl + '" class="store-auto-viewall">';
                            html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                            html += '</a>';

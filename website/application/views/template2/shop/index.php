@@ -36,6 +36,8 @@ if (!function_exists('elt_shop_prod_img')) {
 
 $cats_list = !empty($all_categories) ? $all_categories : (!empty($nav_categories) ? $nav_categories : []);
 $active_cat_slug = $filters['category_slug'] ?? ($selected_category['slug'] ?? '');
+$elt_qs = empty($is_user_project) ? '?preview_tpl=electronics' : '';
+$total_all_cnt = isset($total_all_products) ? (int)$total_all_products : count($products);
 $tech_brands = ['Apple', 'Sony', 'Samsung', 'Bose', 'ASUS ROG', 'DJI', 'Logitech'];
 $tech_specs  = [
     'Active Noise Cancelling',
@@ -498,9 +500,9 @@ $tech_specs  = [
             <div>
                <h1 class="elt-shop-hero-title" id="eltShopPageHeading"><?= html_escape($page_heading); ?></h1>
                <ul class="elt-shop-breadcrumbs">
-                  <li><a href="<?= site_url('home?preview_tpl=electronics'); ?>"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                  <li><a href="<?= site_url('home' . $elt_qs); ?>"><i class="fa-solid fa-house me-1"></i>Home</a></li>
                   <li><i class="fa-solid fa-angle-right" style="font-size:11px;"></i></li>
-                  <li><a href="<?= site_url('shop?preview_tpl=electronics'); ?>">Electronics Catalog</a></li>
+                  <li><a href="<?= site_url('shop' . $elt_qs); ?>">Electronics Catalog</a></li>
                   <?php if (!empty($selected_category['name'])): ?>
                      <li><i class="fa-solid fa-angle-right" style="font-size:11px;"></i></li>
                      <li class="active"><?= html_escape($selected_category['name']); ?></li>
@@ -533,18 +535,18 @@ $tech_specs  = [
                      <h6 class="elt-filter-heading">Departments</h6>
                      <ul class="elt-dept-list">
                         <li>
-                           <a href="<?= site_url('shop?preview_tpl=electronics'); ?>" class="elt-dept-link <?= empty($active_cat_slug) ? 'is-active' : ''; ?>">
+                           <a href="<?= site_url('shop' . $elt_qs); ?>" class="elt-dept-link <?= empty($active_cat_slug) ? 'is-active' : ''; ?>">
                               <span>All Electronics</span>
-                              <span class="elt-dept-count"><?= count($products); ?></span>
+                              <span class="elt-dept-count"><?= $total_all_cnt; ?></span>
                            </a>
                         </li>
                         <?php foreach ($cats_list as $cat):
                            $is_curr = (!empty($active_cat_slug) && strcasecmp($active_cat_slug, $cat['slug']) === 0);
                         ?>
                         <li>
-                           <a href="<?= site_url('shop/' . $cat['slug'] . '?preview_tpl=electronics'); ?>" class="elt-dept-link <?= $is_curr ? 'is-active' : ''; ?>">
+                           <a href="<?= site_url('shop/' . $cat['slug'] . $elt_qs); ?>" class="elt-dept-link <?= $is_curr ? 'is-active' : ''; ?>">
                               <span><?= html_escape($cat['name']); ?></span>
-                              <span class="elt-dept-count"><?= (int)($cat['product_count'] ?? 12); ?></span>
+                              <span class="elt-dept-count"><?= (int)($cat['product_count'] ?? 0); ?></span>
                            </a>
                         </li>
                         <?php endforeach; ?>
@@ -644,7 +646,7 @@ $tech_specs  = [
                   foreach ($products as $idx => $p):
                      $p_id     = (int)($p['id'] ?? $pi);
                      $p_name   = $p['name'] ?? ($p['title'] ?? 'Electronics Product');
-                     $p_slug   = !empty($p['slug']) ? site_url('product/' . $p['slug'] . '?preview_tpl=electronics') : site_url('product/' . $p_id . '?preview_tpl=electronics');
+                     $p_slug   = !empty($p['slug']) ? site_url('product/' . $p['slug'] . $elt_qs) : site_url('product/' . $p_id . $elt_qs);
                      $p_img    = elt_shop_prod_img($p, $pi++);
                      $p_cat    = !empty($p['category_name']) ? $p['category_name'] : ($selected_category['name'] ?? 'Electronics');
                      $p_price  = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0 && (float)$p['sale_price'] < (float)$p['price'])

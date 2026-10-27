@@ -2,6 +2,7 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/templates/bazaro/');
 $currency_symbol = isset($currency_symbol) ? $currency_symbol : '₹';
+$elt_qs = empty($is_user_project) ? '?preview_tpl=electronics' : '';
 
 // Collect all images (main image first, followed by gallery images)
 $all_images = [];
@@ -843,9 +844,9 @@ if (!empty($initial_variant)) {
                <div class="col-xl-8">
                   <div class="pd-breadcrumb-content">
                      <div class="pd-breadcrumb-list">
-                        <span><a href="<?= site_url('home?preview_tpl=electronics'); ?>">home</a></span>
+                        <span><a href="<?= site_url('home' . $elt_qs); ?>">home</a></span>
                         <span>/</span>
-                        <span><a href="<?= site_url('shop?preview_tpl=electronics'); ?>">shop</a></span>
+                        <span><a href="<?= site_url('shop' . $elt_qs); ?>">shop</a></span>
                         <span>/</span>
                         <span><a href="#"><?= html_escape($product['title'] ?? 'Product Details'); ?></a></span>
                      </div>
@@ -999,7 +1000,7 @@ if (!empty($initial_variant)) {
                               <?php if (!empty($product['brand_name']) || !empty($product['category_name'])): ?>
                                  <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                     <?php if (!empty($product['brand_name'])): ?>
-                                       <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '') . '&preview_tpl=electronics'); ?>" class="brand-store-link fw-semibold">
+                                       <a href="<?= site_url('shop?brand=' . ($product['brand_slug'] ?? '') . (empty($is_user_project) ? '&preview_tpl=electronics' : '')); ?>" class="brand-store-link fw-semibold">
                                           Visit the <?= html_escape($product['brand_name']); ?> Store
                                        </a>
                                        <?php if (!empty($product['category_name'])): ?>
@@ -1007,7 +1008,7 @@ if (!empty($initial_variant)) {
                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <?php if (!empty($product['category_name'])): ?>
-                                       <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . '?preview_tpl=electronics'); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                       <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . $elt_qs); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
                                     <?php endif; ?>
                                  </div>
                               <?php endif; ?>
@@ -1297,7 +1298,7 @@ if (!empty($initial_variant)) {
                               </li>
                               <li class="d-flex gap-2 py-1">
                                  <p class="text-caption-1 mb-0 text-secondary">Category:</p>
-                                 <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . '?preview_tpl=electronics'); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name'] ?? 'Womens Fashion'); ?></a></p>
+                                 <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . ($product['category_slug'] ?? '') . $elt_qs); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name'] ?? 'Electronics'); ?></a></p>
                               </li>
                            </ul>
 
@@ -2362,7 +2363,7 @@ if (!empty($initial_variant)) {
             },
             body: payload.toString()
         }).finally(function() {
-            window.location.href = '<?= site_url("checkout?preview_tpl=electronics"); ?>';
+            window.location.href = '<?= site_url("checkout" . $elt_qs); ?>';
         });
     };
 

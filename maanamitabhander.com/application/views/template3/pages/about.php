@@ -64,7 +64,7 @@ $bazaro = isset($tpl_assets) ? rtrim($tpl_assets, '/') . '/' : base_url('assets/
                   </div>
                </div>
                <div class="mt-4">
-                  <a href="<?= site_url('shop?preview_tpl=grocery'); ?>" class="btn btn-primary px-4 py-2">
+                  <a href="<?= site_url('shop' . (empty($is_user_project) ? '?preview_tpl=grocery' : '')); ?>" class="btn btn-primary px-4 py-2">
                      <i class="fa-solid fa-basket-shopping me-2"></i>Browse Fresh Supermarket Aisles
                   </a>
                </div>

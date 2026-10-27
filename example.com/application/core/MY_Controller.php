@@ -74,6 +74,17 @@ class MY_Controller extends CI_Controller {
         $this->is_user_project = ($db_name !== 'ecommerce_main');
         $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
 
+        // In standalone user-setup projects, ?preview_tpl= should never appear in the URL
+        if ($this->is_user_project && isset($_GET['preview_tpl'])) {
+            unset($_GET['preview_tpl']);
+            if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !$this->input->is_ajax_request()) {
+                $clean_qs = http_build_query($_GET);
+                $clean_url = current_url() . ($clean_qs !== '' ? '?' . $clean_qs : '');
+                redirect($clean_url, 'location', 302);
+                exit;
+            }
+        }
+
         // Only honor ?preview_tpl= when browsing the master template demo in ecommerce_main
         if (!$this->is_user_project && $preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
             $canonical_tpl         = $this->template_registry->get_canonical_key($preview_param);
@@ -172,14 +183,18 @@ class MY_Controller extends CI_Controller {
             if (!empty($tree)) {
                 foreach ($tree as $c) {
                     $cats[] = [
-                        'id'            => (int)$c['id'],
-                        'name'          => $c['name'],
-                        'slug'          => $c['slug'],
-                        'subtitle'      => $c['description'] ?: ($c['product_count'] . ' Products'),
-                        'image'         => $this->normalize_tpl_image($c['raw_image'] ?? $c['image'], $tpl_key),
-                        'raw_image'     => $c['raw_image'] ?? $c['image'],
-                        'product_count' => (int)($c['product_count'] ?? 12),
-                        'children'      => $c['children'] ?? []
+                        'id'               => (int)$c['id'],
+                        'parent_id'        => (int)($c['parent_id'] ?? 0),
+                        'name'             => $c['name'],
+                        'slug'             => $c['slug'],
+                        'subtitle'         => $c['description'] ?: ($c['product_count'] . ' Products'),
+                        'image'            => $this->normalize_tpl_image($c['raw_image'] ?? $c['image'], $tpl_key),
+                        'raw_image'        => $c['raw_image'] ?? $c['image'],
+                        'product_count'    => (int)($c['product_count'] ?? 0),
+                        'descendant_ids'   => $c['descendant_ids'] ?? [(int)$c['id']],
+                        'descendant_slugs' => $c['descendant_slugs'] ?? [strtolower($c['slug'])],
+                        'descendant_names' => $c['descendant_names'] ?? [strtolower($c['name'])],
+                        'children'         => $c['children'] ?? []
                     ];
                 }
                 return $cats;

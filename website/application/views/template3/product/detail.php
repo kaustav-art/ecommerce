@@ -96,6 +96,7 @@ if (!function_exists('grc_calculate_unit_pricing')) {
 }
 
 // Product core details
+$grc_qs        = empty($is_user_project) ? '?preview_tpl=grocery' : '';
 $prod_id       = (int)($product['id'] ?? 19);
 $prod_slug     = !empty($product['slug']) ? $product['slug'] : 'sweet-red-strawberries-box';
 $prod_title    = !empty($product['name']) ? $product['name'] : (!empty($product['title']) ? $product['title'] : 'Sweet Red Strawberries Box');
@@ -103,8 +104,9 @@ $prod_cat      = !empty($product['category_name']) ? $product['category_name'] :
 $prod_cat_slug = !empty($product['category_slug']) ? $product['category_slug'] : url_title(strtolower($prod_cat), '-', TRUE);
 $prod_brand    = !empty($product['brand_name']) && $product['brand_name'] !== 'Modave Luxe' ? $product['brand_name'] : 'NatureFresh Organic Farms';
 $prod_sku      = !empty($product['sku']) && strpos($product['sku'], 'MOD-') !== 0 ? $product['sku'] : ('GRC-ORG-' . str_pad((string)$prod_id, 3, '0', STR_PAD_LEFT));
-$prod_unit_raw = !empty($product['unit_label']) ? $product['unit_label'] : (!empty($product['unit_value']) ? $product['unit_value'] : '400g Punnet');
+$prod_unit_raw = !empty($product['unit_label']) ? $product['unit_label'] : (!empty($product['unit_value']) ? $product['unit_value'] : '400g');
 $prod_badge    = !empty($product['badge_text']) ? $product['badge_text'] : '100% Organic';
+$prod_stock    = isset($product['stock_quantity']) ? (int)$product['stock_quantity'] : 25;
 
 // Allow optional URL query ?unit=pc or ?unit=kg for quick preview/testing, otherwise auto-detect from product's unit_label
 $req_unit = strtolower(trim((string)($_GET['unit'] ?? '')));
@@ -120,152 +122,292 @@ $discount_percent = ($regular_price > 0 && $sale_price && $sale_price < $regular
 $unit_info = grc_calculate_unit_pricing($prod_unit_raw, $current_price, $force_unit);
 $initial_unit_type = $unit_info['unit_type']; // 'kg' or 'pc'
 
-// Build gallery images for the grocery product
+// Build gallery images dynamically from the database product & variants
 $primary_img_url = grc_detail_resolve_img($product['primary_image'] ?? ($product['image'] ?? ($product['main_image'] ?? '')), $bazaro, 3);
 $gallery_urls = [$primary_img_url];
 
-// Add curated fresh grocery gallery images so the product slider has 4 crisp grocery photos
-$grc_extra_imgs = [
-    $bazaro . 'img/product/grocery-p-3.jpg',
-    $bazaro . 'img/product/grocery-p-7.jpg',
-    $bazaro . 'img/product/grocery-p-2.jpg',
-    $bazaro . 'img/product/grocery-p-1.jpg',
-    $bazaro . 'img/product/grocery-p-6.jpg',
-];
-foreach ($grc_extra_imgs as $ex_img) {
-    if (!in_array($ex_img, $gallery_urls, true) && count($gallery_urls) < 5) {
-        $gallery_urls[] = $ex_img;
+$raw_gal_list = [];
+if (!empty($product['gallery_images_decoded']) && is_array($product['gallery_images_decoded'])) {
+    $raw_gal_list = $product['gallery_images_decoded'];
+} elseif (!empty($product['gallery_images']) && is_string($product['gallery_images'])) {
+    $dec = json_decode($product['gallery_images'], true);
+    if (is_array($dec)) {
+        $raw_gal_list = $dec;
+    }
+}
+foreach ($raw_gal_list as $g_item) {
+    if (!empty($g_item)) {
+        $resolved_g = grc_detail_resolve_img($g_item, $bazaro, 3);
+        if (!in_array($resolved_g, $gallery_urls, true)) {
+            $gallery_urls[] = $resolved_g;
+        }
+    }
+}
+if (!empty($product['variants']) && is_array($product['variants'])) {
+    foreach ($product['variants'] as $v_row) {
+        if (!empty($v_row['image'])) {
+            $rv_img = grc_detail_resolve_img($v_row['image'], $bazaro, 3);
+            if (!in_array($rv_img, $gallery_urls, true)) {
+                $gallery_urls[] = $rv_img;
+            }
+        }
+        if (!empty($v_row['gallery_images'])) {
+            $v_gal = is_array($v_row['gallery_images']) ? $v_row['gallery_images'] : (json_decode((string)$v_row['gallery_images'], true) ?: []);
+            foreach ($v_gal as $vg_item) {
+                if (!empty($vg_item)) {
+                    $rvg = grc_detail_resolve_img($vg_item, $bazaro, 3);
+                    if (!in_array($rvg, $gallery_urls, true)) {
+                        $gallery_urls[] = $rvg;
+                    }
+                }
+            }
+        }
     }
 }
 
-// Build Pack Variants for BOTH 'kg' (Weight) and 'pc' (Piece) units so any product can calculate per-kg or per-pc dynamically
-$base_per_kg_reg  = $unit_info['unit_type'] === 'kg'
-    ? round($regular_price / max(0.05, $unit_info['qty_in_unit']), 2)
-    : round($regular_price * 1.25, 2);
-$base_per_kg_sale = $unit_info['unit_type'] === 'kg'
-    ? round($current_price / max(0.05, $unit_info['qty_in_unit']), 2)
-    : round($current_price * 1.25, 2);
+// Only add fallback demo gallery images in template demo mode when no gallery images were uploaded
+if (empty($is_user_project) && count($gallery_urls) < 2) {
+    $grc_extra_imgs = [
+        $bazaro . 'img/product/grocery-p-3.jpg',
+        $bazaro . 'img/product/grocery-p-7.jpg',
+        $bazaro . 'img/product/grocery-p-2.jpg',
+        $bazaro . 'img/product/grocery-p-1.jpg',
+        $bazaro . 'img/product/grocery-p-6.jpg',
+    ];
+    foreach ($grc_extra_imgs as $ex_img) {
+        if (!in_array($ex_img, $gallery_urls, true) && count($gallery_urls) < 5) {
+            $gallery_urls[] = $ex_img;
+        }
+    }
+}
 
-$base_per_pc_reg  = $unit_info['unit_type'] === 'pc'
-    ? round($regular_price / max(1, $unit_info['qty_in_unit']), 2)
-    : round($regular_price / 8, 2);
-$base_per_pc_sale = $unit_info['unit_type'] === 'pc'
-    ? round($current_price / max(1, $unit_info['qty_in_unit']), 2)
-    : round($current_price / 8, 2);
+// Build Pack Variants:
+// 1) If the product has real variants in `product_variants` (Admin Panel), build from those exact database variants!
+// 2) Otherwise, on a user project with a simple product, build a single pack entry from the product's own price & unit_label.
+// 3) On the template demo site (or when no DB variants exist in demo mode), provide the showcase kg & pc pack options.
+$kg_variants = [];
+$pc_variants = [];
+$has_db_variants = !empty($product['variants']) && is_array($product['variants']);
 
-$kg_variants = [
-    [
-        'id'          => 'kg-250g',
-        'label'       => '250 g',
-        'short_label' => '250 g',
-        'unit_type'   => 'kg',
-        'unit_qty'    => 0.25,
-        'unit_desc'   => '0.25 kg',
-        'reg_price'   => round($base_per_kg_reg * 0.25, 2),
-        'sale_price'  => round($base_per_kg_sale * 0.25, 2),
-        'sku'         => $prod_sku . '-250G',
-        'stock'       => 32,
+if ($has_db_variants) {
+    foreach ($product['variants'] as $v_idx => $dbv) {
+        $v_id    = (string)($dbv['id'] ?? ('var-' . $v_idx));
+        $v_label = trim((string)($dbv['variant_label'] ?? ''));
+        if ($v_label === '' && !empty($dbv['values']) && is_array($dbv['values'])) {
+            $v_parts = [];
+            foreach ($dbv['values'] as $vv) {
+                if (!empty($vv['attribute_value'])) {
+                    $v_parts[] = $vv['attribute_value'];
+                }
+            }
+            $v_label = implode(' / ', $v_parts);
+        }
+        if ($v_label === '' && !empty($dbv['title']) && strpos($dbv['title'], '/') !== false) {
+            $t_parts = explode('/', $dbv['title']);
+            $v_label = trim((string)end($t_parts));
+        }
+        if ($v_label === '') {
+            $v_label = $prod_unit_raw ?: ('Option ' . ($v_idx + 1));
+        }
+
+        $v_reg  = (!empty($dbv['price']) && (float)$dbv['price'] > 0) ? (float)$dbv['price'] : $regular_price;
+        $v_sale = (!empty($dbv['sale_price']) && (float)$dbv['sale_price'] > 0) ? (float)$dbv['sale_price'] : $v_reg;
+        if ($v_reg < $v_sale) {
+            $v_reg = $v_sale;
+        }
+        $v_uinfo = grc_calculate_unit_pricing($v_label, $v_sale, $force_unit);
+        $v_entry = [
+            'id'          => $v_id,
+            'variant_id'  => (int)($dbv['id'] ?? 0),
+            'label'       => $v_label,
+            'short_label' => $v_label,
+            'unit_type'   => $v_uinfo['unit_type'],
+            'unit_qty'    => (float)$v_uinfo['qty_in_unit'],
+            'unit_desc'   => $v_uinfo['formula_text'],
+            'reg_price'   => $v_reg,
+            'sale_price'  => $v_sale,
+            'sku'         => !empty($dbv['sku']) ? $dbv['sku'] : ($prod_sku . '-' . ($v_idx + 1)),
+            'stock'       => isset($dbv['stock_quantity']) ? (int)$dbv['stock_quantity'] : $prod_stock,
+            'badge'       => ($v_idx === 0 && count($product['variants']) > 1) ? 'Popular' : ''
+        ];
+        if ($v_uinfo['unit_type'] === 'pc') {
+            $pc_variants[] = $v_entry;
+        } else {
+            $kg_variants[] = $v_entry;
+        }
+    }
+} elseif (!empty($is_user_project)) {
+    // Simple product in a user-setup project: use exact product price, sale_price, unit_label, SKU, and stock
+    $s_entry = [
+        'id'          => (string)$prod_id,
+        'variant_id'  => 0,
+        'label'       => $unit_info['display_pack'],
+        'short_label' => $unit_info['display_pack'],
+        'unit_type'   => $unit_info['unit_type'],
+        'unit_qty'    => (float)$unit_info['qty_in_unit'],
+        'unit_desc'   => $unit_info['formula_text'],
+        'reg_price'   => $regular_price,
+        'sale_price'  => $current_price,
+        'sku'         => $prod_sku,
+        'stock'       => $prod_stock,
         'badge'       => ''
-    ],
-    [
-        'id'          => 'kg-400g',
-        'label'       => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
-        'short_label' => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
-        'unit_type'   => 'kg',
-        'unit_qty'    => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? 0.50 : 0.40,
-        'unit_desc'   => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '0.50 kg' : '0.40 kg',
-        'reg_price'   => ($unit_info['unit_type'] === 'kg' && $unit_info['qty_in_unit'] < 0.9) ? $regular_price : round($base_per_kg_reg * 0.40, 2),
-        'sale_price'  => ($unit_info['unit_type'] === 'kg' && $unit_info['qty_in_unit'] < 0.9) ? $current_price : round($base_per_kg_sale * 0.40, 2),
-        'sku'         => $prod_sku . '-400G',
-        'stock'       => 25,
-        'badge'       => 'Popular'
-    ],
-    [
-        'id'          => 'kg-1kg',
-        'label'       => '1 kg',
-        'short_label' => '1 kg',
-        'unit_type'   => 'kg',
-        'unit_qty'    => 1.00,
-        'unit_desc'   => '1.00 kg',
-        'reg_price'   => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 1.0) < 0.05) ? $regular_price : round($base_per_kg_reg * 1.00, 2),
-        'sale_price'  => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 1.0) < 0.05) ? $current_price : round($base_per_kg_sale * 0.95, 2),
-        'sku'         => $prod_sku . '-1KG',
-        'stock'       => 18,
-        'badge'       => 'Best Value'
-    ],
-    [
-        'id'          => 'kg-2kg',
-        'label'       => '2 kg',
-        'short_label' => '2 kg',
-        'unit_type'   => 'kg',
-        'unit_qty'    => 2.00,
-        'unit_desc'   => '2.00 kg',
-        'reg_price'   => round($base_per_kg_reg * 2.00, 2),
-        'sale_price'  => round($base_per_kg_sale * 1.85, 2),
-        'sku'         => $prod_sku . '-2KG',
-        'stock'       => 12,
-        'badge'       => 'Save Extra'
-    ],
-];
+    ];
+    if ($unit_info['unit_type'] === 'pc') {
+        $pc_variants[] = $s_entry;
+    } else {
+        $kg_variants[] = $s_entry;
+    }
+}
 
-$pc_variants = [
-    [
-        'id'          => 'pc-1',
-        'label'       => '1 pc',
-        'short_label' => '1 pc',
-        'unit_type'   => 'pc',
-        'unit_qty'    => 1,
-        'unit_desc'   => '1 piece',
-        'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 1) ? $regular_price : max(0.50, round($base_per_pc_reg * 1, 2)),
-        'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 1) ? $current_price : max(0.40, round($base_per_pc_sale * 1, 2)),
-        'sku'         => $prod_sku . '-1PC',
-        'stock'       => 40,
-        'badge'       => ''
-    ],
-    [
-        'id'          => 'pc-4',
-        'label'       => '4 pcs',
-        'short_label' => '4 pcs',
-        'unit_type'   => 'pc',
-        'unit_qty'    => 4,
-        'unit_desc'   => '4 pieces',
-        'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 4) ? $regular_price : round($base_per_pc_reg * 4, 2),
-        'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 4) ? $current_price : round($base_per_pc_sale * 4, 2),
-        'sku'         => $prod_sku . '-4PC',
-        'stock'       => 28,
-        'badge'       => 'Popular'
-    ],
-    [
-        'id'          => 'pc-8',
-        'label'       => '8 pcs',
-        'short_label' => '8 pcs',
-        'unit_type'   => 'pc',
-        'unit_qty'    => 8,
-        'unit_desc'   => '8 pieces',
-        'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 8) ? $regular_price : round($base_per_pc_reg * 8, 2),
-        'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 8) ? $current_price : round($base_per_pc_sale * 7.6, 2),
-        'sku'         => $prod_sku . '-8PC',
-        'stock'       => 20,
-        'badge'       => 'Value Pack'
-    ],
-    [
-        'id'          => 'pc-12',
-        'label'       => '12 pcs',
-        'short_label' => '12 pcs',
-        'unit_type'   => 'pc',
-        'unit_qty'    => 12,
-        'unit_desc'   => '12 pieces',
-        'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 12) ? $regular_price : round($base_per_pc_reg * 12, 2),
-        'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 12) ? $current_price : round($base_per_pc_sale * 11, 2),
-        'sku'         => $prod_sku . '-12PC',
-        'stock'       => 15,
-        'badge'       => 'Best Saver'
-    ],
-];
+// Fill synthetic demo variants only when running in master template demo mode
+if (empty($is_user_project)) {
+    $base_per_kg_reg  = $unit_info['unit_type'] === 'kg'
+        ? round($regular_price / max(0.05, $unit_info['qty_in_unit']), 2)
+        : round($regular_price * 1.25, 2);
+    $base_per_kg_sale = $unit_info['unit_type'] === 'kg'
+        ? round($current_price / max(0.05, $unit_info['qty_in_unit']), 2)
+        : round($current_price * 1.25, 2);
+
+    $base_per_pc_reg  = $unit_info['unit_type'] === 'pc'
+        ? round($regular_price / max(1, $unit_info['qty_in_unit']), 2)
+        : round($regular_price / 8, 2);
+    $base_per_pc_sale = $unit_info['unit_type'] === 'pc'
+        ? round($current_price / max(1, $unit_info['qty_in_unit']), 2)
+        : round($current_price / 8, 2);
+
+    if (empty($kg_variants)) {
+        $kg_variants = [
+            [
+                'id'          => 'kg-250g',
+                'variant_id'  => 0,
+                'label'       => '250 g',
+                'short_label' => '250 g',
+                'unit_type'   => 'kg',
+                'unit_qty'    => 0.25,
+                'unit_desc'   => '0.25 kg',
+                'reg_price'   => round($base_per_kg_reg * 0.25, 2),
+                'sale_price'  => round($base_per_kg_sale * 0.25, 2),
+                'sku'         => $prod_sku . '-250G',
+                'stock'       => 32,
+                'badge'       => ''
+            ],
+            [
+                'id'          => 'kg-400g',
+                'variant_id'  => 0,
+                'label'       => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
+                'short_label' => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '500 g' : '400 g',
+                'unit_type'   => 'kg',
+                'unit_qty'    => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? 0.50 : 0.40,
+                'unit_desc'   => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 0.5) < 0.02) ? '0.50 kg' : '0.40 kg',
+                'reg_price'   => ($unit_info['unit_type'] === 'kg' && $unit_info['qty_in_unit'] < 0.9) ? $regular_price : round($base_per_kg_reg * 0.40, 2),
+                'sale_price'  => ($unit_info['unit_type'] === 'kg' && $unit_info['qty_in_unit'] < 0.9) ? $current_price : round($base_per_kg_sale * 0.40, 2),
+                'sku'         => $prod_sku . '-400G',
+                'stock'       => 25,
+                'badge'       => 'Popular'
+            ],
+            [
+                'id'          => 'kg-1kg',
+                'variant_id'  => 0,
+                'label'       => '1 kg',
+                'short_label' => '1 kg',
+                'unit_type'   => 'kg',
+                'unit_qty'    => 1.00,
+                'unit_desc'   => '1.00 kg',
+                'reg_price'   => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 1.0) < 0.05) ? $regular_price : round($base_per_kg_reg * 1.00, 2),
+                'sale_price'  => ($unit_info['unit_type'] === 'kg' && abs($unit_info['qty_in_unit'] - 1.0) < 0.05) ? $current_price : round($base_per_kg_sale * 0.95, 2),
+                'sku'         => $prod_sku . '-1KG',
+                'stock'       => 18,
+                'badge'       => 'Best Value'
+            ],
+            [
+                'id'          => 'kg-2kg',
+                'variant_id'  => 0,
+                'label'       => '2 kg',
+                'short_label' => '2 kg',
+                'unit_type'   => 'kg',
+                'unit_qty'    => 2.00,
+                'unit_desc'   => '2.00 kg',
+                'reg_price'   => round($base_per_kg_reg * 2.00, 2),
+                'sale_price'  => round($base_per_kg_sale * 1.85, 2),
+                'sku'         => $prod_sku . '-2KG',
+                'stock'       => 12,
+                'badge'       => 'Save Extra'
+            ],
+        ];
+    }
+
+    if (empty($pc_variants)) {
+        $pc_variants = [
+            [
+                'id'          => 'pc-1',
+                'variant_id'  => 0,
+                'label'       => '1 pc',
+                'short_label' => '1 pc',
+                'unit_type'   => 'pc',
+                'unit_qty'    => 1,
+                'unit_desc'   => '1 piece',
+                'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 1) ? $regular_price : max(0.50, round($base_per_pc_reg * 1, 2)),
+                'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 1) ? $current_price : max(0.40, round($base_per_pc_sale * 1, 2)),
+                'sku'         => $prod_sku . '-1PC',
+                'stock'       => 40,
+                'badge'       => ''
+            ],
+            [
+                'id'          => 'pc-4',
+                'variant_id'  => 0,
+                'label'       => '4 pcs',
+                'short_label' => '4 pcs',
+                'unit_type'   => 'pc',
+                'unit_qty'    => 4,
+                'unit_desc'   => '4 pieces',
+                'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 4) ? $regular_price : round($base_per_pc_reg * 4, 2),
+                'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 4) ? $current_price : round($base_per_pc_sale * 4, 2),
+                'sku'         => $prod_sku . '-4PC',
+                'stock'       => 28,
+                'badge'       => 'Popular'
+            ],
+            [
+                'id'          => 'pc-8',
+                'variant_id'  => 0,
+                'label'       => '8 pcs',
+                'short_label' => '8 pcs',
+                'unit_type'   => 'pc',
+                'unit_qty'    => 8,
+                'unit_desc'   => '8 pieces',
+                'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 8) ? $regular_price : round($base_per_pc_reg * 8, 2),
+                'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 8) ? $current_price : round($base_per_pc_sale * 7.6, 2),
+                'sku'         => $prod_sku . '-8PC',
+                'stock'       => 20,
+                'badge'       => 'Value Pack'
+            ],
+            [
+                'id'          => 'pc-12',
+                'variant_id'  => 0,
+                'label'       => '12 pcs',
+                'short_label' => '12 pcs',
+                'unit_type'   => 'pc',
+                'unit_qty'    => 12,
+                'unit_desc'   => '12 pieces',
+                'reg_price'   => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 12) ? $regular_price : round($base_per_pc_reg * 12, 2),
+                'sale_price'  => ($unit_info['unit_type'] === 'pc' && (int)$unit_info['qty_in_unit'] === 12) ? $current_price : round($base_per_pc_sale * 11, 2),
+                'sku'         => $prod_sku . '-12PC',
+                'stock'       => 15,
+                'badge'       => 'Best Saver'
+            ],
+        ];
+    }
+}
+
+// Ensure initial_unit_type points to a non-empty variant list
+if ($initial_unit_type === 'pc' && empty($pc_variants) && !empty($kg_variants)) {
+    $initial_unit_type = 'kg';
+} elseif ($initial_unit_type === 'kg' && empty($kg_variants) && !empty($pc_variants)) {
+    $initial_unit_type = 'pc';
+}
 
 // Pick initial active variant matching the product's default unit
-if ($initial_unit_type === 'pc') {
-    $initial_variant = $pc_variants[1]; // default 4 pcs
+if ($initial_unit_type === 'pc' && !empty($pc_variants)) {
+    $initial_variant = $pc_variants[0];
     foreach ($pc_variants as $pv) {
         if ((int)$pv['unit_qty'] === (int)$unit_info['qty_in_unit']) {
             $initial_variant = $pv;
@@ -273,7 +415,11 @@ if ($initial_unit_type === 'pc') {
         }
     }
 } else {
-    $initial_variant = $kg_variants[1]; // default 400g / 500g
+    $initial_variant = !empty($kg_variants[0]) ? $kg_variants[0] : [
+        'id' => (string)$prod_id, 'variant_id' => 0, 'label' => $prod_unit_raw, 'short_label' => $prod_unit_raw,
+        'unit_type' => 'kg', 'unit_qty' => 1.0, 'unit_desc' => '1 kg',
+        'reg_price' => $regular_price, 'sale_price' => $current_price, 'sku' => $prod_sku, 'stock' => $prod_stock, 'badge' => ''
+    ];
     foreach ($kg_variants as $kv) {
         if (abs($kv['unit_qty'] - $unit_info['qty_in_unit']) < 0.06) {
             $initial_variant = $kv;
@@ -291,35 +437,65 @@ $init_discount   = ($init_reg_price > $init_sale_price && $init_reg_price > 0)
     ? round((($init_reg_price - $init_sale_price) / $init_reg_price) * 100)
     : 0;
 
-$rating_val   = isset($product['rating']) ? (float)$product['rating'] : 4.9;
-$review_count = isset($product['reviews_count']) ? (int)$product['reviews_count'] : 36;
-$short_desc   = !empty($product['short_description']) && strpos($product['short_description'], 'linen') === false
+$actual_reviews = (!empty($product['reviews']) && is_array($product['reviews'])) ? $product['reviews'] : [];
+$rating_val     = isset($product['rating']) && (float)$product['rating'] > 0 ? (float)$product['rating'] : 4.9;
+$review_count   = !empty($actual_reviews)
+    ? count($actual_reviews)
+    : (isset($product['reviews_count']) ? (int)$product['reviews_count'] : (empty($is_user_project) ? 36 : 0));
+
+$short_desc = !empty($product['short_description']) && strpos($product['short_description'], 'linen') === false
     ? $product['short_description']
-    : 'Hand-picked farm-fresh organic harvest, naturally ripened for peak sweetness, vibrant flavor, and rich antioxidant nutrition. Packed in a temperature-controlled eco-friendly container to lock in crisp morning freshness.';
+    : (!empty($product['description']) ? strip_tags($product['description']) : 'Hand-picked farm-fresh organic harvest, naturally ripened for peak sweetness, vibrant flavor, and rich antioxidant nutrition.');
+$full_desc = !empty($product['description']) ? $product['description'] : $short_desc;
 
+// Dynamic Highlights from Database
 $grc_highlights = [
-    ['key' => 'Selling Unit',       'value' => ($initial_unit_type === 'pc' ? 'Per Piece (pc)' : 'By Weight (kg)'), 'id' => 'hl-selling-unit'],
-    ['key' => 'Net Pack Content',   'value' => $initial_variant['label'] . ' (' . $initial_variant['unit_desc'] . ')', 'id' => 'hl-pack-content'],
-    ['key' => 'Unit Rate',          'value' => $currency_symbol . number_format($init_unit_rate, 2) . ' / ' . $initial_unit_type, 'id' => 'hl-unit-rate'],
-    ['key' => 'Farming Method',     'value' => '100% Certified Organic & Pesticide-Free', 'id' => ''],
-    ['key' => 'Shelf Life',         'value' => '4 – 6 Days (Keep Refrigerated at 2°C – 4°C)', 'id' => ''],
-    ['key' => 'Harvest Origin',     'value' => 'Local Sustainable Organic Orchards', 'id' => ''],
+    ['key' => 'Selling Unit',     'value' => ($initial_unit_type === 'pc' ? 'Per Piece (pc)' : 'By Weight (kg)'), 'id' => 'hl-selling-unit'],
+    ['key' => 'Net Pack Content', 'value' => $initial_variant['label'] . ' (' . $initial_variant['unit_desc'] . ')', 'id' => 'hl-pack-content'],
+    ['key' => 'Unit Rate',        'value' => $currency_symbol . number_format($init_unit_rate, 2) . ' / ' . $initial_unit_type, 'id' => 'hl-unit-rate'],
 ];
+$raw_hl_list = [];
+if (!empty($product['highlights_decoded']) && is_array($product['highlights_decoded'])) {
+    $raw_hl_list = $product['highlights_decoded'];
+} elseif (!empty($product['highlights']) && is_string($product['highlights'])) {
+    $raw_hl_list = json_decode($product['highlights'], true) ?: [];
+}
+if (!empty($raw_hl_list)) {
+    foreach ($raw_hl_list as $hl_row) {
+        $hk = trim((string)($hl_row['key'] ?? ($hl_row['name'] ?? '')));
+        $hv = trim((string)($hl_row['value'] ?? ''));
+        if ($hk !== '' || $hv !== '') {
+            $grc_highlights[] = ['key' => $hk ?: 'Highlight', 'value' => $hv, 'id' => ''];
+        }
+    }
+} elseif (empty($is_user_project)) {
+    $grc_highlights[] = ['key' => 'Farming Method', 'value' => '100% Certified Organic & Pesticide-Free', 'id' => ''];
+    $grc_highlights[] = ['key' => 'Shelf Life',     'value' => '4 – 6 Days (Keep Refrigerated at 2°C – 4°C)', 'id' => ''];
+    $grc_highlights[] = ['key' => 'Harvest Origin', 'value' => 'Local Sustainable Organic Orchards', 'id' => ''];
+}
 
+// Dynamic Specifications & Nutrition Facts from Database
 $grc_specifications = [
-    ['name' => 'Brand / Farm',         'value' => $prod_brand],
-    ['name' => 'Department',           'value' => $prod_cat],
-    ['name' => 'Unit Type',            'value' => strtoupper($initial_unit_type) . ($initial_unit_type === 'pc' ? ' (Per Piece Calculation)' : ' (Per Kilogram Calculation)')],
-    ['name' => 'Energy (per 100g)',    'value' => '32 kcal'],
-    ['name' => 'Vitamin C',            'value' => '58.8 mg (98% Daily Value)'],
-    ['name' => 'Dietary Fiber',        'value' => '2.0 g per 100g'],
-    ['name' => 'Natural Sugars',       'value' => '4.9 g (Zero Added Sugar)'],
-    ['name' => 'Dietary Suitability',  'value' => '100% Vegan, Gluten-Free, Non-GMO'],
-    ['name' => 'Storage Instruction',  'value' => 'Store unwashed in refrigerator crisper drawer; rinse gently in cold water just before serving'],
-    ['name' => 'Packaging Type',       'value' => 'BPA-Free Recyclable Ventilated Freshness Box'],
-    ['name' => 'Cold-Chain Assured',   'value' => 'Yes (Maintained at 2°C – 5°C until doorstep delivery)'],
-    ['name' => 'Country of Origin',    'value' => 'India'],
+    ['name' => 'Brand / Farm', 'value' => $prod_brand],
+    ['name' => 'Department',   'value' => $prod_cat],
+    ['name' => 'Unit Type',    'value' => strtoupper($initial_unit_type) . ($initial_unit_type === 'pc' ? ' (Per Piece Calculation)' : ' (Per Kilogram Calculation)')],
 ];
+if (!empty($product['specifications']) && is_array($product['specifications'])) {
+    foreach ($product['specifications'] as $sp_row) {
+        $sn = trim((string)($sp_row['spec_name'] ?? ($sp_row['name'] ?? ($sp_row['key'] ?? ''))));
+        $sv = trim((string)($sp_row['spec_value'] ?? ($sp_row['value'] ?? '')));
+        if ($sn !== '' || $sv !== '') {
+            $grc_specifications[] = ['name' => $sn ?: 'Specification', 'value' => $sv];
+        }
+    }
+} elseif (empty($is_user_project)) {
+    $grc_specifications[] = ['name' => 'Energy (per 100g)',   'value' => '32 kcal'];
+    $grc_specifications[] = ['name' => 'Vitamin C',           'value' => '58.8 mg (98% Daily Value)'];
+    $grc_specifications[] = ['name' => 'Dietary Fiber',       'value' => '2.0 g per 100g'];
+    $grc_specifications[] = ['name' => 'Natural Sugars',      'value' => '4.9 g (Zero Added Sugar)'];
+    $grc_specifications[] = ['name' => 'Dietary Suitability', 'value' => '100% Vegan, Gluten-Free, Non-GMO'];
+    $grc_specifications[] = ['name' => 'Country of Origin',   'value' => 'India'];
+}
 ?>
 
 <style>
@@ -1081,11 +1257,11 @@ $grc_specifications = [
 
                      <!-- Department & Farm -->
                      <div class="grc-cat-farm-row">
-                        <a href="<?= site_url('shop/' . $prod_cat_slug . '?preview_tpl=grocery'); ?>" class="grc-dept-pill">
+                        <a href="<?= site_url('shop/' . $prod_cat_slug . $grc_qs); ?>" class="grc-dept-pill">
                            <i class="fa-solid fa-basket-shopping me-1"></i><?= html_escape($prod_cat); ?>
                         </a>
                         <span class="text-muted">&bull;</span>
-                        <a href="<?= site_url('shop?preview_tpl=grocery'); ?>" class="grc-farm-link">
+                        <a href="<?= site_url('shop' . $grc_qs); ?>" class="grc-farm-link">
                            <i class="fa-solid fa-tractor text-success me-1"></i><?= html_escape($prod_brand); ?>
                         </a>
                      </div>
@@ -1136,24 +1312,6 @@ $grc_specifications = [
                            </span>
                         </div>
 
-                        <!-- Dynamic Per Kg / Per Pc Unit Price Calculation Row -->
-                        <div class="grc-unit-rate-highlight">
-                           <div class="grc-unit-rate-pill" id="unit-rate-pill">
-                              <i class="fa-solid <?= $initial_unit_type === 'pc' ? 'fa-apple-whole' : 'fa-scale-balanced'; ?>" id="unit-rate-icon"></i>
-                              <span id="unit-rate-heading"><?= $initial_unit_type === 'pc' ? 'Per Pc Price:' : 'Per Kg Price:'; ?></span>
-                              <strong id="display-unit-rate" style="font-size:17px; color:#86efac;">
-                                 <?= $currency_symbol . number_format($init_unit_rate, 2); ?> / <?= $initial_unit_type; ?>
-                              </strong>
-                           </div>
-
-                           <div class="grc-unit-formula-note" id="display-unit-formula">
-                              <?php if ($initial_unit_type === 'pc'): ?>
-                                 Calculated: <?= $currency_symbol . number_format($init_sale_price, 2); ?> &divide; <?= (int)$initial_variant['unit_qty']; ?> <?= (int)$initial_variant['unit_qty'] > 1 ? 'pcs' : 'pc'; ?> = <strong><?= $currency_symbol . number_format($init_unit_rate, 2); ?> / pc</strong>
-                              <?php else: ?>
-                                 Calculated: <?= $currency_symbol . number_format($init_sale_price, 2); ?> &divide; <?= $initial_variant['unit_desc']; ?> = <strong><?= $currency_symbol . number_format($init_unit_rate, 2); ?> / kg</strong>
-                              <?php endif; ?>
-                           </div>
-                        </div>
 
                         <div class="d-flex align-items-center justify-content-between mt-2 pt-1 text-secondary" style="font-size:12px;">
                            <span><i class="fa-solid fa-circle-check text-success me-1"></i>Inclusive of all taxes</span>
@@ -1177,6 +1335,7 @@ $grc_specifications = [
                            </div>
 
                            <!-- Unit Mode Toggle: By Weight (kg) vs By Piece (pc) -->
+                           <?php if (!empty($kg_variants) && !empty($pc_variants)): ?>
                            <div class="grc-unit-mode-switch" role="group" aria-label="Product Unit Type">
                               <button type="button"
                                       class="grc-unit-mode-btn <?= $initial_unit_type === 'kg' ? 'active' : ''; ?>"
@@ -1191,16 +1350,18 @@ $grc_specifications = [
                                  <i class="fa-solid fa-apple-whole"></i> Unit: Pc (Per Pc)
                               </button>
                            </div>
+                           <?php endif; ?>
                         </div>
 
                         <!-- Weight (KG) Pack Variants Grid -->
                         <div class="grc-pack-variants-grid" id="grc-variants-kg" style="<?= $initial_unit_type === 'kg' ? 'display:grid;' : 'display:none;'; ?>">
                            <?php foreach ($kg_variants as $kv):
-                              $kv_rate = round($kv['sale_price'] / $kv['unit_qty'], 2);
+                              $kv_rate = round($kv['sale_price'] / max(0.01, $kv['unit_qty']), 2);
                               $is_active = ($initial_unit_type === 'kg' && $kv['id'] === $initial_variant['id']);
                            ?>
                            <div class="grc-pack-card <?= $is_active ? 'active' : ''; ?>"
                                 data-id="<?= html_escape($kv['id']); ?>"
+                                data-variant-id="<?= (int)($kv['variant_id'] ?? 0); ?>"
                                 data-unit-type="kg"
                                 data-label="<?= html_escape($kv['label']); ?>"
                                 data-unit-qty="<?= (float)$kv['unit_qty']; ?>"
@@ -1227,11 +1388,12 @@ $grc_specifications = [
                         <!-- Piece (PC) Pack Variants Grid -->
                         <div class="grc-pack-variants-grid" id="grc-variants-pc" style="<?= $initial_unit_type === 'pc' ? 'display:grid;' : 'display:none;'; ?>">
                            <?php foreach ($pc_variants as $pv):
-                              $pv_rate = round($pv['sale_price'] / $pv['unit_qty'], 2);
+                              $pv_rate = round($pv['sale_price'] / max(1, $pv['unit_qty']), 2);
                               $is_active = ($initial_unit_type === 'pc' && $pv['id'] === $initial_variant['id']);
                            ?>
                            <div class="grc-pack-card <?= $is_active ? 'active' : ''; ?>"
                                 data-id="<?= html_escape($pv['id']); ?>"
+                                data-variant-id="<?= (int)($pv['variant_id'] ?? 0); ?>"
                                 data-unit-type="pc"
                                 data-label="<?= html_escape($pv['label']); ?>"
                                 data-unit-qty="<?= (float)$pv['unit_qty']; ?>"
@@ -1372,10 +1534,30 @@ $grc_specifications = [
                         <div class="tab-pane fade show active" id="nav-description" role="tabpanel">
                            <div class="product-details-tab-item pt-4">
                               <div class="product-details-desc-wrap">
-                                 <h3 class="product-details-desc-title" style="color:#003D29;"><?= html_escape($prod_title); ?> — Farm-Direct Organic Quality</h3>
-                                 <p class="mb-30">
-                                    <?= html_escape($short_desc); ?> Grown in nutrient-rich organic soil without synthetic fertilizers or chemical pesticides, every batch is hand-selected at peak ripeness and immediately pre-cooled to lock in natural sweetness, aroma, and essential vitamins.
-                                 </p>
+                                 <h3 class="product-details-desc-title" style="color:#003D29;"><?= html_escape($prod_title); ?></h3>
+                                 <div class="mb-30 text-secondary" style="font-size:15px; line-height:1.75;">
+                                    <?php if (!empty($product['description'])): ?>
+                                       <?= nl2br(html_escape($product['description'])); ?>
+                                    <?php else: ?>
+                                       <?= nl2br(html_escape($short_desc)); ?>
+                                    <?php endif; ?>
+                                 </div>
+                                 <?php if (!empty($raw_hl_list)): ?>
+                                 <div class="row g-3 mt-2">
+                                    <?php foreach ($raw_hl_list as $hl_card):
+                                       $hc_k = trim((string)($hl_card['key'] ?? ($hl_card['name'] ?? '')));
+                                       $hc_v = trim((string)($hl_card['value'] ?? ''));
+                                       if ($hc_k === '' && $hc_v === '') continue;
+                                    ?>
+                                    <div class="col-md-3 col-sm-6">
+                                       <div class="p-3 rounded-3 h-100" style="background:#f4fbf6; border:1px solid #d1fae5;">
+                                          <div class="small text-muted mb-1"><?= html_escape($hc_k); ?></div>
+                                          <div class="fw-bold" style="color:#003D29; font-size:16px;"><?= html_escape($hc_v); ?></div>
+                                       </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                 </div>
+                                 <?php elseif (empty($is_user_project)): ?>
                                  <div class="row g-4">
                                     <div class="col-md-4">
                                        <div class="p-4 rounded-3 h-100" style="background:#f4fbf6; border:1px solid #d1fae5;">
@@ -1409,6 +1591,7 @@ $grc_specifications = [
                                        </div>
                                     </div>
                                  </div>
+                                 <?php endif; ?>
                               </div>
                            </div>
                         </div>
@@ -1419,16 +1602,15 @@ $grc_specifications = [
                               <div class="product-details-additional-info">
                                  <div class="row g-4">
                                     <div class="col-lg-6">
-                                       <h4 class="product-details-additional-info-title mb-3" style="color:#003D29;">Nutritional Facts (Per 100g Serving)</h4>
+                                       <h4 class="product-details-additional-info-title mb-3" style="color:#003D29;">Product Specifications &amp; Nutritional Facts</h4>
                                        <table>
                                           <tbody>
-                                             <tr><td>Energy / Calories</td><td>32 kcal</td></tr>
-                                             <tr><td>Total Carbohydrates</td><td>7.7 g</td></tr>
-                                             <tr><td>Dietary Fiber</td><td>2.0 g</td></tr>
-                                             <tr><td>Natural Sugars</td><td>4.9 g (0g Added Sugar)</td></tr>
-                                             <tr><td>Protein</td><td>0.7 g</td></tr>
-                                             <tr><td>Vitamin C</td><td>58.8 mg (98% Daily Value)</td></tr>
-                                             <tr><td>Potassium &amp; Folate</td><td>153 mg Potassium • 24 µg Folate</td></tr>
+                                             <?php foreach ($grc_specifications as $sp_item): ?>
+                                             <tr>
+                                                <td><?= html_escape($sp_item['name']); ?></td>
+                                                <td><?= html_escape($sp_item['value']); ?></td>
+                                             </tr>
+                                             <?php endforeach; ?>
                                           </tbody>
                                        </table>
                                     </div>
@@ -1437,7 +1619,7 @@ $grc_specifications = [
                                        <table>
                                           <tbody>
                                              <?php foreach ($kg_variants as $kv):
-                                                $r = round($kv['sale_price'] / $kv['unit_qty'], 2);
+                                                $r = round($kv['sale_price'] / max(0.01, $kv['unit_qty']), 2);
                                              ?>
                                              <tr>
                                                 <td><?= html_escape($kv['label']); ?> (Weight Unit: Kg)</td>
@@ -1445,7 +1627,7 @@ $grc_specifications = [
                                              </tr>
                                              <?php endforeach; ?>
                                              <?php foreach ($pc_variants as $pv):
-                                                $r = round($pv['sale_price'] / $pv['unit_qty'], 2);
+                                                $r = round($pv['sale_price'] / max(1, $pv['unit_qty']), 2);
                                              ?>
                                              <tr>
                                                 <td><?= html_escape($pv['label']); ?> (Piece Unit: Pc)</td>
@@ -1465,21 +1647,39 @@ $grc_specifications = [
                            <div class="product-details-tab-item pt-4">
                               <div class="row g-4">
                                  <div class="col-lg-7">
-                                    <h4 class="fw-bold mb-3" style="color:#003D29;">Verified Grocery Buyer Reviews</h4>
-                                    <div class="p-3 mb-3 rounded-3 border bg-white">
-                                       <div class="d-flex justify-content-between align-items-center mb-1">
-                                          <strong>Ananya Sharma <span class="badge bg-success-subtle text-success ms-1">Verified Purchase • 400g Punnet</span></strong>
-                                          <span class="text-warning small"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                                    <h4 class="fw-bold mb-3" style="color:#003D29;">Verified Buyer Reviews</h4>
+                                    <?php if (!empty($actual_reviews)): ?>
+                                       <?php foreach ($actual_reviews as $rev):
+                                          $r_name  = $rev['customer_name'] ?? ($rev['name'] ?? 'Verified Customer');
+                                          $r_stars = max(1, min(5, (int)($rev['rating'] ?? 5)));
+                                          $r_text  = $rev['comment'] ?? ($rev['review'] ?? '');
+                                       ?>
+                                       <div class="p-3 mb-3 rounded-3 border bg-white">
+                                          <div class="d-flex justify-content-between align-items-center mb-1">
+                                             <strong><?= html_escape($r_name); ?> <span class="badge bg-success-subtle text-success ms-1">Verified Purchase</span></strong>
+                                             <span class="text-warning small">
+                                                <?php for ($si = 1; $si <= 5; $si++): ?>
+                                                   <i class="fa-<?= $si <= $r_stars ? 'solid' : 'regular'; ?> fa-star"></i>
+                                                <?php endfor; ?>
+                                             </span>
+                                          </div>
+                                          <p class="mb-1 text-secondary small"><?= nl2br(html_escape($r_text)); ?></p>
                                        </div>
-                                       <p class="mb-1 text-secondary small">Super fresh, firm, and naturally sweet! Delivered chilled in under 2 hours. Love that the page clearly shows the per-kg and per-pc price so comparing pack sizes is effortless.</p>
-                                    </div>
-                                    <div class="p-3 mb-3 rounded-3 border bg-white">
-                                       <div class="d-flex justify-content-between align-items-center mb-1">
-                                          <strong>Rahul Verma <span class="badge bg-success-subtle text-success ms-1">Verified Purchase • 1 kg Value Pack</span></strong>
-                                          <span class="text-warning small"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                                       <?php endforeach; ?>
+                                    <?php elseif (empty($is_user_project)): ?>
+                                       <div class="p-3 mb-3 rounded-3 border bg-white">
+                                          <div class="d-flex justify-content-between align-items-center mb-1">
+                                             <strong>Ananya Sharma <span class="badge bg-success-subtle text-success ms-1">Verified Purchase • 400g Punnet</span></strong>
+                                             <span class="text-warning small"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
+                                          </div>
+                                          <p class="mb-1 text-secondary small">Super fresh, firm, and naturally sweet! Delivered chilled in under 2 hours. Love that the page clearly shows the per-kg and per-pc price so comparing pack sizes is effortless.</p>
                                        </div>
-                                       <p class="mb-1 text-secondary small">Zero bruised pieces in the entire 1 kg box. Great value per kg compared to local supermarket chains.</p>
-                                    </div>
+                                    <?php else: ?>
+                                       <div class="p-4 rounded-3 border bg-white text-center text-muted">
+                                          <i class="fa-regular fa-comment-dots fs-2 mb-2 text-success"></i>
+                                          <p class="mb-0">No customer reviews yet for <strong><?= html_escape($prod_title); ?></strong>. Be the first to share your review!</p>
+                                       </div>
+                                    <?php endif; ?>
                                  </div>
                                  <div class="col-lg-5">
                                     <div class="p-4 rounded-3" style="background:#f4fbf6; border:1px solid #d1fae5;">
@@ -1554,7 +1754,7 @@ $grc_specifications = [
                      <h4 class="aq-section-title ff-satoshi-bold fs-30 mb-0" style="color:#003D29;">Fresh From The Same Aisle</h4>
                   </div>
                   <div class="col-sm-4 text-sm-end">
-                     <a class="aq-btn-link aq-btn-underline" href="<?= site_url('shop?preview_tpl=grocery'); ?>">View All Groceries</a>
+                     <a class="aq-btn-link aq-btn-underline" href="<?= site_url('shop' . $grc_qs); ?>">View All Groceries</a>
                   </div>
                </div>
             </div>
@@ -1577,7 +1777,7 @@ $grc_specifications = [
                            <span class="clr-sale">-<?= $rp_pct; ?>%</span>
                         </div>
                         <?php endif; ?>
-                        <a href="<?= site_url('product/' . $rp_slug . '?preview_tpl=grocery'); ?>">
+                        <a href="<?= site_url('product/' . $rp_slug . $grc_qs); ?>">
                            <img class="aq-product-img-hover" src="<?= $rp_img; ?>" alt="<?= html_escape($rp_name); ?>">
                         </a>
                      </div>
@@ -1587,7 +1787,7 @@ $grc_specifications = [
                            <span class="grc-unit-pill"><?= html_escape($rp_unit); ?></span>
                         </div>
                         <h4 class="aq-product-title">
-                           <a href="<?= site_url('product/' . $rp_slug . '?preview_tpl=grocery'); ?>"><?= html_escape($rp_name); ?></a>
+                           <a href="<?= site_url('product/' . $rp_slug . $grc_qs); ?>"><?= html_escape($rp_name); ?></a>
                         </h4>
                         <div class="aq-product-price mb-1">
                            <ins><span class="aq-product-new-price"><?= html_escape($currency_symbol) . number_format($rp_sal, 2); ?></span></ins>
@@ -1842,7 +2042,7 @@ $grc_specifications = [
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             body: fd
         }).finally(function() {
-            window.location.href = '<?= site_url("checkout?preview_tpl=grocery"); ?>';
+            window.location.href = '<?= site_url("checkout" . $grc_qs); ?>';
         });
     };
 

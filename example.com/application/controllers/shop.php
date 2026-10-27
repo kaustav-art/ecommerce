@@ -12,14 +12,15 @@ class shop extends MY_Controller {
     {
         $raw_category_slug = $category_slug ?: $this->input->get('category');
         $tpl_key           = $this->template_registry->get_tpl_key($this->active_template);
+        $db_all_categories = Static_template_data::get('all_categories');
 
         if ($this->active_template !== 'fashion') {
-            $dyn_cats       = $this->get_dynamic_template_categories($tpl_key);
-            $all_categories = $dyn_cats;
-            $root_categories= $dyn_cats;
-            $all_products   = $this->get_dynamic_template_products($tpl_key);
+            $dyn_cats        = $this->get_dynamic_template_categories($tpl_key);
+            $all_categories  = $dyn_cats;
+            $root_categories = $dyn_cats;
+            $all_products    = $this->get_dynamic_template_products($tpl_key);
         } else {
-            $all_categories  = Static_template_data::get('all_categories');
+            $all_categories  = $db_all_categories;
             $root_categories = Static_template_data::get('root_categories');
             $all_products    = Static_template_data::get('products');
         }
@@ -38,20 +39,43 @@ class shop extends MY_Controller {
                     break;
                 }
             }
-            if (!$selected_category && $this->active_template !== 'fashion') {
+            // Also search full category hierarchy (including child & grandchild categories)
+            if (!$selected_category && !empty($db_all_categories)) {
+                foreach ($db_all_categories as $cat) {
+                    if (strcasecmp($cat['slug'], $raw_category_slug) === 0) {
+                        $selected_category = $cat;
+                        break;
+                    }
+                }
+            }
+            if (!$selected_category && !$this->is_user_project && $this->active_template !== 'fashion') {
                 $selected_category = [
                     'id'            => 0,
                     'name'          => ucwords(str_replace('-', ' ', $raw_category_slug)),
                     'slug'          => $raw_category_slug,
-                    'product_count' => count($all_products),
+                    'product_count' => 0,
                 ];
             }
         }
 
         if ($selected_category) {
-            $breadcrumbs[] = $selected_category;
+            // Build ancestor breadcrumb trail if selected_category is a subcategory
+            $cat_by_id = [];
+            foreach ($db_all_categories as $c_row) {
+                $cat_by_id[(int)$c_row['id']] = $c_row;
+            }
+            $trail = [$selected_category];
+            $curr_pid = (int)($selected_category['parent_id'] ?? 0);
+            $guard = 0;
+            while ($curr_pid > 0 && isset($cat_by_id[$curr_pid]) && $guard < 10) {
+                array_unshift($trail, $cat_by_id[$curr_pid]);
+                $curr_pid = (int)($cat_by_id[$curr_pid]['parent_id'] ?? 0);
+                $guard++;
+            }
+            $breadcrumbs = $trail;
+
             $subcats = [];
-            foreach ($all_categories as $cat) {
+            foreach ($db_all_categories as $cat) {
                 if ((int)($cat['parent_id'] ?? 0) === (int)($selected_category['id'] ?? -1) && !empty($selected_category['id'])) {
                     $subcats[] = $cat;
                 }
@@ -100,7 +124,129 @@ class shop extends MY_Controller {
         $valid_sorts  = ['a-z', 'z-a', 'price-low-high', 'price-high-low'];
         $current_sort = in_array($sort_param, $valid_sorts) ? $sort_param : 'a-z';
 
-        $products = $all_products;
+        $search_q  = trim((string)$this->input->get('q'));
+        $min_price = $this->input->get('min_price') !== NULL && $this->input->get('min_price') !== '' ? (float)$this->input->get('min_price') : NULL;
+        $max_price = $this->input->get('max_price') !== NULL && $this->input->get('max_price') !== '' ? (float)$this->input->get('max_price') : NULL;
+        $on_sale   = $this->input->get('on_sale') ? TRUE : FALSE;
+        $in_stock  = $this->input->get('in_stock') ? TRUE : FALSE;
+
+        // Build allowed category IDs/slugs/names (including all descendant subcategories)
+        $allowed_cat_ids   = [];
+        $allowed_cat_slugs = [];
+        $allowed_cat_names = [];
+        if ($selected_category) {
+            if (!empty($selected_category['descendant_ids'])) {
+                $allowed_cat_ids = array_map('intval', $selected_category['descendant_ids']);
+            } elseif (!empty($selected_category['id'])) {
+                $allowed_cat_ids = [(int)$selected_category['id']];
+            }
+            if (!empty($selected_category['descendant_slugs'])) {
+                $allowed_cat_slugs = array_map('strtolower', $selected_category['descendant_slugs']);
+            } elseif (!empty($selected_category['slug'])) {
+                $allowed_cat_slugs = [strtolower($selected_category['slug'])];
+            }
+            if (!empty($selected_category['descendant_names'])) {
+                $allowed_cat_names = array_map('strtolower', $selected_category['descendant_names']);
+            } elseif (!empty($selected_category['name'])) {
+                $allowed_cat_names = [strtolower($selected_category['name'])];
+            }
+        }
+
+        $selected_brands_lower = array_map('strtolower', $selected_brands);
+
+        // Filter products dynamically
+        $products = array_values(array_filter($all_products, function($p) use (
+            $selected_category, $allowed_cat_ids, $allowed_cat_slugs, $allowed_cat_names,
+            $selected_brands_lower, $search_q, $min_price, $max_price, $on_sale, $in_stock, $attr_value_ids
+        ) {
+            // 1. Category Filter
+            if ($selected_category) {
+                $p_cid   = isset($p['category_id']) ? (int)$p['category_id'] : 0;
+                $p_cslug = strtolower(trim((string)($p['category_slug'] ?? '')));
+                $p_cname = strtolower(trim((string)($p['category_name'] ?? '')));
+
+                $cat_match = FALSE;
+                if ($p_cid > 0 && !empty($allowed_cat_ids) && in_array($p_cid, $allowed_cat_ids, true)) {
+                    $cat_match = TRUE;
+                } elseif ($p_cslug !== '' && !empty($allowed_cat_slugs) && in_array($p_cslug, $allowed_cat_slugs, true)) {
+                    $cat_match = TRUE;
+                } elseif ($p_cid === 0 && $p_cname !== '' && !empty($allowed_cat_names) && in_array($p_cname, $allowed_cat_names, true)) {
+                    $cat_match = TRUE;
+                }
+                if (!$cat_match) {
+                    return FALSE;
+                }
+            }
+
+            // 2. Brand Filter
+            if (!empty($selected_brands_lower)) {
+                $p_bslug = strtolower(trim((string)($p['brand_slug'] ?? '')));
+                $p_bname = strtolower(trim((string)($p['brand_name'] ?? '')));
+                if (!in_array($p_bslug, $selected_brands_lower, true) && !in_array($p_bname, $selected_brands_lower, true)) {
+                    return FALSE;
+                }
+            }
+
+            // 3. Search Query Filter
+            if ($search_q !== '') {
+                $haystack = strtolower(
+                    ($p['title'] ?? '') . ' ' .
+                    ($p['name'] ?? '') . ' ' .
+                    ($p['category_name'] ?? '') . ' ' .
+                    ($p['brand_name'] ?? '') . ' ' .
+                    ($p['sku'] ?? '') . ' ' .
+                    ($p['short_description'] ?? '')
+                );
+                if (stripos($haystack, $search_q) === FALSE) {
+                    return FALSE;
+                }
+            }
+
+            // 4. Price Filter
+            $eff_price = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0) ? (float)$p['sale_price'] : (float)($p['price'] ?? 0);
+            if ($min_price !== NULL && $eff_price < $min_price) {
+                return FALSE;
+            }
+            if ($max_price !== NULL && $eff_price > $max_price) {
+                return FALSE;
+            }
+
+            // 5. On Sale Filter
+            if ($on_sale) {
+                $reg_p = (float)($p['regular_price'] ?? $p['price'] ?? 0);
+                $sal_p = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0) ? (float)$p['sale_price'] : 0;
+                if ($sal_p <= 0 || $sal_p >= $reg_p) {
+                    return FALSE;
+                }
+            }
+
+            // 6. In Stock Filter
+            if ($in_stock) {
+                if (($p['stock_status'] ?? 'in_stock') === 'out_of_stock' || (isset($p['stock_quantity']) && (int)$p['stock_quantity'] <= 0)) {
+                    return FALSE;
+                }
+            }
+
+            // 7. Attribute Value IDs Filter
+            if (!empty($attr_value_ids)) {
+                $has_attr = FALSE;
+                if (!empty($p['variants'])) {
+                    foreach ($p['variants'] as $v) {
+                        foreach ($v['values'] ?? [] as $vv) {
+                            if (in_array((int)($vv['attribute_value_id'] ?? 0), $attr_value_ids, true)) {
+                                $has_attr = TRUE;
+                                break 2;
+                            }
+                        }
+                    }
+                }
+                if (!$has_attr) {
+                    return FALSE;
+                }
+            }
+
+            return TRUE;
+        }));
 
         // Sort in memory
         usort($products, function($a, $b) use ($current_sort) {
@@ -114,9 +260,23 @@ class shop extends MY_Controller {
             return strcasecmp($ta, $tb);
         });
 
+        // Compute dynamic catalog min & max prices
+        $catalog_prices = [];
+        foreach ($all_products as $ap) {
+            $ep = (!empty($ap['sale_price']) && (float)$ap['sale_price'] > 0) ? (float)$ap['sale_price'] : (float)($ap['price'] ?? 0);
+            if ($ep > 0) {
+                $catalog_prices[] = $ep;
+            }
+        }
+        $calc_min_price = !empty($catalog_prices) ? floor(min($catalog_prices)) : 0;
+        $calc_max_price = !empty($catalog_prices) ? ceil(max($catalog_prices)) : 300;
+        if ($calc_max_price <= $calc_min_price) {
+            $calc_max_price = $calc_min_price + 100;
+        }
+
         $filters = [
             'category_slug'  => $raw_category_slug,
-            'category_ids'   => $selected_category ? [$selected_category['id']] : NULL,
+            'category_ids'   => !empty($allowed_cat_ids) ? $allowed_cat_ids : NULL,
             'brand_slugs'    => $selected_brands,
             'brand_slug'     => !empty($selected_brands) ? $selected_brands[0] : NULL,
             'search'         => $this->input->get('q'),
@@ -129,10 +289,10 @@ class shop extends MY_Controller {
             'attr_value_ids' => $attr_value_ids
         ];
 
-        $limit          = 16;
+        $limit          = 24;
         $page           = 1;
         $offset         = 0;
-        $per_page       = 16;
+        $per_page       = 24;
         $total_products = count($products);
         $total_pages    = 1;
         $has_more       = FALSE;
@@ -146,33 +306,35 @@ class shop extends MY_Controller {
         }
 
         $data = [
-            'title'             => $page_heading . ' - ' . $this->site_name,
-            'active_page'       => 'shop',
-            'currency_symbol'   => $this->store_settings['currency_symbol'] ?? '$',
-            'products'          => $products,
-            'all_categories'    => $all_categories,
-            'total_products'    => $total_products,
-            'has_more'          => $has_more,
-            'offset'            => $offset,
-            'limit'             => $limit,
-            'is_append'         => $is_append,
-            'brands'            => $brands,
-            'selected_brands'   => $selected_brands,
-            'filter_sizes'      => $filter_sizes,
-            'filter_colors'     => $filter_colors,
-            'other_variants'    => [],
-            'min_catalog_price' => 10,
-            'max_catalog_price' => 300,
-            'filters'           => $filters,
-            'selected_category' => $selected_category,
-            'breadcrumbs'       => $breadcrumbs,
-            'top_subcategories' => $top_subcategories,
-            'page_heading'      => $page_heading,
-            'is_brand_store'    => $is_brand_store,
-            'brand_info'        => $brand_info,
-            'current_page'      => $page,
-            'total_pages'       => $total_pages,
-            'per_page'          => $per_page
+            'title'              => $page_heading . ' - ' . $this->site_name,
+            'active_page'        => 'shop',
+            'currency_symbol'    => $this->store_settings['currency_symbol'] ?? '$',
+            'products'           => $products,
+            'total_all_products' => count($all_products),
+            'all_categories'     => $all_categories,
+            'db_all_categories'  => $db_all_categories,
+            'total_products'     => $total_products,
+            'has_more'           => $has_more,
+            'offset'             => $offset,
+            'limit'              => $limit,
+            'is_append'          => $is_append,
+            'brands'             => $brands,
+            'selected_brands'    => $selected_brands,
+            'filter_sizes'       => $filter_sizes,
+            'filter_colors'      => $filter_colors,
+            'other_variants'     => [],
+            'min_catalog_price'  => $calc_min_price,
+            'max_catalog_price'  => $calc_max_price,
+            'filters'            => $filters,
+            'selected_category'  => $selected_category,
+            'breadcrumbs'        => $breadcrumbs,
+            'top_subcategories'  => $top_subcategories,
+            'page_heading'       => $page_heading,
+            'is_brand_store'     => $is_brand_store,
+            'brand_info'         => $brand_info,
+            'current_page'       => $page,
+            'total_pages'        => $total_pages,
+            'per_page'           => $per_page
         ];
 
         if ($this->input->is_ajax_request() || $this->input->get('ajax') == '1') {
@@ -207,7 +369,7 @@ class shop extends MY_Controller {
         $tpl_key = $this->template_folder ?? 'template1';
 
         $main_db_name = !empty($this->master_db_name) ? $this->master_db_name : $this->db->database;
-        $check_p = $this->db->query("SHOW TABLES FROM `{$main_db_name}` LIKE 'template_products'")->row_array();
+        $check_p = (!$this->is_user_project) ? $this->db->query("SHOW TABLES FROM `{$main_db_name}` LIKE 'template_products'")->row_array() : NULL;
         if (!empty($check_p)) {
             $like_q = '%' . $this->db->escape_like_str($q) . '%';
             $tpl_rows = $this->db->query(

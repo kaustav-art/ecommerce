@@ -30,8 +30,46 @@ $shop_products   = !empty($products) ? $products : [];
 $cats_list       = !empty($all_categories) ? $all_categories : (!empty($nav_categories) ? $nav_categories : []);
 $active_cat_slug = $filters['category_slug'] ?? ($selected_category['slug'] ?? '');
 $heading_text    = !empty($page_heading) ? $page_heading : (!empty($selected_category['name']) ? $selected_category['name'] : 'Shop All Groceries');
+$grc_qs          = empty($is_user_project) ? '?preview_tpl=grocery' : '';
+$total_all_cnt   = isset($total_all_products) ? (int)$total_all_products : count($shop_products);
 
+// Dynamic max price for price slider & quick bracket chips
+$highest_p = isset($max_catalog_price) ? (float)$max_catalog_price : 25.0;
+foreach ($shop_products as $_sp) {
+    $_ep = (!empty($_sp['sale_price']) && (float)$_sp['sale_price'] > 0) ? (float)$_sp['sale_price'] : (float)($_sp['price'] ?? 0);
+    if ($_ep > $highest_p) {
+        $highest_p = $_ep;
+    }
+}
+$slider_max  = max(25, (int)(ceil($highest_p / 10) * 10));
+$slider_step = $slider_max > 100 ? 5 : 1;
+$chip_p1     = max(5, (int)(round(($slider_max * 0.25) / 5) * 5));
+$chip_p2     = max(10, (int)(round(($slider_max * 0.50) / 5) * 5));
+$chip_p3     = max(15, (int)(round(($slider_max * 0.75) / 5) * 5));
+
+// Dynamic brands from DB
+$dynamic_brands_list = [];
+if (!empty($brands) && is_array($brands)) {
+    foreach ($brands as $b_row) {
+        if (!empty($b_row['name'])) {
+            $dynamic_brands_list[] = [
+                'name'  => $b_row['name'],
+                'slug'  => $b_row['slug'] ?? '',
+                'count' => (int)($b_row['product_count'] ?? 0),
+            ];
+        }
+    }
+}
 $grc_brands = ['NatureFresh Organic', 'GreenValley Farms', 'HarvestGold Dairy', 'Artisan Bakehouse', 'EarthBounty Organics', 'PureOrchard Juices'];
+if (empty($dynamic_brands_list)) {
+    foreach ($grc_brands as $gb_idx => $gb_name) {
+        $dynamic_brands_list[] = [
+            'name'  => $gb_name,
+            'slug'  => url_title(strtolower($gb_name), '-', TRUE),
+            'count' => (($gb_idx * 2 + 3) % 7) + 2,
+        ];
+    }
+}
 
 if (!function_exists('grc_shop_unit_calc')) {
     function grc_shop_unit_calc($prod, $idx = 0) {
@@ -368,10 +406,21 @@ if (!function_exists('grc_shop_unit_calc')) {
             <div>
                <h1 class="grc-shop-hero-title" id="grcShopPageHeading"><?= html_escape($heading_text); ?></h1>
                <ul class="grc-shop-breadcrumbs">
-                  <li><a href="<?= site_url('home?preview_tpl=grocery'); ?>"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+                  <li><a href="<?= site_url('home' . $grc_qs); ?>"><i class="fa-solid fa-house me-1"></i>Home</a></li>
                   <li><i class="fa-solid fa-angle-right" style="font-size:11px;"></i></li>
-                  <li><a href="<?= site_url('shop?preview_tpl=grocery'); ?>">Grocery Catalog</a></li>
-                  <?php if (!empty($selected_category['name'])): ?>
+                  <li><a href="<?= site_url('shop' . $grc_qs); ?>">Grocery Catalog</a></li>
+                  <?php if (!empty($breadcrumbs) && is_array($breadcrumbs)): ?>
+                     <?php foreach ($breadcrumbs as $bc_i => $bc_item):
+                        $is_last_bc = ($bc_i === count($breadcrumbs) - 1);
+                     ?>
+                        <li><i class="fa-solid fa-angle-right" style="font-size:11px;"></i></li>
+                        <?php if ($is_last_bc || empty($bc_item['slug'])): ?>
+                           <li class="active"><?= html_escape($bc_item['name']); ?></li>
+                        <?php else: ?>
+                           <li><a href="<?= site_url('shop/' . $bc_item['slug'] . $grc_qs); ?>"><?= html_escape($bc_item['name']); ?></a></li>
+                        <?php endif; ?>
+                     <?php endforeach; ?>
+                  <?php elseif (!empty($selected_category['name'])): ?>
                      <li><i class="fa-solid fa-angle-right" style="font-size:11px;"></i></li>
                      <li class="active"><?= html_escape($selected_category['name']); ?></li>
                   <?php endif; ?>
@@ -403,19 +452,48 @@ if (!function_exists('grc_shop_unit_calc')) {
                      <h6 class="grc-filter-heading">Departments</h6>
                      <ul class="grc-dept-list">
                         <li>
-                           <a href="<?= site_url('shop?preview_tpl=grocery'); ?>" class="grc-dept-link <?= empty($active_cat_slug) ? 'is-active' : ''; ?>">
+                           <a href="<?= site_url('shop' . $grc_qs); ?>" class="grc-dept-link <?= empty($active_cat_slug) ? 'is-active' : ''; ?>">
                               <span>All Groceries</span>
-                              <span class="grc-dept-count"><?= count($shop_products); ?></span>
+                              <span class="grc-dept-count"><?= $total_all_cnt; ?></span>
                            </a>
                         </li>
                         <?php foreach ($cats_list as $cat):
                            $is_curr = (!empty($active_cat_slug) && strcasecmp($active_cat_slug, $cat['slug']) === 0);
+                           $in_branch = $is_curr || (!empty($active_cat_slug) && !empty($cat['descendant_slugs']) && in_array(strtolower($active_cat_slug), $cat['descendant_slugs'], true));
                         ?>
                         <li>
-                           <a href="<?= site_url('shop/' . $cat['slug'] . '?preview_tpl=grocery'); ?>" class="grc-dept-link <?= $is_curr ? 'is-active' : ''; ?>">
+                           <a href="<?= site_url('shop/' . $cat['slug'] . $grc_qs); ?>" class="grc-dept-link <?= $is_curr ? 'is-active' : ''; ?>">
                               <span><?= html_escape($cat['name']); ?></span>
-                              <span class="grc-dept-count"><?= (int)($cat['product_count'] ?? 12); ?></span>
+                              <span class="grc-dept-count"><?= (int)($cat['product_count'] ?? 0); ?></span>
                            </a>
+                           <?php if ($in_branch && !empty($cat['children'])): ?>
+                           <ul class="list-unstyled ps-3 mt-1 mb-1">
+                              <?php foreach ($cat['children'] as $subcat):
+                                 $is_sub_curr = (!empty($active_cat_slug) && strcasecmp($active_cat_slug, $subcat['slug']) === 0);
+                              ?>
+                              <li>
+                                 <a href="<?= site_url('shop/' . $subcat['slug'] . $grc_qs); ?>" class="grc-dept-link py-1 <?= $is_sub_curr ? 'is-active' : ''; ?>" style="font-size:12.5px;">
+                                    <span>&rsaquo; <?= html_escape($subcat['name']); ?></span>
+                                    <span class="grc-dept-count"><?= (int)($subcat['product_count'] ?? 0); ?></span>
+                                 </a>
+                                 <?php if (!empty($subcat['children'])): ?>
+                                 <ul class="list-unstyled ps-3 mt-1">
+                                    <?php foreach ($subcat['children'] as $gchild):
+                                       $is_gc_curr = (!empty($active_cat_slug) && strcasecmp($active_cat_slug, $gchild['slug']) === 0);
+                                    ?>
+                                    <li>
+                                       <a href="<?= site_url('shop/' . $gchild['slug'] . $grc_qs); ?>" class="grc-dept-link py-1 <?= $is_gc_curr ? 'is-active' : ''; ?>" style="font-size:12px;">
+                                          <span>&bull; <?= html_escape($gchild['name']); ?></span>
+                                          <span class="grc-dept-count"><?= (int)($gchild['product_count'] ?? 0); ?></span>
+                                       </a>
+                                    </li>
+                                    <?php endforeach; ?>
+                                 </ul>
+                                 <?php endif; ?>
+                              </li>
+                              <?php endforeach; ?>
+                           </ul>
+                           <?php endif; ?>
                         </li>
                         <?php endforeach; ?>
                      </ul>
@@ -448,31 +526,31 @@ if (!function_exists('grc_shop_unit_calc')) {
                   <div class="grc-filter-block">
                      <h6 class="grc-filter-heading">
                         <span>Max Pack Price</span>
-                        <span id="grcPriceRangeLabel" class="badge" style="background:#003D29; color:#fff;"><?= html_escape($curr); ?>25.00</span>
+                        <span id="grcPriceRangeLabel" class="badge" style="background:#003D29; color:#fff;"><?= html_escape($curr) . number_format($slider_max, 2); ?></span>
                      </h6>
-                     <input type="range" id="grcMaxPriceSlider" class="form-range" min="2" max="25" step="0.5" value="25" oninput="filterGrcAisleCards()">
+                     <input type="range" id="grcMaxPriceSlider" class="form-range" min="1" max="<?= $slider_max; ?>" step="<?= $slider_step; ?>" value="<?= $slider_max; ?>" data-default-max="<?= $slider_max; ?>" oninput="filterGrcAisleCards()">
                      <div class="d-flex justify-content-between small text-muted mb-2">
-                        <span><?= html_escape($curr); ?>2.00</span>
-                        <span><?= html_escape($curr); ?>25.00+</span>
+                        <span><?= html_escape($curr); ?>1.00</span>
+                        <span><?= html_escape($curr) . number_format($slider_max, 2); ?>+</span>
                      </div>
                      <div class="grc-price-brackets">
-                        <button type="button" class="grc-price-chip" data-max-price="5" onclick="selectGrcPriceChip(this, 5)">Under <?= html_escape($curr); ?>5</button>
-                        <button type="button" class="grc-price-chip" data-max-price="10" onclick="selectGrcPriceChip(this, 10)">Under <?= html_escape($curr); ?>10</button>
-                        <button type="button" class="grc-price-chip" data-max-price="15" onclick="selectGrcPriceChip(this, 15)">Under <?= html_escape($curr); ?>15</button>
-                        <button type="button" class="grc-price-chip is-active" data-max-price="25" onclick="selectGrcPriceChip(this, 25)">Any Price</button>
+                        <button type="button" class="grc-price-chip" data-max-price="<?= $chip_p1; ?>" onclick="selectGrcPriceChip(this, <?= $chip_p1; ?>)">Under <?= html_escape($curr) . $chip_p1; ?></button>
+                        <button type="button" class="grc-price-chip" data-max-price="<?= $chip_p2; ?>" onclick="selectGrcPriceChip(this, <?= $chip_p2; ?>)">Under <?= html_escape($curr) . $chip_p2; ?></button>
+                        <button type="button" class="grc-price-chip" data-max-price="<?= $chip_p3; ?>" onclick="selectGrcPriceChip(this, <?= $chip_p3; ?>)">Under <?= html_escape($curr) . $chip_p3; ?></button>
+                        <button type="button" class="grc-price-chip is-active" data-max-price="<?= $slider_max; ?>" onclick="selectGrcPriceChip(this, <?= $slider_max; ?>)">Any Price</button>
                      </div>
                   </div>
 
                   <!-- Organic Farm Brands -->
                   <div class="grc-filter-block">
-                     <h6 class="grc-filter-heading">Organic Farms</h6>
-                     <?php foreach ($grc_brands as $b_idx => $b_name): ?>
+                     <h6 class="grc-filter-heading">Brands &amp; Farms</h6>
+                     <?php foreach ($dynamic_brands_list as $b_item): ?>
                         <label class="grc-check-row">
                            <span class="d-flex align-items-center gap-2">
-                              <input type="checkbox" class="grc-brand-checkbox form-check-input" value="<?= html_escape($b_name); ?>" onchange="filterGrcAisleCards()">
-                              <span><?= html_escape($b_name); ?></span>
+                              <input type="checkbox" class="grc-brand-checkbox form-check-input" value="<?= html_escape($b_item['name']); ?>" onchange="filterGrcAisleCards()">
+                              <span><?= html_escape($b_item['name']); ?></span>
                            </span>
-                           <span class="text-muted small">(<?= (($b_idx * 2 + 3) % 7) + 2; ?>)</span>
+                           <span class="text-muted small">(<?= (int)$b_item['count']; ?>)</span>
                         </label>
                      <?php endforeach; ?>
                   </div>
@@ -521,10 +599,10 @@ if (!function_exists('grc_shop_unit_calc')) {
                         $p_reg   = (float)($p['regular_price'] ?? $p['price'] ?? 0);
                         $p_sal   = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0 && (float)$p['sale_price'] < $p_reg) ? (float)$p['sale_price'] : $p_reg;
                         $p_pct   = ($p_sal < $p_reg && $p_reg > 0) ? round((($p_reg - $p_sal) / $p_reg) * 100) : 0;
-                        $p_url   = site_url('product/' . $p_slug . '?preview_tpl=grocery');
+                        $p_url   = site_url('product/' . $p_slug . $grc_qs);
                         $p_unit  = !empty($p['unit_label']) ? $p['unit_label'] : $u_calc['pack_label'];
-                        $p_cat   = !empty($selected_category['name']) ? $selected_category['name'] : ($p['category_name'] ?? 'Organic Food');
-                        $p_brand = $p['brand_name'] ?? $grc_brands[$p_idx % count($grc_brands)];
+                        $p_cat   = !empty($p['category_name']) ? $p['category_name'] : (!empty($selected_category['name']) ? $selected_category['name'] : 'Organic Food');
+                        $p_brand = !empty($p['brand_name']) ? $p['brand_name'] : $grc_brands[$p_idx % count($grc_brands)];
                      ?>
                      <div class="col grc-aisle-col"
                           data-title="<?= html_escape(strtolower($p_name)); ?>"
@@ -582,7 +660,7 @@ if (!function_exists('grc_shop_unit_calc')) {
                </div>
 
                <!-- Empty Filter State -->
-               <div id="grcAisleEmptyState" class="text-center bg-white rounded-4 p-5 border mt-3" style="display:none;">
+               <div id="grcAisleEmptyState" class="text-center bg-white rounded-4 p-5 border mt-3" style="<?= empty($shop_products) ? 'display:block;' : 'display:none;'; ?>">
                   <i class="fa-solid fa-seedling fs-1 text-success mb-3"></i>
                   <h5 class="fw-bold" style="color:#003D29;">No matching grocery items found</h5>
                   <p class="text-muted small mb-3">Try adjusting your unit type, farm brand, or price range filter.</p>
@@ -611,7 +689,9 @@ if (!function_exists('grc_shop_unit_calc')) {
     window.filterGrcAisleCards = function() {
         var unitRadio = document.querySelector('input[name="grc_unit_filter"]:checked');
         var unitVal = unitRadio ? unitRadio.value : 'all';
-        var maxPrice = parseFloat(document.getElementById('grcMaxPriceSlider')?.value || '25');
+        var sliderEl = document.getElementById('grcMaxPriceSlider');
+        var defMax = sliderEl ? parseFloat(sliderEl.getAttribute('data-default-max') || '25') : 25;
+        var maxPrice = parseFloat(sliderEl?.value || String(defMax));
         var priceLbl = document.getElementById('grcPriceRangeLabel');
         if (priceLbl) priceLbl.textContent = (window.CURRENCY_SYMBOL || '₹') + maxPrice.toFixed(2);
 
@@ -687,9 +767,10 @@ if (!function_exists('grc_shop_unit_calc')) {
         var allUnit = document.querySelector('input[name="grc_unit_filter"][value="all"]');
         if (allUnit) allUnit.checked = true;
         var slider = document.getElementById('grcMaxPriceSlider');
-        if (slider) slider.value = 25;
+        var defMax = slider ? (slider.getAttribute('data-default-max') || '25') : '25';
+        if (slider) slider.value = defMax;
         document.querySelectorAll('.grc-price-chip').forEach(function(c) { c.classList.remove('is-active'); });
-        var lastChip = document.querySelector('.grc-price-chip[data-max-price="25"]');
+        var lastChip = document.querySelector('.grc-price-chip[data-max-price="' + defMax + '"]');
         if (lastChip) lastChip.classList.add('is-active');
         document.querySelectorAll('.grc-brand-checkbox').forEach(function(cb) { cb.checked = false; });
         var sortEl = document.getElementById('grcSortSelect');

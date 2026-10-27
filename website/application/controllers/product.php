@@ -20,7 +20,7 @@ class product extends MY_Controller {
     public function detail($slug = 'common')
     {
         $all_products = Static_template_data::get('products');
-        $product      = Static_template_data::get('common_product');
+        $product      = NULL;
 
         $clean_slug = trim((string)$slug);
         if ($clean_slug !== '' && $clean_slug !== 'common' && !empty($all_products)) {
@@ -32,7 +32,8 @@ class product extends MY_Controller {
             }
         }
 
-        if ($this->active_template === 'grocery') {
+        // Only merge template_products showcase overrides when running in master demo mode (not user project)
+        if (!$this->is_user_project && $this->active_template === 'grocery') {
             $grc_products = $this->get_dynamic_template_products('template3');
             if (!empty($grc_products)) {
                 $matched_grc = null;
@@ -42,30 +43,64 @@ class product extends MY_Controller {
                         break;
                     }
                 }
-                if (!$matched_grc && !empty($product['slug'])) {
-                    foreach ($grc_products as $gp) {
-                        if (!empty($gp['slug']) && strcasecmp($gp['slug'], $product['slug']) === 0) {
-                            $matched_grc = $gp;
-                            break;
-                        }
-                    }
-                }
                 if ($matched_grc) {
-                    $product = array_merge($product, $matched_grc);
+                    $product = $product ? array_merge($product, $matched_grc) : $matched_grc;
                 }
             }
+        }
+
+        if (!$product) {
+            $product = Static_template_data::get('common_product');
+        }
+
+        // Normalize image paths for active template
+        $tpl_key = $this->template_registry->get_tpl_key($this->active_template);
+        if (!empty($product['main_image'])) {
+            $product['primary_image'] = $this->normalize_tpl_image($product['main_image'], $tpl_key);
+            $product['image']         = $product['primary_image'];
         }
 
         $other_products = array_values(array_filter($all_products, function($p) use ($product) {
             return (int)($p['id'] ?? 0) !== (int)($product['id'] ?? -1);
         }));
 
-        $related_products           = array_slice($other_products, 0, 8);
-        $frequently_bought_together = array_slice($other_products, 0, 2);
-        $recently_viewed_products   = array_slice($other_products, 2, 4);
+        // Prioritize related products from the same category / parent category tree
+        $prod_cat_id = (int)($product['category_id'] ?? 0);
+        $related_cat_ids = $prod_cat_id > 0 ? [$prod_cat_id] : [];
+        if ($prod_cat_id > 0) {
+            $all_cats = Static_template_data::get('all_categories');
+            $cat_by_id = [];
+            foreach ($all_cats as $c) {
+                $cat_by_id[(int)$c['id']] = $c;
+            }
+            // Walk up to root category so siblings in the same department are also considered related
+            $root_id = $prod_cat_id;
+            $g = 0;
+            while ($root_id > 0 && !empty($cat_by_id[$root_id]['parent_id']) && $g < 10) {
+                $root_id = (int)$cat_by_id[$root_id]['parent_id'];
+                $g++;
+            }
+            if (!empty($cat_by_id[$root_id]['descendant_ids'])) {
+                $related_cat_ids = $cat_by_id[$root_id]['descendant_ids'];
+            }
+        }
+
+        $same_cat_products = [];
+        $diff_cat_products = [];
+        foreach ($other_products as $op) {
+            if (!empty($related_cat_ids) && in_array((int)($op['category_id'] ?? 0), $related_cat_ids, true)) {
+                $same_cat_products[] = $op;
+            } else {
+                $diff_cat_products[] = $op;
+            }
+        }
+
+        $related_products           = !empty($same_cat_products) ? array_slice($same_cat_products, 0, 8) : array_slice($other_products, 0, 8);
+        $frequently_bought_together = array_slice(array_merge($same_cat_products, $diff_cat_products), 0, 2);
+        $recently_viewed_products   = array_slice(array_merge($same_cat_products, $diff_cat_products), 2, 4);
 
         $data = [
-            'title'                      => ($product['title'] ?? 'Product Details') . ' - ' . $this->site_name,
+            'title'                      => ($product['title'] ?? ($product['name'] ?? 'Product Details')) . ' - ' . $this->site_name,
             'active_page'                => 'shop',
             'product'                    => $product,
             'related_products'           => $related_products,
