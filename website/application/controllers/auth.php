@@ -31,6 +31,7 @@ class auth extends MY_Controller {
 
                 $this->session->set_userdata([
                     'user_id'         => (int) $user['id'],
+                    'user_tenant_id'  => (int) $this->tenant_id,
                     'user_first_name' => $user['first_name'],
                     'user_last_name'  => $user['last_name'] ?? '',
                     'user_email'      => $user['email'],
@@ -39,13 +40,25 @@ class auth extends MY_Controller {
                     'user_logged_in'  => TRUE
                 ]);
 
+                $this->_sync_guest_cart((int) $user['id']);
+                $this->_sync_guest_wishlist((int) $user['id']);
+
+                $user_addresses = $this->user_model->get_addresses((int) $user['id']);
+                $default_address = $this->user_model->get_default_address((int) $user['id']);
+                if (empty($default_address) && !empty($user_addresses)) {
+                    $default_address = $user_addresses[0];
+                }
+
                 if ($this->input->is_ajax_request()) {
                     $this->json_response([
-                        'success'  => true,
-                        'status'   => 'logged_in',
-                        'message'  => 'Welcome back, ' . $user['first_name'] . '!',
-                        'redirect' => site_url('home'),
-                        'user'     => $user
+                        'success'         => true,
+                        'status'          => 'logged_in',
+                        'message'         => 'Welcome back, ' . $user['first_name'] . '!',
+                        'redirect'        => site_url('home'),
+                        'user'            => $user,
+                        'has_address'     => !empty($user_addresses),
+                        'default_address' => $default_address,
+                        'user_addresses'  => $user_addresses
                     ]);
                 }
 
@@ -72,6 +85,7 @@ class auth extends MY_Controller {
     {
         $this->session->unset_userdata([
             'user_id',
+            'user_tenant_id',
             'user_first_name',
             'user_last_name',
             'user_email',
@@ -187,6 +201,7 @@ class auth extends MY_Controller {
 
                 $this->session->set_userdata([
                     'user_id'         => (int) $user['id'],
+                    'user_tenant_id'  => (int) $this->tenant_id,
                     'user_first_name' => $user['first_name'],
                     'user_last_name'  => $user['last_name'] ?? '',
                     'user_email'      => $user['email'],
@@ -195,19 +210,31 @@ class auth extends MY_Controller {
                     'user_logged_in'  => TRUE
                 ]);
 
+                $this->_sync_guest_cart((int) $user['id']);
+                $this->_sync_guest_wishlist((int) $user['id']);
+
+                $user_addresses = $this->user_model->get_addresses((int) $user['id']);
+                $default_address = $this->user_model->get_default_address((int) $user['id']);
+                if (empty($default_address) && !empty($user_addresses)) {
+                    $default_address = $user_addresses[0];
+                }
+
                 $this->json_response([
-                    'success'  => true,
-                    'status'   => 'logged_in',
-                    'is_new'   => false,
-                    'message'  => 'Welcome back, ' . $user['first_name'] . '!',
-                    'redirect' => $redirect_to,
-                    'user'     => [
+                    'success'         => true,
+                    'status'          => 'logged_in',
+                    'is_new'          => false,
+                    'message'         => 'Welcome back, ' . $user['first_name'] . '!',
+                    'redirect'        => $redirect_to,
+                    'user'            => [
                         'id'         => (int) $user['id'],
                         'first_name' => $user['first_name'],
                         'last_name'  => $user['last_name'] ?? '',
                         'email'      => $user['email'],
                         'phone'      => $user['phone'] ?? ''
-                    ]
+                    ],
+                    'has_address'     => !empty($user_addresses),
+                    'default_address' => $default_address,
+                    'user_addresses'  => $user_addresses
                 ]);
             }
         }
@@ -296,6 +323,7 @@ class auth extends MY_Controller {
 
         $this->session->set_userdata([
             'user_id'         => (int) $user['id'],
+            'user_tenant_id'  => (int) $this->tenant_id,
             'user_first_name' => $user['first_name'],
             'user_last_name'  => $user['last_name'] ?? '',
             'user_email'      => $user['email'],
@@ -304,18 +332,81 @@ class auth extends MY_Controller {
             'user_logged_in'  => TRUE
         ]);
 
+        $this->_sync_guest_cart((int) $user['id']);
+        $this->_sync_guest_wishlist((int) $user['id']);
+
+        $user_addresses = $this->user_model->get_addresses((int) $user['id']);
+        $default_address = $this->user_model->get_default_address((int) $user['id']);
+        if (empty($default_address) && !empty($user_addresses)) {
+            $default_address = $user_addresses[0];
+        }
+
         $this->json_response([
-            'success'  => true,
-            'status'   => 'registered_and_logged_in',
-            'message'  => 'Registration successful! Welcome to ' . $this->site_name . ', ' . $user['first_name'] . '.',
-            'redirect' => $redirect_to,
-            'user'     => [
+            'success'         => true,
+            'status'          => 'registered_and_logged_in',
+            'message'         => 'Registration successful! Welcome to ' . $this->site_name . ', ' . $user['first_name'] . '.',
+            'redirect'        => $redirect_to,
+            'user'            => [
                 'id'         => (int) $user['id'],
                 'first_name' => $user['first_name'],
                 'last_name'  => $user['last_name'] ?? '',
                 'email'      => $user['email'],
                 'phone'      => $user['phone'] ?? ''
-            ]
+            ],
+            'has_address'     => !empty($user_addresses),
+            'default_address' => $default_address,
+            'user_addresses'  => $user_addresses
         ]);
+    }
+
+    protected function _sync_guest_cart($user_id)
+    {
+        $this->load->model('cart_model');
+        $this->cart_model->sync_session_to_db((int) $user_id);
+    }
+
+    protected function _sync_guest_wishlist($user_id)
+    {
+        $this->load->model('wishlist_model');
+        $user_id = (int) $user_id;
+        $items_to_add = [];
+
+        // 1. Pending wishlist item from cookie
+        $pending_cookie = isset($_COOKIE['pending_wishlist']) ? (int)$_COOKIE['pending_wishlist'] : 0;
+        if ($pending_cookie > 0) {
+            $items_to_add[] = $pending_cookie;
+            setcookie('pending_wishlist', '', time() - 3600, '/');
+            unset($_COOKIE['pending_wishlist']);
+        }
+
+        // 2. Pending wishlist item from session
+        $pending_session = (int) $this->session->userdata('pending_wishlist');
+        if ($pending_session > 0) {
+            $items_to_add[] = $pending_session;
+            $this->session->unset_userdata('pending_wishlist');
+        }
+
+        // 3. Clear any legacy guest_wishlist session data
+        $this->session->unset_userdata('guest_wishlist');
+        $this->session->unset_userdata('guest_wishlist_t_' . $this->tenant_id);
+
+        $items_to_add = array_unique(array_filter($items_to_add));
+
+        $added_any = false;
+        foreach ($items_to_add as $pid) {
+            $pid = (int) $pid;
+            if ($pid > 0 && !$this->wishlist_model->is_wishlisted($user_id, $pid)) {
+                $this->db->insert('wishlists', [
+                    'tenant_id'  => $this->tenant_id,
+                    'user_id'    => $user_id,
+                    'product_id' => $pid
+                ]);
+                $added_any = true;
+            }
+        }
+
+        if ($added_any) {
+            $this->session->set_flashdata('success', 'Product added to your wishlist!');
+        }
     }
 }

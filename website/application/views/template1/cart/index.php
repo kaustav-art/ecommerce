@@ -179,25 +179,37 @@
 
         /* Yellow Proceed to Buy Button */
         .btn-proceed-buy {
-            background: #ffc200 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            color: #1e2022 !important;
+            background: linear-gradient(180deg, #ffd814 0%, #ffc200 100%) !important;
+            background-color: #ffc200 !important;
+            border: 1px solid #e2aa00 !important;
+            border-radius: 10px !important;
+            color: #0f1111 !important;
             font-weight: 700 !important;
             font-size: 15px !important;
-            padding: 11px 24px !important;
-            transition: filter 0.15s ease, transform 0.1s ease !important;
+            padding: 12px 24px !important;
+            box-shadow: 0 2px 6px rgba(255, 194, 0, 0.35) !important;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            letter-spacing: 0.2px;
+        }
+        .btn-proceed-buy:hover,
+        .btn-proceed-buy:focus {
+            background: linear-gradient(180deg, #f7ca00 0%, #f0b800 100%) !important;
+            background-color: #f0b800 !important;
+            border-color: #cca000 !important;
+            color: #000000 !important;
+            box-shadow: 0 6px 18px rgba(240, 184, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+            transform: translateY(-2px);
         }
         .btn-proceed-buy:active {
-            transform: scale(0.98);
-        }
-        .btn-proceed-buy:hover {
-            filter: brightness(0.95);
-            color: #1e2022 !important;
+            background: #e6ad00 !important;
+            border-color: #b89000 !important;
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
         }
 
         @media (max-width: 767px) {
@@ -321,12 +333,25 @@
                                                 <?php endif; ?>
                                             </div>
 
-                                            <!-- Rating Badge -->
+                                            <!-- Rating (5 Stars) -->
+                                            <?php 
+                                                $item_rating = isset($item['rating']) && (float)$item['rating'] > 0 ? (float)$item['rating'] : 5.0;
+                                                $item_reviews = isset($item['reviews_count']) ? (int)$item['reviews_count'] : 0;
+                                                $r_score = round($item_rating * 2) / 2;
+                                            ?>
                                             <div class="d-flex align-items-center gap-1 mb-1">
-                                                <span class="badge bg-success text-white d-inline-flex align-items-center gap-1 px-1 py-0 rounded" style="font-size: 11px; font-weight: 600;">
-                                                    <?= number_format($item['rating'] ?? 4.2, 1); ?> <i class="fa-solid fa-star" style="font-size: 9px;"></i>
-                                                </span>
-                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item['reviews_count'] ?? 240); ?>)</span>
+                                                <div class="d-inline-flex align-items-center gap-1" style="font-size: 11px;">
+                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                        <?php if ($s <= $r_score): ?>
+                                                            <i class="fa-solid fa-star" style="color: #ff9f00;"></i>
+                                                        <?php elseif ($s - 0.5 == $r_score): ?>
+                                                            <i class="fa-solid fa-star-half-stroke" style="color: #ff9f00;"></i>
+                                                        <?php else: ?>
+                                                            <i class="fa-regular fa-star" style="color: #d1d5db;"></i>
+                                                        <?php endif; ?>
+                                                    <?php endfor; ?>
+                                                </div>
+                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item_reviews); ?>)</span>
                                             </div>
 
                                             <!-- Price Row -->

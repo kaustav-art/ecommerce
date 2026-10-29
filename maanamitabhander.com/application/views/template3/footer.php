@@ -169,15 +169,29 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    function openGrcCartDrawer() {
        var d = document.getElementById('grcCartMiniDrawer');
        var ov = document.querySelector('.body-overlay');
-       if (d) d.classList.add('cartmini-opened');
+       if (d) {
+           d.classList.add('opened');
+           d.classList.add('cartmini-opened');
+       }
        if (ov) ov.classList.add('opened');
+       if (window.jQuery) {
+           jQuery('.aq-cartmini-active').addClass('opened');
+           jQuery('.body-overlay').addClass('opened');
+       }
    }
 
    function closeGrcCartDrawer() {
        var d = document.getElementById('grcCartMiniDrawer');
        var ov = document.querySelector('.body-overlay');
-       if (d) d.classList.remove('cartmini-opened');
+       if (d) {
+           d.classList.remove('opened');
+           d.classList.remove('cartmini-opened');
+       }
        if (ov) ov.classList.remove('opened');
+       if (window.jQuery) {
+           jQuery('.aq-cartmini-active').removeClass('opened');
+           jQuery('.body-overlay').removeClass('opened');
+       }
    }
 
    function renderGrcCartDrawer(data) {
@@ -233,11 +247,14 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        }
    }
 
-   function grcAddToCart(productId, quantity) {
+   function grcAddToCart(productId, quantity, variantId) {
        quantity = quantity || 1;
        var fd = new FormData();
        fd.append('product_id', productId);
        fd.append('quantity', quantity);
+       if (variantId) {
+           fd.append('variant_id', variantId);
+       }
 
        fetch('<?= site_url("cart/add"); ?>', {
            method: 'POST',
@@ -246,18 +263,23 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        })
        .then(function(r) { return r.json(); })
        .then(function(res) {
-           if (res.success) {
+           if (res && res.success) {
                renderGrcCartDrawer(res);
                showGrcToast(res.message || 'Added to grocery bag!');
                openGrcCartDrawer();
            } else {
-               showGrcToast(res.message || 'Could not add item', true);
+               showGrcToast((res && res.message) ? res.message : 'Could not add item', true);
            }
        })
        .catch(function() {
            showGrcToast('Network error adding to bag', true);
        });
    }
+   window.grcAddToCart = grcAddToCart;
+   window.renderGrcCartDrawer = renderGrcCartDrawer;
+   window.openGrcCartDrawer = openGrcCartDrawer;
+   window.closeGrcCartDrawer = closeGrcCartDrawer;
+   window.showGrcToast = showGrcToast;
 
    function grcRemoveCartItem(cartKey) {
        var fd = new FormData();
@@ -275,14 +297,33 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
            }
        });
    }
+   function grcToggleWishlist(productId, btnEl) {
+       if (typeof event !== 'undefined' && event) {
+           event.preventDefault();
+           event.stopPropagation();
+       }
+       productId = parseInt(productId, 10);
+       if (!productId || isNaN(productId)) return;
 
-   function grcToggleWishlist(productId) {
+       if (!btnEl && typeof event !== 'undefined' && event) {
+           btnEl = event.currentTarget || (event.target ? event.target.closest('button') : null);
+       }
+
+       // Product cannot be added to wishlist without login
        if (!window.IS_USER_LOGGED_IN) {
-           window.location.href = '<?= site_url("auth/login"); ?>';
+           document.cookie = "pending_wishlist=" + productId + "; path=/; max-age=3600; SameSite=Lax";
+           showGrcToast('Please login first to add items to your wishlist.', true);
+           if (typeof window.openLoginModal === 'function') {
+               setTimeout(function() {
+                   window.openLoginModal(window.location.href, 'Please login first to add items to your wishlist.');
+               }, 350);
+           }
            return;
        }
+
        var fd = new FormData();
        fd.append('product_id', productId);
+
        fetch('<?= site_url("wishlist/toggle"); ?>', {
            method: 'POST',
            headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -290,15 +331,144 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        })
        .then(function(r) { return r.json(); })
        .then(function(res) {
-           if (res.success) {
-               showGrcToast(res.message || 'Wishlist updated!');
+           if (res.require_login) {
+               showGrcToast(res.message || 'Please login first to add items to your wishlist.', true);
+               if (typeof window.openLoginModal === 'function') {
+                   setTimeout(function() {
+                       window.openLoginModal(res.redirect || window.location.href, res.message || 'Please login first.');
+                   }, 350);
+               }
+               return;
+           }
+
+           if (res.success || res.status === 'success') {
+               var isAdded = (res.action === 'added' || res.is_wishlisted === true);
+
+               var selectors = [
+                   '.btn-grc-wish[data-product-id="' + productId + '"]',
+                   'button[data-product-id="' + productId + '"]',
+                   'button[onclick*="grcToggleWishlist(' + productId + ')"]',
+                   'button[onclick*="grcToggleWishlist(' + productId + ',"]'
+               ];
+               var buttons = document.querySelectorAll(selectors.join(', '));
+
+               buttons.forEach(function(btn) {
+                   btn.setAttribute('data-product-id', productId);
+                   var icon = btn.querySelector('i');
+                   var svg = btn.querySelector('svg');
+                   var tip = btn.querySelector('.aq-tooltip-item');
+                   if (isAdded) {
+                       btn.classList.add('active', 'in-wishlist');
+                       btn.setAttribute('title', 'Remove from Wishlist');
+                       if (icon) {
+                           icon.className = 'fa-solid fa-heart text-danger';
+                           icon.style.color = '#ef4444';
+                       }
+                       if (svg) {
+                           svg.style.fill = '#ef4444';
+                           svg.style.stroke = '#ef4444';
+                       }
+                       if (tip) tip.textContent = 'Remove';
+                   } else {
+                       btn.classList.remove('active', 'in-wishlist');
+                       btn.setAttribute('title', 'Add to Wishlist');
+                       if (icon) {
+                           icon.className = 'fa-regular fa-heart';
+                           icon.style.color = '';
+                       }
+                       if (svg) {
+                           svg.style.fill = 'none';
+                           svg.style.stroke = 'currentColor';
+                       }
+                       if (tip) tip.textContent = 'Wishlist';
+                   }
+               });
+
+               if (btnEl) {
+                   btnEl.setAttribute('data-product-id', productId);
+                   var bIcon = btnEl.querySelector('i');
+                   var bSvg = btnEl.querySelector('svg');
+                   var bTip = btnEl.querySelector('.aq-tooltip-item');
+                   if (isAdded) {
+                       btnEl.classList.add('active', 'in-wishlist');
+                       btnEl.setAttribute('title', 'Remove from Wishlist');
+                       if (bIcon) {
+                           bIcon.className = 'fa-solid fa-heart text-danger';
+                           bIcon.style.color = '#ef4444';
+                       }
+                       if (bSvg) {
+                           bSvg.style.fill = '#ef4444';
+                           bSvg.style.stroke = '#ef4444';
+                       }
+                       if (bTip) bTip.textContent = 'Remove';
+                   } else {
+                       btnEl.classList.remove('active', 'in-wishlist');
+                       btnEl.setAttribute('title', 'Add to Wishlist');
+                       if (bIcon) {
+                           bIcon.className = 'fa-regular fa-heart';
+                           bIcon.style.color = '';
+                       }
+                       if (bSvg) {
+                           bSvg.style.fill = 'none';
+                           bSvg.style.stroke = 'currentColor';
+                       }
+                       if (bTip) bTip.textContent = 'Wishlist';
+                   }
+               }
+
                if (typeof res.wishlist_count !== 'undefined') {
                    document.querySelectorAll('.wishlist-count').forEach(function(el) {
                        el.textContent = res.wishlist_count;
                    });
                }
+
+               showGrcToast(res.message || (isAdded ? 'Added to your wishlist!' : 'Removed from your wishlist.'));
+           } else {
+               showGrcToast((res && res.message) ? res.message : 'Unable to update wishlist.', true);
            }
+       })
+       .catch(function(err) {
+           console.error('Wishlist toggle error:', err);
+           showGrcToast('Failed to update wishlist. Please try again.', true);
        });
+   }
+   window.grcToggleWishlist = grcToggleWishlist;
+
+   // Wishlist state sync on page load
+   window.USER_WISHLIST_IDS = <?= json_encode(array_values(array_map('intval', $user_wishlist_ids ?? []))); ?>;
+   function syncGrcWishlistStates() {
+       if (!window.USER_WISHLIST_IDS || !Array.isArray(window.USER_WISHLIST_IDS)) return;
+       window.USER_WISHLIST_IDS.forEach(function(pId) {
+           pId = parseInt(pId, 10);
+           if (!pId) return;
+           var selectors = [
+               '.btn-grc-wish[data-product-id="' + pId + '"]',
+               'button[data-product-id="' + pId + '"]',
+               'button[onclick*="grcToggleWishlist(' + pId + ')"]',
+               'button[onclick*="grcToggleWishlist(' + pId + ',"]'
+           ];
+           document.querySelectorAll(selectors.join(', ')).forEach(function(btn) {
+               btn.classList.add('active', 'in-wishlist');
+               btn.setAttribute('title', 'Remove from Wishlist');
+               var icon = btn.querySelector('i');
+               if (icon) {
+                   icon.className = 'fa-solid fa-heart text-danger';
+                   icon.style.color = '#ef4444';
+               }
+               var svg = btn.querySelector('svg');
+               if (svg) {
+                   svg.style.fill = '#ef4444';
+                   svg.style.stroke = '#ef4444';
+               }
+               var tip = btn.querySelector('.aq-tooltip-item');
+               if (tip) tip.textContent = 'Remove';
+           });
+       });
+   }
+   if (document.readyState === 'loading') {
+       document.addEventListener('DOMContentLoaded', syncGrcWishlistStates);
+   } else {
+       syncGrcWishlistStates();
    }
 
    // Countdown timer for Deal of the Week

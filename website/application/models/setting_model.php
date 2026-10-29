@@ -50,10 +50,34 @@ class setting_model extends CI_Model {
     public function get_active_gateways()
     {
         $rows = $this->db->where('tenant_id', $this->tid())->where('is_active', 1)->get('payment_gateways')->result_array();
-        foreach ($rows as &$row) {
-            $row['credentials'] = json_decode($row['credentials'], true) ?: [];
+        $active = [];
+        foreach ($rows as $row) {
+            $creds = json_decode($row['credentials'], true) ?: [];
+            $row['credentials'] = $creds;
+
+            // Online gateways must have required credentials provided to be active on storefront
+            if ($row['gateway_code'] === 'razorpay') {
+                $key_id = trim($creds['key_id'] ?? '');
+                $key_secret = trim($creds['key_secret'] ?? '');
+                if (empty($key_id) || empty($key_secret)) {
+                    continue;
+                }
+            } elseif ($row['gateway_code'] === 'stripe') {
+                $pub_key = trim($creds['publishable_key'] ?? '');
+                $sec_key = trim($creds['secret_key'] ?? '');
+                if (empty($pub_key) || empty($sec_key)) {
+                    continue;
+                }
+            } elseif ($row['gateway_code'] === 'payu') {
+                $m_key = trim($creds['merchant_key'] ?? '');
+                $m_salt = trim($creds['merchant_salt'] ?? '');
+                if (empty($m_key) || empty($m_salt)) {
+                    continue;
+                }
+            }
+            $active[] = $row;
         }
-        return $rows;
+        return $active;
     }
 
     public function get_gateway($code)

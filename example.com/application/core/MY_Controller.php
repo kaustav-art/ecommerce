@@ -38,9 +38,11 @@ class MY_Controller extends CI_Controller {
         //    - In a user-taken project, load from session if logged in (or NULL for guest)
         //    - In Template Demo mode (website/), load demo user from Static_template_data
         if ($this->is_user_project) {
-            if ($this->session->userdata('user_logged_in')) {
+            $user_tid = (int) $this->session->userdata('user_tenant_id');
+            if ($this->session->userdata('user_logged_in') && $user_tid === (int)$this->tenant_id) {
                 $this->current_user = [
                     'id'         => (int) $this->session->userdata('user_id'),
+                    'tenant_id'  => $user_tid,
                     'first_name' => $this->session->userdata('user_first_name'),
                     'last_name'  => $this->session->userdata('user_last_name'),
                     'email'      => $this->session->userdata('user_email'),
@@ -58,10 +60,17 @@ class MY_Controller extends CI_Controller {
         $this->store_settings = Static_template_data::get('settings');
         $this->site_name      = !empty($this->store_settings['site_name']) ? $this->store_settings['site_name'] : 'Store';
 
-        // 4. Load Cart Summary from DB
-        $cart_summary     = Static_template_data::get('cart_summary');
-        $this->cart_count = (int) ($cart_summary['item_count'] ?? 0);
-        $this->cart_total = (float) ($cart_summary['subtotal'] ?? 0.00);
+        // 4. Load Cart Summary
+        $this->load->model('cart_model');
+        $cart_summary = $this->cart_model->get_cart_summary();
+        if ((empty($cart_summary['item_count']) || (int)$cart_summary['item_count'] === 0) && !$this->is_user_project) {
+            $demo_summary     = Static_template_data::get('cart_summary');
+            $this->cart_count = (int) ($demo_summary['item_count'] ?? 0);
+            $this->cart_total = (float) ($demo_summary['subtotal'] ?? 0.00);
+        } else {
+            $this->cart_count = (int) ($cart_summary['item_count'] ?? 0);
+            $this->cart_total = (float) ($cart_summary['subtotal'] ?? 0.00);
+        }
     }
 
     protected function _resolve_tenant_and_template()
@@ -70,23 +79,80 @@ class MY_Controller extends CI_Controller {
             $this->session->unset_userdata('preview_tpl');
         }
 
-        $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
-        $this->is_user_project = ($db_name !== 'ecommerce_main');
-        $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
-
-        // In standalone user-setup projects, ?preview_tpl= should never appear in the URL
-        if ($this->is_user_project && isset($_GET['preview_tpl'])) {
-            unset($_GET['preview_tpl']);
-            if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !$this->input->is_ajax_request()) {
-                $clean_qs = http_build_query($_GET);
-                $clean_url = current_url() . ($clean_qs !== '' ? '?' . $clean_qs : '');
-                redirect($clean_url, 'location', 302);
-                exit;
+        // 1. Check if running inside a provisioned folder with config/tenant.php
+        if (file_exists(APPPATH . 'config/tenant.php')) {
+            $this->config->load('tenant', TRUE, TRUE);
+            $cfg_tid = (int)$this->config->item('tenant_id', 'tenant');
+            if ($cfg_tid > 0) {
+                $this->tenant_id = $cfg_tid;
+                $t_row = $this->db->where('id', $this->tenant_id)->get('saas_tenants')->row_array();
+                if ($t_row) {
+                    $this->tenant = $t_row;
+                    $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
+                } else {
+                    $this->tenant = [
+                        'id'            => $this->tenant_id,
+                        'business_name' => 'Store',
+                        'slug'          => (string)$this->config->item('tenant_slug', 'tenant'),
+                        'template'      => (string)$this->config->item('template', 'tenant') ?: 'fashion'
+                    ];
+                    $this->active_template = $this->template_registry->get_canonical_key($this->tenant['template']);
+                }
+                $this->is_user_project = TRUE;
+                $this->_sync_tenant_settings();
+                return;
             }
         }
 
-        // Only honor ?preview_tpl= when browsing the master template demo in ecommerce_main
-        if (!$this->is_user_project && $preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
+        // 2. Check if running inside a provisioned standalone domain folder by directory name (e.g. C:\xampp\htdocs\ecommerce\example.com\)
+        $current_folder = strtolower(trim(basename(FCPATH)));
+        if (!in_array($current_folder, ['website', 'ecommerce', 'htdocs'], true) && $this->db->table_exists('saas_tenants')) {
+            $t_row = $this->db->where('slug', $current_folder)
+                              ->or_where('domain', $current_folder)
+                              ->or_like('folder_path', $current_folder)
+                              ->get('saas_tenants')->row_array();
+            if ($t_row) {
+                $this->tenant_id       = (int)$t_row['id'];
+                $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
+                $this->tenant          = $t_row;
+                $this->is_user_project = TRUE;
+                $this->_sync_tenant_settings();
+                return;
+            }
+        }
+
+        // 3. Check custom domain / virtual host via HTTP_HOST
+        $http_host = strtolower(trim(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));
+        if (!in_array($http_host, ['localhost', '127.0.0.1', ''], true) && $this->db->table_exists('saas_tenants')) {
+            $t_row = $this->db->where('domain', $http_host)->or_where('slug', $http_host)->get('saas_tenants')->row_array();
+            if ($t_row) {
+                $this->tenant_id       = (int)$t_row['id'];
+                $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
+                $this->tenant          = $t_row;
+                $this->is_user_project = TRUE;
+                $this->_sync_tenant_settings();
+                return;
+            }
+        }
+
+        // 4. Check `/s/{slug}` route in master website (e.g. ecommerce/website/s/example.com)
+        $uri_seg1 = strtolower((string)$this->uri->segment(1));
+        $uri_seg2 = strtolower((string)$this->uri->segment(2));
+        if ($uri_seg1 === 's' && $uri_seg2 !== '' && $this->db->table_exists('saas_tenants')) {
+            $t_row = $this->db->where('slug', $uri_seg2)->or_where('domain', $uri_seg2)->get('saas_tenants')->row_array();
+            if ($t_row) {
+                $this->tenant_id       = (int)$t_row['id'];
+                $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
+                $this->tenant          = $t_row;
+                $this->is_user_project = ($this->tenant_id > 3);
+                $this->_sync_tenant_settings();
+                return;
+            }
+        }
+
+        // 5. Superadmin live template demo preview mode via ?preview_tpl=
+        $preview_param = strtolower(trim((string) $this->input->get('preview_tpl')));
+        if ($preview_param !== '' && $this->template_registry->is_valid($preview_param)) {
             $canonical_tpl         = $this->template_registry->get_canonical_key($preview_param);
             $this->is_preview_mode = TRUE;
             $this->active_template = $canonical_tpl;
@@ -97,28 +163,24 @@ class MY_Controller extends CI_Controller {
                 'slug'          => $canonical_tpl . '-store',
                 'template'      => $canonical_tpl
             ];
+            $this->_sync_tenant_settings();
             return;
         }
 
-        // Check if running inside a provisioned tenant database or `/s/{slug}` route
-        $uri_seg1 = strtolower((string)$this->uri->segment(1));
-        $uri_seg2 = strtolower((string)$this->uri->segment(2));
-        if ($db_name === 'ecommerce_main' && $uri_seg1 === 's' && $uri_seg2 !== '' && $this->db->table_exists('saas_tenants')) {
-            $t_row = $this->db->where('slug', $uri_seg2)->or_where('domain', $uri_seg2)->get('saas_tenants')->row_array();
-            if ($t_row) {
-                $this->tenant_id       = (int)$t_row['id'];
-                $this->active_template = $this->template_registry->get_canonical_key($t_row['template'] ?? 'fashion');
-                $this->tenant          = $t_row;
-                $this->is_user_project = ($this->tenant_id > 3);
-                return;
-            }
-        }
-
-        // Standalone tenant database or default main database
+        // 6. Default Demo Storefront (Tenant 1: Fashion)
         $this->tenant_id = 1;
-        $tpl_from_settings = 'fashion';
-        $site_name_setting = 'Store';
+        $this->active_template = 'fashion';
+        $this->tenant = [
+            'id'            => 1,
+            'business_name' => 'Store',
+            'slug'          => 'fashion-store',
+            'template'      => 'fashion'
+        ];
+        $this->_sync_tenant_settings();
+    }
 
+    protected function _sync_tenant_settings()
+    {
         if (isset($this->db) && $this->db->table_exists('settings')) {
             $rows = $this->db->where('tenant_id', $this->tenant_id)
                              ->where_in('setting_key', ['active_template', 'template', 'site_name'])
@@ -126,21 +188,16 @@ class MY_Controller extends CI_Controller {
                              ->result_array();
             foreach ($rows as $r) {
                 if (in_array($r['setting_key'], ['active_template', 'template'], true) && !empty($r['setting_value'])) {
-                    $tpl_from_settings = $this->template_registry->get_canonical_key($r['setting_value']);
+                    $this->active_template = $this->template_registry->get_canonical_key($r['setting_value']);
                 }
                 if ($r['setting_key'] === 'site_name' && !empty($r['setting_value'])) {
-                    $site_name_setting = $r['setting_value'];
+                    $this->site_name = $r['setting_value'];
+                    if (is_array($this->tenant)) {
+                        $this->tenant['business_name'] = $r['setting_value'];
+                    }
                 }
             }
         }
-
-        $this->active_template = $tpl_from_settings;
-        $this->tenant          = [
-            'id'            => $this->tenant_id,
-            'business_name' => $site_name_setting,
-            'slug'          => 'store',
-            'template'      => $this->active_template
-        ];
     }
 
     /**
@@ -177,8 +234,8 @@ class MY_Controller extends CI_Controller {
         $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $cats = [];
 
-        // If running in a dedicated tenant DB, read directly from `categories` table (managed by Admin panel)
-        if ($db_name !== 'ecommerce_main' && isset($this->db) && $this->db->table_exists('categories')) {
+        // In provisioned tenant stores (or non-preview mode), read directly from `categories` table (managed by Admin panel)
+        if (($this->is_user_project || !$this->is_preview_mode) && isset($this->db) && $this->db->table_exists('categories')) {
             $tree = Static_template_data::get('category_tree');
             if (!empty($tree)) {
                 foreach ($tree as $c) {
@@ -237,8 +294,8 @@ class MY_Controller extends CI_Controller {
         $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $banners = [];
 
-        // In dedicated tenant DB, read directly from `banners` table (managed by Admin panel)
-        if ($db_name !== 'ecommerce_main' && isset($this->db) && $this->db->table_exists('banners')) {
+        // In provisioned tenant stores (or non-preview mode), read directly from `banners` table (managed by Admin panel)
+        if (($this->is_user_project || !$this->is_preview_mode) && isset($this->db) && $this->db->table_exists('banners')) {
             $rows = $this->db->where('tenant_id', $this->tenant_id)
                              ->where('status', 'active')
                              ->order_by('sort_order', 'ASC')
@@ -303,8 +360,8 @@ class MY_Controller extends CI_Controller {
         $db_name = isset($this->db->database) ? $this->db->database : 'ecommerce_main';
         $products = [];
 
-        // In dedicated tenant DB, read directly from `products` table (managed by Admin panel)
-        if ($db_name !== 'ecommerce_main') {
+        // In provisioned tenant stores (or non-preview mode), read directly from `products` table (managed by Admin panel)
+        if ($this->is_user_project || !$this->is_preview_mode) {
             $db_prods = Static_template_data::get('products');
             if (!empty($db_prods)) {
                 foreach ($db_prods as &$dp) {
@@ -397,13 +454,37 @@ class MY_Controller extends CI_Controller {
         $all_products = Static_template_data::get('products');
         $addresses    = Static_template_data::get('addresses');
 
+        $model_items = ($this->cart_model) ? $this->cart_model->get_items() : [];
+        if (!empty($model_items)) {
+            $active_cart_items = $model_items;
+        } elseif (!$this->is_user_project) {
+            $active_cart_items = Static_template_data::get('cart_items');
+        } else {
+            $active_cart_items = [];
+        }
+
         $data['nav_categories']       = isset($data['nav_categories']) ? $data['nav_categories'] : $dynamic_cats;
         $data['category_tree']        = isset($data['category_tree']) ? $data['category_tree'] : $dynamic_cats;
         $data['current_user']         = $this->current_user;
         $data['cart_count']           = $this->cart_count;
         $data['cart_total']           = $this->cart_total;
-        $data['cart_items']           = isset($data['cart_items']) ? $data['cart_items'] : Static_template_data::get('cart_items');
-        $data['wishlist_count']       = isset($data['wishlist_count']) ? $data['wishlist_count'] : ($this->is_logged_in() ? 4 : 0);
+        $data['cart_items']           = isset($data['cart_items']) ? $data['cart_items'] : $active_cart_items;
+        // Resolve user wishlist IDs & count for all views (strictly authenticated)
+        if (!isset($data['user_wishlist_ids'])) {
+            if ($this->is_logged_in() && !empty($this->current_user['id'])) {
+                $rows = $this->db->select('product_id')
+                                 ->where('tenant_id', $this->tenant_id)
+                                 ->where('user_id', (int) $this->current_user['id'])
+                                 ->get('wishlists')
+                                 ->result_array();
+                $data['user_wishlist_ids'] = !empty($rows) ? array_map('intval', array_column($rows, 'product_id')) : [];
+            } else {
+                $data['user_wishlist_ids'] = [];
+            }
+        }
+        if (!isset($data['wishlist_count'])) {
+            $data['wishlist_count'] = count($data['user_wishlist_ids'] ?? []);
+        }
         $data['recommended_products'] = isset($data['recommended_products']) ? $data['recommended_products'] : array_slice($all_products, 0, 4);
         $data['store_settings']       = $this->store_settings;
         $data['currency_symbol']      = $this->store_settings['currency_symbol'] ?? '$';
@@ -416,8 +497,24 @@ class MY_Controller extends CI_Controller {
         $data['active_template']      = $this->active_template;
         $data['is_preview_mode']      = $this->is_preview_mode;
 
-        $data['user_addresses']       = isset($data['user_addresses']) ? $data['user_addresses'] : $addresses;
-        $data['active_address']       = isset($data['active_address']) ? $data['active_address'] : (!empty($addresses[0]) ? $addresses[0] : NULL);
+        if ($this->is_user_project) {
+            if ($this->is_logged_in() && !empty($this->current_user['id'])) {
+                $this->load->model('user_model');
+                $user_addrs = $this->user_model->get_addresses((int) $this->current_user['id']);
+                $default_addr = $this->user_model->get_default_address((int) $this->current_user['id']);
+                if (empty($default_addr) && !empty($user_addrs)) {
+                    $default_addr = $user_addrs[0];
+                }
+                $data['user_addresses'] = $user_addrs;
+                $data['active_address'] = $default_addr;
+            } else {
+                $data['user_addresses'] = [];
+                $data['active_address'] = NULL;
+            }
+        } else {
+            $data['user_addresses'] = isset($data['user_addresses']) ? $data['user_addresses'] : $addresses;
+            $data['active_address'] = isset($data['active_address']) ? $data['active_address'] : (!empty($addresses[0]) ? $addresses[0] : NULL);
+        }
 
         $data['title']                = isset($data['title']) ? $data['title'] : $this->site_name;
         $data['active_page']          = isset($data['active_page']) ? $data['active_page'] : 'home';

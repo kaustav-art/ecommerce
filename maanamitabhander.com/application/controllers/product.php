@@ -99,6 +99,13 @@ class product extends MY_Controller {
         $frequently_bought_together = array_slice(array_merge($same_cat_products, $diff_cat_products), 0, 2);
         $recently_viewed_products   = array_slice(array_merge($same_cat_products, $diff_cat_products), 2, 4);
 
+        $is_in_wishlist = FALSE;
+        $prod_id = (int)($product['id'] ?? 0);
+        if ($prod_id > 0 && $this->is_logged_in() && !empty($this->current_user['id'])) {
+            $this->load->model('wishlist_model');
+            $is_in_wishlist = $this->wishlist_model->is_wishlisted((int)$this->current_user['id'], $prod_id);
+        }
+
         $data = [
             'title'                      => ($product['title'] ?? ($product['name'] ?? 'Product Details')) . ' - ' . $this->site_name,
             'active_page'                => 'shop',
@@ -106,7 +113,7 @@ class product extends MY_Controller {
             'related_products'           => $related_products,
             'frequently_bought_together' => $frequently_bought_together,
             'recently_viewed_products'   => $recently_viewed_products,
-            'is_in_wishlist'             => FALSE,
+            'is_in_wishlist'             => $is_in_wishlist,
             'is_in_compare'              => FALSE
         ];
 

@@ -289,12 +289,25 @@
                                                 <?php endif; ?>
                                             </div>
 
-                                            <!-- Rating Badge -->
+                                            <!-- Rating (5 Stars) -->
+                                            <?php 
+                                                $item_rating = isset($item['rating']) && (float)$item['rating'] > 0 ? (float)$item['rating'] : 5.0;
+                                                $item_reviews = isset($item['reviews_count']) ? (int)$item['reviews_count'] : 0;
+                                                $r_score = round($item_rating * 2) / 2;
+                                            ?>
                                             <div class="d-flex align-items-center gap-1 mb-1">
-                                                <span class="badge bg-success text-white d-inline-flex align-items-center gap-1 px-1 py-0 rounded" style="font-size: 11px; font-weight: 600;">
-                                                    <?= number_format($item['rating'] ?? 5.0, 1); ?> <i class="fa-solid fa-star" style="font-size: 9px;"></i>
-                                                </span>
-                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item['reviews_count'] ?? 240); ?>)</span>
+                                                <div class="d-inline-flex align-items-center gap-1" style="font-size: 11px;">
+                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                        <?php if ($s <= $r_score): ?>
+                                                            <i class="fa-solid fa-star" style="color: #ff9f00;"></i>
+                                                        <?php elseif ($s - 0.5 == $r_score): ?>
+                                                            <i class="fa-solid fa-star-half-stroke" style="color: #ff9f00;"></i>
+                                                        <?php else: ?>
+                                                            <i class="fa-regular fa-star" style="color: #d1d5db;"></i>
+                                                        <?php endif; ?>
+                                                    <?php endfor; ?>
+                                                </div>
+                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item_reviews); ?>)</span>
                                             </div>
 
                                             <!-- Price Row -->

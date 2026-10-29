@@ -93,6 +93,27 @@
       /* Ensure preloader never blocks interaction if JS is slow */
       #loading { display: none !important; }
 
+      .btn-grc-wish.active,
+      .btn-grc-wish.in-wishlist {
+         border-color: #ef4444 !important;
+         background: #fef2f2 !important;
+         color: #ef4444 !important;
+      }
+      .btn-grc-wish.active i,
+      .btn-grc-wish.in-wishlist i {
+         color: #ef4444 !important;
+      }
+      .grc-product-style .aq-product-action-2 .aq-wishlist-btn.active,
+      .grc-product-style .aq-product-action-2 .aq-wishlist-btn.in-wishlist {
+         background: #fee2e2 !important;
+         color: #ef4444 !important;
+      }
+      .grc-product-style .aq-product-action-2 .aq-wishlist-btn.active svg path,
+      .grc-product-style .aq-product-action-2 .aq-wishlist-btn.in-wishlist svg path {
+         fill: #ef4444 !important;
+         stroke: #ef4444 !important;
+      }
+
       /* =====================================================================
        * Grocery Theme Overrides for Shared Inner Pages
        * (Account, Orders, Wishlist, Cart, Checkout, Track Order, Static Pages)
@@ -249,7 +270,6 @@
          background: #ecfdf5 !important;
       }
       .btn-deliver-here,
-      .btn-proceed-buy,
       .tf-btn.btn-fill {
          background: #108910 !important;
          border-color: #108910 !important;
@@ -259,9 +279,34 @@
          box-shadow: 0 4px 14px rgba(16, 137, 16, 0.22) !important;
       }
       .btn-deliver-here:hover,
-      .btn-proceed-buy:hover,
       .tf-btn.btn-fill:hover {
          background: #003D29 !important;
+         border-color: #003D29 !important;
+         color: #ffffff !important;
+      }
+      /* Proceed To Buy Button Style - Theme Color with Simple Hover Effect */
+      .btn-proceed-buy {
+         background: #108910 !important;
+         background-color: #108910 !important;
+         border: 1px solid #108910 !important;
+         border-radius: 10px !important;
+         color: #ffffff !important;
+         font-weight: 700 !important;
+         font-size: 15px !important;
+         padding: 12px 24px !important;
+         box-shadow: 0 4px 14px rgba(16, 137, 16, 0.2) !important;
+         transition: background-color 0.2s ease, border-color 0.2s ease !important;
+         text-decoration: none;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         cursor: pointer;
+         letter-spacing: 0.2px;
+      }
+      .btn-proceed-buy:hover,
+      .btn-proceed-buy:focus {
+         background: #003D29 !important;
+         background-color: #003D29 !important;
          border-color: #003D29 !important;
          color: #ffffff !important;
       }
@@ -311,6 +356,77 @@
       .tf-page-title .breadcrumbs a:hover {
          color: #86efac !important;
       }
+      /* Alert Close Button Normalization */
+      .alert {
+         position: relative;
+      }
+      .alert .btn-close,
+      .alert-dismissible .btn-close {
+         position: absolute !important;
+         top: 50% !important;
+         right: 14px !important;
+         transform: translateY(-50%) !important;
+         padding: 0 !important;
+         margin: 0 !important;
+         width: 24px !important;
+         height: 24px !important;
+         font-size: 13px !important;
+         line-height: 24px !important;
+         opacity: 0.65 !important;
+         border: none !important;
+         background: transparent !important;
+      }
+      .alert .btn-close:hover,
+      .alert-dismissible .btn-close:hover {
+         opacity: 1 !important;
+         transform: translateY(-50%) !important;
+      }
+      .btn-close-alert {
+         background: transparent !important;
+         border: none !important;
+         padding: 4px 8px !important;
+         margin: 0 !important;
+         color: inherit !important;
+         opacity: 0.6 !important;
+         font-size: 16px !important;
+         line-height: 1 !important;
+         cursor: pointer !important;
+         transition: opacity 0.2s ease !important;
+      }
+      .btn-close-alert:hover {
+         opacity: 1 !important;
+      }
+      .breadcrumb-item + .breadcrumb-item::before {
+         content: var(--bs-breadcrumb-divider, "/") !important;
+      }
+      /* Active Wishlist Heart State */
+      .aq-wishlist-btn.active,
+      .aq-wishlist-btn.in-wishlist,
+      .btn-grc-wish.active,
+      .btn-grc-wish.in-wishlist {
+         color: #ef4444 !important;
+         border-color: #ef4444 !important;
+      }
+      .aq-wishlist-btn.active i,
+      .aq-wishlist-btn.in-wishlist i,
+      .btn-grc-wish.active i,
+      .btn-grc-wish.in-wishlist i {
+         color: #ef4444 !important;
+      }
+      .aq-wishlist-btn.active svg,
+      .aq-wishlist-btn.in-wishlist svg,
+      .btn-grc-wish.active svg,
+      .btn-grc-wish.in-wishlist svg {
+         fill: #ef4444 !important;
+         stroke: #ef4444 !important;
+      }
+      .aq-wishlist-btn.active svg path,
+      .aq-wishlist-btn.in-wishlist svg path,
+      .btn-grc-wish.active svg path,
+      .btn-grc-wish.in-wishlist svg path {
+         fill: #ef4444 !important;
+         stroke: #ef4444 !important;
+      }
       /* Order status timeline & order cards */
       .fk-order-card:hover {
          border-color: #108910 !important;
@@ -326,6 +442,245 @@
       }
       .fk-step-item.completed:not(:last-child)::after {
          background: #108910 !important;
+      }
+
+      /* =====================================================================
+       * Sticky Main Header (Logo, Search, User, Wishlist, Cart)
+       * ===================================================================== */
+      .grc-main-sticky-header {
+         position: sticky !important;
+         top: 0 !important;
+         left: 0 !important;
+         right: 0 !important;
+         width: 100% !important;
+         z-index: 1050 !important;
+         background-color: #003D29 !important;
+         transition: box-shadow 0.25s ease;
+      }
+      .grc-main-sticky-header.is-scrolled {
+         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35) !important;
+      }
+      .grc-main-sticky-header .grc-header-main-nav {
+         transition: padding 0.2s ease;
+      }
+      .grc-main-sticky-header.is-scrolled .grc-header-main-nav {
+         padding-top: 10px !important;
+         padding-bottom: 10px !important;
+      }
+
+      /* Category Aisles Bar underneath sticky header */
+      .grc-category-aisles-bar {
+         background-color: #003D29 !important;
+         border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      /* =====================================================================
+       * Modern Search Bar Design (Desktop & Mobile)
+       * ===================================================================== */
+      .grc-header-search-wrap {
+         margin-inline-start: 0 !important;
+         position: relative;
+         width: 100%;
+         margin: 0;
+      }
+      .grc-search-pill-container {
+         position: relative;
+         display: flex;
+         align-items: center;
+         background: #ffffff;
+         border: 2px solid transparent;
+         border-radius: 50px;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+         height: 48px;
+         padding-right: 120px;
+         width: 100%;
+      }
+      .grc-search-form:focus-within .grc-search-pill-container {
+         border-color: #108910;
+         box-shadow: 0 0 0 3px rgba(16, 137, 16, 0.25);
+      }
+      .grc-search-glass-icon {
+         position: absolute;
+         left: 18px;
+         top: 50%;
+         transform: translateY(-50%);
+         color: #047857;
+         font-size: 16px;
+         pointer-events: none;
+         z-index: 2;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+      }
+      .grc-search-input {
+         width: 100% !important;
+         height: 100% !important;
+         background: transparent !important;
+         border: none !important;
+         outline: none !important;
+         box-shadow: none !important;
+         padding-left: 48px !important;
+         padding-right: 36px !important;
+         font-size: 14.5px !important;
+         font-weight: 500 !important;
+         color: #111827 !important;
+         line-height: normal !important;
+      }
+      .grc-search-input::placeholder {
+         color: #6b7280 !important;
+         font-size: 13.5px !important;
+         font-weight: 400 !important;
+      }
+      .grc-search-clear-btn {
+         position: absolute;
+         right: 125px;
+         top: 50%;
+         transform: translateY(-50%);
+         background: transparent;
+         border: none;
+         color: #9ca3af;
+         font-size: 14px;
+         cursor: pointer;
+         padding: 4px 6px;
+         display: none;
+         align-items: center;
+         justify-content: center;
+         z-index: 2;
+         transition: color 0.15s ease;
+      }
+      .grc-search-clear-btn:hover {
+         color: #111827;
+      }
+      .grc-search-btn-submit {
+         position: absolute;
+         right: 4px;
+         top: 4px;
+         bottom: 4px;
+         height: calc(100% - 8px);
+         border: none;
+         background: #108910 !important;
+         color: #ffffff !important;
+         font-weight: 600;
+         font-size: 14px;
+         padding: 0 24px;
+         border-radius: 50px;
+         cursor: pointer;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         gap: 6px;
+         transition: background-color 0.2s ease, color 0.2s ease;
+         z-index: 2;
+      }
+      .grc-search-btn-submit:hover,
+      .grc-search-btn-submit:focus {
+         background: #003D29 !important;
+         color: #ffffff !important;
+      }
+
+      /* Autocomplete Dropdown */
+      .grc-search-autocomplete {
+         position: absolute;
+         top: calc(100% + 8px);
+         left: 0;
+         right: 0;
+         background: #ffffff;
+         border-radius: 14px;
+         border: 1px solid #e5e7eb;
+         max-height: 400px;
+         overflow-y: auto;
+         z-index: 1060;
+         padding: 8px 0;
+         box-shadow: 0 14px 38px rgba(0, 0, 0, 0.25);
+         display: none;
+      }
+      .grc-autocomplete-item {
+         display: flex;
+         align-items: center;
+         padding: 10px 16px;
+         text-decoration: none;
+         color: #1f2937;
+         border-bottom: 1px solid #f3f4f6;
+         transition: background 0.15s ease;
+      }
+      .grc-autocomplete-item:last-of-type {
+         border-bottom: none;
+      }
+      .grc-autocomplete-item:hover,
+      .grc-autocomplete-item.active {
+         background-color: #f0fdf4;
+         color: #003D29;
+      }
+      .grc-autocomplete-thumb {
+         width: 44px;
+         height: 44px;
+         object-fit: cover;
+         border-radius: 8px;
+         margin-right: 12px;
+         background: #f9fafb;
+         border: 1px solid #e5e7eb;
+         flex-shrink: 0;
+      }
+      .grc-autocomplete-info {
+         flex: 1;
+         min-width: 0;
+      }
+      .grc-autocomplete-title {
+         font-size: 13.5px;
+         font-weight: 600;
+         color: #1f2937;
+         margin-bottom: 2px;
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+      }
+      .grc-autocomplete-item:hover .grc-autocomplete-title {
+         color: #108910;
+      }
+      .grc-autocomplete-cat {
+         font-size: 11px;
+         color: #6b7280;
+      }
+      .grc-autocomplete-price {
+         font-size: 14px;
+         font-weight: 700;
+         color: #047857;
+         margin-left: 12px;
+         flex-shrink: 0;
+      }
+      .grc-autocomplete-footer {
+         display: block;
+         padding: 10px 16px;
+         text-align: center;
+         background: #f8fafc;
+         color: #108910;
+         font-size: 13px;
+         font-weight: 700;
+         text-decoration: none;
+         border-top: 1px solid #e5e7eb;
+         border-radius: 0 0 13px 13px;
+      }
+      .grc-autocomplete-footer:hover {
+         background: #ecfdf5;
+         color: #003D29;
+      }
+
+      /* Hover on header action icons (User, Wishlist, Cart) */
+      .aq-header-right-options.grc-header-right-option > ul > li .grc-option-style {
+         transition: background-color 0.2s ease, color 0.2s ease !important;
+      }
+      .aq-header-right-options.grc-header-right-option > ul > li .grc-option-style:hover {
+         background: #108910 !important;
+         color: #ffffff !important;
+      }
+      .aq-header-right-options.grc-header-right-option > ul > li .grc-option-style:hover svg path {
+         stroke: #ffffff !important;
+      }
+      .aq-header-right-options.grc-header-right-option .aq-header-top-account-item {
+         transition: opacity 0.2s ease;
+      }
+      .aq-header-right-options.grc-header-right-option .aq-header-top-account-item:hover {
+         opacity: 0.92;
       }
    </style>
 
@@ -529,10 +884,9 @@
    </div>
    <!-- bottom-sticky header -->
 
-   <header>
-
-      <!-- header area start -->
-      <div class="grc-header-ptb pt-25 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
+   <!-- Sticky Main Header (Logo, Search Bar, User, Wishlist, Cart) -->
+   <header class="grc-main-sticky-header">
+      <div class="grc-header-main-nav grc-header-ptb pt-20 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
          <div class="container container-1630">
             <div class="grc-header-main-wrap">
                <div class="row align-items-center">
@@ -545,18 +899,26 @@
                   </div>
                   <div class="col-lg-7 col-md-5 d-none d-md-block">
                      <div class="grc-header-search-wrap">
-                        <form action="<?= site_url('shop'); ?>" method="GET">
-                           <div class="grc-header-search p-relative">
-                              <input type="text" name="q" value="<?= html_escape($this->input->get('q') ?? ''); ?>" placeholder="Search for fresh groceries (e.g. avocados, milk, sourdough, berries)...">
-                              <span class="grc-header-search-icon">
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                    <path d="M16.7495 16.75L12.8828 12.8833M14.9722 7.86111C14.9722 11.7885 11.7885 14.9722 7.86111 14.9722C3.93375 14.9722 0.75 11.7885 0.75 7.86111C0.75 3.93375 3.93375 0.75 7.86111 0.75C11.7885 0.75 14.9722 3.93375 14.9722 7.86111Z" stroke="#144110" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                 </svg>
+                        <form action="<?= site_url('shop'); ?>" method="GET" class="grc-search-form" autocomplete="off">
+                           <div class="grc-search-pill-container">
+                              <span class="grc-search-glass-icon">
+                                 <i class="fa-solid fa-magnifying-glass"></i>
                               </span>
-                              <button type="submit" class="grc-header-search-btn">
-                                 Search
+                              <input type="text"
+                                     name="q"
+                                     id="grcHeaderSearchInput"
+                                     class="grc-search-input"
+                                     value="<?= html_escape($this->input->get('q') ?? ''); ?>"
+                                     placeholder="Search for fresh groceries (e.g. avocados, milk, sourdough, berries)..."
+                                     autocomplete="off">
+                              <button type="button" class="grc-search-clear-btn" id="grcSearchClearBtn" onclick="clearGrcSearchInput('grcHeaderSearchInput')" title="Clear search">
+                                 <i class="fa-solid fa-xmark"></i>
+                              </button>
+                              <button type="submit" class="grc-search-btn-submit" aria-label="Search">
+                                 <span>Search</span>
                               </button>
                            </div>
+                           <div class="grc-search-autocomplete" id="grcSearchAutocomplete"></div>
                         </form>
                      </div>
                   </div>
@@ -598,8 +960,8 @@
                               </a>
                               <?php endif; ?>
                            </li>
-                           <li class="aq-header-top-wishlist d-none d-xl-inline-flex">
-                              <a href="<?= site_url('wishlist'); ?>" class="grc-option-style aq-wishlist-btn d-inline-flex align-items-center justify-content-center position-relative">
+                           <li class="aq-header-top-wishlist d-inline-flex">
+                              <a href="<?= site_url('wishlist'); ?>" class="grc-option-style d-inline-flex align-items-center justify-content-center position-relative text-decoration-none" title="My Wishlist" aria-label="My Wishlist">
                                  <span class="count-box wishlist-count"><?= (int)($wishlist_count ?? 0); ?></span>
                                  <i>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
@@ -609,7 +971,7 @@
                               </a>
                            </li>
                            <li class="aq-header-top-cart aq-cart-btn">
-                              <button type="button" class="grc-option-style" onclick="openGrcCartDrawer()">
+                              <button type="button" class="grc-option-style d-inline-flex align-items-center justify-content-center position-relative" onclick="openGrcCartDrawer()" title="View Grocery Bag" aria-label="View Grocery Bag">
                                  <span class="count-box cart-count"><?= (int)($cart_count ?? 0); ?></span>
                                  <i>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="21" viewBox="0 0 20 21" fill="none">
@@ -621,69 +983,227 @@
                         </ul>
                      </div>
                   </div>
+                  <!-- Mobile Search Bar (under logo & cart on small screens) -->
+                  <div class="col-12 d-md-none mt-2">
+                     <div class="grc-header-search-wrap">
+                        <form action="<?= site_url('shop'); ?>" method="GET" class="grc-search-form" autocomplete="off">
+                           <div class="grc-search-pill-container" style="height: 42px;">
+                              <span class="grc-search-glass-icon" style="left: 14px;">
+                                 <i class="fa-solid fa-magnifying-glass" style="font-size: 14px;"></i>
+                              </span>
+                              <input type="text"
+                                     name="q"
+                                     id="grcMobileSearchInput"
+                                     class="grc-search-input"
+                                     value="<?= html_escape($this->input->get('q') ?? ''); ?>"
+                                     placeholder="Search groceries..."
+                                     autocomplete="off"
+                                     style="font-size: 13.5px !important; padding-left: 38px !important; padding-right: 90px !important;">
+                              <button type="submit" class="grc-search-btn-submit" style="padding: 0 16px; font-size: 13px;">
+                                 <span>Search</span>
+                              </button>
+                           </div>
+                           <div class="grc-search-autocomplete" id="grcMobileSearchAutocomplete"></div>
+                        </form>
+                     </div>
+                  </div>
                </div>
             </div>
          </div>
       </div>
-
-      <!-- Department Category Bar (Dark Green) -->
-      <div class="grc-header-ptb pt-10 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
-         <div class="container container-1630">
-            <div class="grc-categories-wrap d-lg-flex d-none justify-content-between align-items-center flex-wrap">
-               <div class="grc-categories-item text-center">
-                  <a href="<?= site_url('shop?on_sale=1'); ?>">
-                     <div class="grc-categories-icon">
-                        <span><i class="fa-solid fa-tags text-warning fs-5"></i></span>
-                     </div>
-                     <span class="grc-categories-title">Deals &amp; Sale</span>
-                  </a>
-               </div>
-               <?php
-               $dept_icons = ['fa-apple-whole', 'fa-carrot', 'fa-cheese', 'fa-bread-slice', 'fa-mug-hot', 'fa-jar', 'fa-Seedling', 'fa-fish'];
-               if (!empty($nav_categories)):
-                  foreach ($nav_categories as $c_i => $cat):
-                     $ic = $dept_icons[$c_i % count($dept_icons)];
-               ?>
-               <div class="grc-categories-item text-center">
-                  <a href="<?= site_url('shop/' . $cat['slug']); ?>">
-                     <div class="grc-categories-icon">
-                        <span><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
-                     </div>
-                     <span class="grc-categories-title"><?= html_escape($cat['name']); ?></span>
-                  </a>
-               </div>
-               <?php
-                  endforeach;
-               endif;
-               ?>
-               <div class="grc-categories-item text-center">
-                  <a href="<?= site_url('shop'); ?>">
-                     <div class="grc-categories-icon">
-                        <span><i class="fa-solid fa-basket-shopping text-white fs-5"></i></span>
-                     </div>
-                     <span class="grc-categories-title">Shop All Aisles</span>
-                  </a>
-               </div>
-            </div>
-         </div>
-      </div>
-      <!-- header area end -->
-
    </header>
 
-   <?php if ($this->session->flashdata('success')): ?>
-      <div class="container container-1630 mt-3">
-         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fa-solid fa-circle-check me-2"></i><?= html_escape($this->session->flashdata('success')); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+   <!-- Department Category Bar (Dark Green) -->
+   <nav class="grc-category-aisles-bar grc-header-ptb pt-10 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
+      <div class="container container-1630">
+         <div class="grc-categories-wrap d-lg-flex d-none justify-content-between align-items-center flex-wrap">
+            <div class="grc-categories-item text-center">
+               <a href="<?= site_url('shop?on_sale=1'); ?>">
+                  <div class="grc-categories-icon">
+                     <span><i class="fa-solid fa-tags text-warning fs-5"></i></span>
+                  </div>
+                  <span class="grc-categories-title">Deals &amp; Sale</span>
+               </a>
+            </div>
+            <?php
+            $dept_icons = ['fa-apple-whole', 'fa-carrot', 'fa-cheese', 'fa-bread-slice', 'fa-mug-hot', 'fa-jar', 'fa-Seedling', 'fa-fish'];
+            if (!empty($nav_categories)):
+               foreach ($nav_categories as $c_i => $cat):
+                  $ic = $dept_icons[$c_i % count($dept_icons)];
+            ?>
+            <div class="grc-categories-item text-center">
+               <a href="<?= site_url('shop/' . $cat['slug']); ?>">
+                  <div class="grc-categories-icon">
+                     <span><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
+                  </div>
+                  <span class="grc-categories-title"><?= html_escape($cat['name']); ?></span>
+               </a>
+            </div>
+            <?php
+               endforeach;
+            endif;
+            ?>
+            <div class="grc-categories-item text-center">
+               <a href="<?= site_url('shop'); ?>">
+                  <div class="grc-categories-icon">
+                     <span><i class="fa-solid fa-basket-shopping text-white fs-5"></i></span>
+                  </div>
+                  <span class="grc-categories-title">Shop All Aisles</span>
+               </a>
+            </div>
          </div>
       </div>
-   <?php endif; ?>
-   <?php if ($this->session->flashdata('error')): ?>
-      <div class="container container-1630 mt-3">
-         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fa-solid fa-triangle-exclamation me-2"></i><?= html_escape($this->session->flashdata('error')); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+   </nav>
+
+   <script>
+   (function() {
+      // 1. Sticky Header Scroll Shadow & Compact State
+      var stickyHeader = document.querySelector('.grc-main-sticky-header');
+      if (stickyHeader) {
+         var handleHeaderScroll = function() {
+            if (window.scrollY > 20) {
+               stickyHeader.classList.add('is-scrolled');
+            } else {
+               stickyHeader.classList.remove('is-scrolled');
+            }
+         };
+         window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+         handleHeaderScroll();
+      }
+
+      // 2. Live Search Autocomplete Functionality
+      function initSearchAutocomplete(inputId, dropdownId, clearBtnId) {
+         var input = document.getElementById(inputId);
+         var dropdown = document.getElementById(dropdownId);
+         var clearBtn = clearBtnId ? document.getElementById(clearBtnId) : null;
+         if (!input || !dropdown) return;
+
+         var debounceTimer = null;
+         var currentQuery = '';
+
+         var updateClearBtn = function() {
+            if (clearBtn) {
+               clearBtn.style.display = input.value.trim().length > 0 ? 'inline-flex' : 'none';
+            }
+         };
+
+         input.addEventListener('input', function() {
+            var val = this.value.trim();
+            updateClearBtn();
+            clearTimeout(debounceTimer);
+            if (val.length < 2) {
+               dropdown.style.display = 'none';
+               dropdown.innerHTML = '';
+               return;
+            }
+            currentQuery = val;
+            debounceTimer = setTimeout(function() {
+               var url = '<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(val);
+               fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                  .then(function(res) { return res.json(); })
+                  .then(function(data) {
+                     if (currentQuery !== val) return;
+                     var items = (data && data.results) ? data.results : [];
+                     if (items.length === 0) {
+                        dropdown.innerHTML = '<div class="px-3 py-3 text-center text-muted" style="font-size:13px;">No fresh groceries found for "<b>' + val.replace(/</g, '&lt;') + '</b>"</div>';
+                        dropdown.style.display = 'block';
+                        return;
+                     }
+                     var html = '';
+                     items.forEach(function(item) {
+                        var cat = item.category_name ? '<div class="grc-autocomplete-cat">' + item.category_name + '</div>' : '';
+                        var img = item.image ? '<img src="' + item.image + '" class="grc-autocomplete-thumb" alt="' + (item.title || '') + '" onerror="this.src=\'<?= $bazaro; ?>img/product/grocery-p-1.jpg\'">' : '';
+                        html += '<a href="' + item.url + '" class="grc-autocomplete-item">' +
+                                   img +
+                                   '<div class="grc-autocomplete-info">' +
+                                      '<div class="grc-autocomplete-title">' + item.title + '</div>' +
+                                      cat +
+                                   '</div>' +
+                                   '<div class="grc-autocomplete-price">' + item.price_html + '</div>' +
+                                '</a>';
+                     });
+                     html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(val) + '" class="grc-autocomplete-footer">' +
+                                'View all results for "' + val.replace(/</g, '&lt;') + '" <i class="fa-solid fa-arrow-right ms-1"></i>' +
+                             '</a>';
+                     dropdown.innerHTML = html;
+                     dropdown.style.display = 'block';
+                  })
+                  .catch(function(err) {
+                     console.error('Autocomplete error:', err);
+                  });
+            }, 220);
+         });
+
+         document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+               dropdown.style.display = 'none';
+            }
+         });
+
+         input.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2 && dropdown.innerHTML.trim() !== '') {
+               dropdown.style.display = 'block';
+            }
+         });
+
+         input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+               dropdown.style.display = 'none';
+            }
+         });
+
+         updateClearBtn();
+      }
+
+      window.clearGrcSearchInput = function(inputId) {
+         var input = document.getElementById(inputId);
+         if (input) {
+            input.value = '';
+            input.focus();
+            var clearBtn = document.getElementById('grcSearchClearBtn');
+            if (clearBtn) clearBtn.style.display = 'none';
+            var dropdown = document.getElementById('grcSearchAutocomplete');
+            if (dropdown) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
+         }
+      };
+
+      if (document.readyState === 'loading') {
+         document.addEventListener('DOMContentLoaded', function() {
+            initSearchAutocomplete('grcHeaderSearchInput', 'grcSearchAutocomplete', 'grcSearchClearBtn');
+            initSearchAutocomplete('grcMobileSearchInput', 'grcMobileSearchAutocomplete', null);
+         });
+      } else {
+         initSearchAutocomplete('grcHeaderSearchInput', 'grcSearchAutocomplete', 'grcSearchClearBtn');
+         initSearchAutocomplete('grcMobileSearchInput', 'grcMobileSearchAutocomplete', null);
+      }
+   })();
+   </script>
+
+   <?php if (!isset($active_page) || !in_array($active_page, ['cart', 'checkout', 'account', 'wishlist'])): ?>
+      <?php if ($this->session->flashdata('success')): ?>
+         <div class="container container-1630 mt-3">
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center justify-content-between" role="alert">
+               <div class="d-flex align-items-center">
+                  <i class="fa-solid fa-circle-check me-2 fs-5 text-success"></i>
+                  <span><?= html_escape($this->session->flashdata('success')); ?></span>
+               </div>
+               <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                  <i class="fa-solid fa-xmark"></i>
+               </button>
+            </div>
          </div>
-      </div>
+      <?php endif; ?>
+      <?php if ($this->session->flashdata('error')): ?>
+         <div class="container container-1630 mt-3">
+            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center justify-content-between" role="alert">
+               <div class="d-flex align-items-center">
+                  <i class="fa-solid fa-triangle-exclamation me-2 fs-5 text-danger"></i>
+                  <span><?= html_escape($this->session->flashdata('error')); ?></span>
+               </div>
+               <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                  <i class="fa-solid fa-xmark"></i>
+               </button>
+            </div>
+         </div>
+      <?php endif; ?>
    <?php endif; ?>

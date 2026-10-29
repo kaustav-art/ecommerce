@@ -51,6 +51,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 */
 $route['default_controller'] = 'home';
 $route['shop'] = 'shop/index';
+$route['shop/autocomplete'] = 'shop/autocomplete';
 $route['shop/(:any)'] = 'shop/index/$1';
 $route['products'] = 'shop/index';
 $route['products/(:any)'] = 'shop/index/$1';

@@ -313,11 +313,14 @@
 	// Open Handlers
 	// ==========================
 
-	// Wishlist Open
+	// Wishlist Open - handled dynamically via AJAX wishlist toggle and direct /wishlist routing
+	// (Disabled overlay open to prevent black backdrop without active drawer)
+	/*
 	$(document).on("click", ".aq-wishlist-btn", function () {
 		$(".aq-wishlist-active").addClass("opened");
 		$(".body-overlay").addClass("opened");
 	});
+	*/
 
 	// Compare Open
 	$(document).on("click", ".aq-compare-btn", function () {

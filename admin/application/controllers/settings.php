@@ -218,6 +218,23 @@ class settings extends MY_Controller {
                 $chosen_online = $this->input->post('active_online_gateway', TRUE);
                 $allowed = ['razorpay', 'stripe', 'payu', 'none'];
                 if (in_array($chosen_online, $allowed)) {
+                    if ($chosen_online !== 'none') {
+                        $gw_check = $this->setting_model->get_gateway($chosen_online);
+                        $gw_creds = !empty($gw_check['credentials']) ? (is_array($gw_check['credentials']) ? $gw_check['credentials'] : json_decode($gw_check['credentials'], true)) : [];
+                        $has_creds = false;
+                        if ($chosen_online === 'razorpay' && !empty(trim($gw_creds['key_id'] ?? '')) && !empty(trim($gw_creds['key_secret'] ?? ''))) {
+                            $has_creds = true;
+                        } elseif ($chosen_online === 'stripe' && !empty(trim($gw_creds['publishable_key'] ?? '')) && !empty(trim($gw_creds['secret_key'] ?? ''))) {
+                            $has_creds = true;
+                        } elseif ($chosen_online === 'payu' && !empty(trim($gw_creds['merchant_key'] ?? '')) && !empty(trim($gw_creds['merchant_salt'] ?? ''))) {
+                            $has_creds = true;
+                        }
+                        if (!$has_creds) {
+                            $this->session->set_flashdata('error', 'Cannot activate ' . ucfirst($chosen_online) . ' because API keys are not configured. Please enter and save the keys first.');
+                            redirect('settings/payment');
+                            return;
+                        }
+                    }
                     // Only one online gateway allowed: activate the chosen one, deactivate others
                     foreach (['razorpay', 'stripe', 'payu'] as $gw_code) {
                         $is_on = ($gw_code === $chosen_online) ? 1 : 0;
@@ -243,6 +260,11 @@ class settings extends MY_Controller {
                     'secret_key'      => trim($this->input->post('stripe_secret_key', TRUE) ?: ''),
                     'webhook_secret'  => trim($this->input->post('stripe_webhook_secret', TRUE) ?: '')
                 ];
+                if ($is_active && (empty($credentials['publishable_key']) || empty($credentials['secret_key']))) {
+                    $this->session->set_flashdata('error', 'Stripe Publishable Key and Secret Key are required to activate Stripe.');
+                    redirect('settings/payment');
+                    return;
+                }
                 $this->setting_model->update_payment_gateway(
                     'stripe',
                     $is_active,
@@ -269,6 +291,11 @@ class settings extends MY_Controller {
                     'key_id'     => trim($this->input->post('razorpay_key_id', TRUE) ?: ''),
                     'key_secret' => trim($this->input->post('razorpay_key_secret', TRUE) ?: '')
                 ];
+                if ($is_active && (empty($credentials['key_id']) || empty($credentials['key_secret']))) {
+                    $this->session->set_flashdata('error', 'Razorpay Key ID and Key Secret are required to activate Razorpay.');
+                    redirect('settings/payment');
+                    return;
+                }
                 $this->setting_model->update_payment_gateway(
                     'razorpay',
                     $is_active,
@@ -297,6 +324,11 @@ class settings extends MY_Controller {
                     'test_url'      => 'https://test.payu.in/_payment',
                     'live_url'      => 'https://secure.payu.in/_payment'
                 ];
+                if ($is_active && (empty($credentials['merchant_key']) || empty($credentials['merchant_salt']))) {
+                    $this->session->set_flashdata('error', 'PayU Merchant Key and Salt are required to activate PayU.');
+                    redirect('settings/payment');
+                    return;
+                }
                 $this->setting_model->update_payment_gateway(
                     'payu',
                     $is_active,

@@ -335,10 +335,28 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
    }
 
    function bazaroToggleWishlist(productId, btnEl) {
+       if (typeof event !== 'undefined' && event) {
+           event.preventDefault();
+           event.stopPropagation();
+       }
+       productId = parseInt(productId, 10);
+       if (!productId || isNaN(productId)) return;
+       if (!btnEl && typeof event !== 'undefined' && event) {
+           btnEl = event.currentTarget || (event.target ? event.target.closest('button') : null);
+       }
+
+       // Product cannot be added to wishlist without login
        if (!window.IS_USER_LOGGED_IN) {
-           window.location.href = '<?= site_url("auth/login"); ?>';
+           document.cookie = "pending_wishlist=" + productId + "; path=/; max-age=3600; SameSite=Lax";
+           showEltToast('Please login first to add items to your wishlist.', true);
+           if (typeof window.openLoginModal === 'function') {
+               setTimeout(function() {
+                   window.openLoginModal(window.location.href, 'Please login first to add items to your wishlist.');
+               }, 350);
+           }
            return;
        }
+
        var fd = new FormData();
        fd.append('product_id', productId);
        fetch('<?= site_url("wishlist/toggle"); ?>', {
@@ -348,17 +366,99 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        })
        .then(function(r) { return r.json(); })
        .then(function(res) {
-           if (res.success) {
-               showEltToast(res.message || 'Wishlist updated!');
+           if (res.require_login) {
+               showEltToast(res.message || 'Please login first to add items to your wishlist.', true);
+               if (typeof window.openLoginModal === 'function') {
+                   setTimeout(function() {
+                       window.openLoginModal(res.redirect || window.location.href, res.message || 'Please login first.');
+                   }, 350);
+               }
+               return;
+           }
+
+           if (res.success || res.status === 'success') {
+               var isAdded = (res.action === 'added' || res.is_wishlisted === true);
+               var selectors = [
+                   'button[data-product-id="' + productId + '"]',
+                   'button[onclick*="bazaroToggleWishlist(' + productId + ')"]',
+                   'button[onclick*="bazaroToggleWishlist(' + productId + ',"]'
+               ];
+               document.querySelectorAll(selectors.join(', ')).forEach(function(btn) {
+                   btn.setAttribute('data-product-id', productId);
+                   var icon = btn.querySelector('i');
+                   var svg = btn.querySelector('svg');
+                   var tip = btn.querySelector('.aq-tooltip-item');
+                   if (isAdded) {
+                       btn.classList.add('active', 'in-wishlist');
+                       btn.setAttribute('title', 'Remove from Wishlist');
+                       if (icon) {
+                           icon.className = 'fa-solid fa-heart text-danger';
+                           icon.style.color = '#ef4444';
+                       }
+                       if (svg) {
+                           svg.style.fill = '#ef4444';
+                           svg.style.stroke = '#ef4444';
+                       }
+                       if (tip) tip.textContent = 'Remove';
+                   } else {
+                       btn.classList.remove('active', 'in-wishlist');
+                       btn.setAttribute('title', 'Add to Wishlist');
+                       if (icon) {
+                           icon.className = 'fa-regular fa-heart';
+                           icon.style.color = '';
+                       }
+                       if (svg) {
+                           svg.style.fill = 'none';
+                           svg.style.stroke = 'currentColor';
+                       }
+                       if (tip) tip.textContent = 'Wishlist';
+                   }
+               });
                if (typeof res.wishlist_count !== 'undefined') {
                    document.querySelectorAll('.wishlist-count').forEach(function(el) {
                        el.textContent = res.wishlist_count;
                    });
                }
+               showEltToast(res.message || (isAdded ? 'Added to your wishlist!' : 'Removed from your wishlist.'));
            } else if (res.redirect) {
                window.location.href = res.redirect;
            }
        });
+   }
+
+   window.USER_WISHLIST_IDS = <?= json_encode(array_values(array_map('intval', $user_wishlist_ids ?? []))); ?>;
+   function syncBazaroWishlistStates() {
+       if (!window.USER_WISHLIST_IDS || !Array.isArray(window.USER_WISHLIST_IDS)) return;
+       window.USER_WISHLIST_IDS.forEach(function(pId) {
+           pId = parseInt(pId, 10);
+           if (!pId) return;
+           var selectors = [
+               'button[data-product-id="' + pId + '"]',
+               'button[onclick*="bazaroToggleWishlist(' + pId + ')"]',
+               'button[onclick*="bazaroToggleWishlist(' + pId + ',"]'
+           ];
+           document.querySelectorAll(selectors.join(', ')).forEach(function(btn) {
+               btn.classList.add('active', 'in-wishlist');
+               btn.setAttribute('title', 'Remove from Wishlist');
+               var icon = btn.querySelector('i');
+               if (icon) {
+                   icon.className = 'fa-solid fa-heart text-danger';
+                   icon.style.color = '#ef4444';
+               }
+               var svg = btn.querySelector('svg');
+               if (svg) {
+                   svg.style.fill = '#ef4444';
+                   svg.style.stroke = '#ef4444';
+               }
+               var tip = btn.querySelector('.aq-tooltip-item');
+               if (tip) tip.textContent = 'Remove';
+           });
+       });
+   }
+   if (document.readyState === 'loading') {
+       document.addEventListener('DOMContentLoaded', syncBazaroWishlistStates);
+   } else {
+       syncBazaroWishlistStates();
    }
 
    function bazaroQuickView(item) {

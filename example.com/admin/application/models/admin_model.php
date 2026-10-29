@@ -19,8 +19,19 @@ class admin_model extends CI_Model {
         return $this->db->select('a.*, r.name as role_name, r.slug as role_slug')
                         ->from('admins a')
                         ->join('roles r', 'r.id = a.role_id', 'left')
-                        ->where('a.email', $email)
-                        ->order_by('a.tenant_id', 'ASC')
+                        ->where('LOWER(a.email)', strtolower(trim($email)))
+                        ->order_by('a.id', 'DESC')
+                        ->get()
+                        ->row_array();
+    }
+
+    public function get_by_email_and_tenant($email, $tenant_id)
+    {
+        return $this->db->select('a.*, r.name as role_name, r.slug as role_slug')
+                        ->from('admins a')
+                        ->join('roles r', 'r.id = a.role_id', 'left')
+                        ->where('LOWER(a.email)', strtolower(trim($email)))
+                        ->where('a.tenant_id', (int) $tenant_id)
                         ->get()
                         ->row_array();
     }

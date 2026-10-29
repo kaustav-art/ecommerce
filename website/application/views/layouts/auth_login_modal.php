@@ -414,6 +414,25 @@ $modal_store_name = html_escape($site_name ?? ($store_settings['site_name'] ?? '
         }
     };
 
+    if (typeof window.openAddressModal !== "function") {
+        window.openAddressModal = function() {
+            if (!window.IS_USER_LOGGED_IN) {
+                window.openLoginModal(window.location.href, "Please sign in or register to select your delivery address.");
+                return;
+            }
+            var modalEl = document.getElementById("addressModal");
+            if (modalEl) {
+                if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else if (typeof $ !== "undefined") {
+                    $("#addressModal").modal("show");
+                }
+            } else {
+                window.location.href = "<?= site_url('account/addresses'); ?>";
+            }
+        };
+    }
+
     window.handleSendOtp = function(e) {
         if (e && e.preventDefault) e.preventDefault();
 
@@ -562,6 +581,33 @@ $modal_store_name = html_escape($site_name ?? ($store_settings['site_name'] ?? '
         });
     };
 
+    function dispatchLoginSuccess(data) {
+        showLoginAlert('success', data.message || 'Login successful!');
+        window.IS_USER_LOGGED_IN = true;
+        window.CURRENT_USER = data.user || null;
+
+        var isCartPage = (window.location.pathname.indexOf('/cart') !== -1) || (typeof window.onCartLoginSuccess === 'function');
+        if (isCartPage && typeof window.onCartLoginSuccess === 'function') {
+            setTimeout(function() {
+                var loginModalEl = document.getElementById('exampleModalToggle');
+                if (loginModalEl) {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var inst = bootstrap.Modal.getInstance(loginModalEl) || bootstrap.Modal.getOrCreateInstance(loginModalEl);
+                        inst.hide();
+                    } else if (typeof $ !== 'undefined') {
+                        $('#exampleModalToggle').modal('hide');
+                    }
+                }
+                window.onCartLoginSuccess(data);
+            }, 300);
+            return;
+        }
+
+        setTimeout(function() {
+            window.location.href = data.redirect || window.location.href;
+        }, 500);
+    }
+
     window.handleVerifyOtp = function(e) {
         if (e && e.preventDefault) e.preventDefault();
 
@@ -597,11 +643,7 @@ $modal_store_name = html_escape($site_name ?? ($store_settings['site_name'] ?? '
 
             if (data.success) {
                 if (data.status === 'logged_in') {
-                    showLoginAlert('success', data.message || 'Login successful!');
-                    window.IS_USER_LOGGED_IN = true;
-                    setTimeout(function() {
-                        window.location.href = data.redirect || window.location.href;
-                    }, 500);
+                    dispatchLoginSuccess(data);
                 } else if (data.status === 'need_email_name') {
                     document.getElementById('login-step-otp').classList.add('d-none');
                     document.getElementById('login-step-complete-email-name').classList.remove('d-none');
@@ -666,11 +708,7 @@ $modal_store_name = html_escape($site_name ?? ($store_settings['site_name'] ?? '
             btn.disabled = false;
             btn.textContent = 'Complete Registration & Login';
             if (data.success) {
-                showLoginAlert('success', data.message || 'Account created!');
-                window.IS_USER_LOGGED_IN = true;
-                setTimeout(function() {
-                    window.location.href = data.redirect || window.location.href;
-                }, 500);
+                dispatchLoginSuccess(data);
             } else {
                 showLoginAlert('danger', data.message || 'Registration failed.');
             }
@@ -706,11 +744,7 @@ $modal_store_name = html_escape($site_name ?? ($store_settings['site_name'] ?? '
             btn.disabled = false;
             btn.textContent = 'Complete Registration & Login';
             if (data.success) {
-                showLoginAlert('success', data.message || 'Account created!');
-                window.IS_USER_LOGGED_IN = true;
-                setTimeout(function() {
-                    window.location.href = data.redirect || window.location.href;
-                }, 500);
+                dispatchLoginSuccess(data);
             } else {
                 showLoginAlert('danger', data.message || 'Registration failed.');
             }

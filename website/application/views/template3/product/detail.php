@@ -910,6 +910,16 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
     background: #fef2f2;
     transform: scale(1.06);
 }
+.btn-grc-wish.active,
+.btn-grc-wish.in-wishlist {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fef2f2;
+}
+.btn-grc-wish.active i,
+.btn-grc-wish.in-wishlist i {
+    color: #ef4444 !important;
+}
 
 /* Total Order Summary Strip */
 .grc-live-total-strip {
@@ -1231,8 +1241,8 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
                            </div>
                            <div class="col-xl-10 order-1 order-xl-2">
                               <div class="product-slider-main-wrap p-relative">
-                                 <button type="button" class="btn-grc-wish" onclick="grcToggleWishlist(<?= $prod_id; ?>)" title="Save to Wishlist">
-                                    <i class="fa-regular fa-heart"></i>
+                                 <button type="button" class="btn-grc-wish <?= !empty($is_in_wishlist) ? 'active in-wishlist' : ''; ?>" onclick="grcToggleWishlist(<?= $prod_id; ?>, this)" title="<?= !empty($is_in_wishlist) ? 'Remove from Wishlist' : 'Save to Wishlist'; ?>" data-product-id="<?= $prod_id; ?>">
+                                    <i class="<?= !empty($is_in_wishlist) ? 'fa-solid fa-heart' : 'fa-regular fa-heart'; ?>" <?= !empty($is_in_wishlist) ? 'style="color: #ef4444;"' : ''; ?>></i>
                                  </button>
                                  <div class="product-slider-main slider-for p-relative">
                                     <?php foreach ($gallery_urls as $g_url): ?>
@@ -1820,15 +1830,16 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
     var currencySymbol = <?= json_encode($currency_symbol); ?>;
     var activeUnitType = <?= json_encode($initial_unit_type); ?>; // 'kg' or 'pc'
     var activePack     = {
-        id:       <?= json_encode($initial_variant['id']); ?>,
-        unitType: <?= json_encode($initial_variant['unit_type']); ?>,
-        label:    <?= json_encode($initial_variant['label']); ?>,
-        unitQty:  <?= (float)$initial_variant['unit_qty']; ?>,
-        unitDesc: <?= json_encode($initial_variant['unit_desc']); ?>,
-        regPrice: <?= (float)$initial_variant['reg_price']; ?>,
-        salePrice:<?= (float)$initial_variant['sale_price']; ?>,
-        sku:      <?= json_encode($initial_variant['sku']); ?>,
-        stock:    <?= (int)$initial_variant['stock']; ?>
+        id:        <?= json_encode($initial_variant['id']); ?>,
+        variantId: <?= (int)($initial_variant['variant_id'] ?? 0); ?>,
+        unitType:  <?= json_encode($initial_variant['unit_type']); ?>,
+        label:     <?= json_encode($initial_variant['label']); ?>,
+        unitQty:   <?= (float)$initial_variant['unit_qty']; ?>,
+        unitDesc:  <?= json_encode($initial_variant['unit_desc']); ?>,
+        regPrice:  <?= (float)$initial_variant['reg_price']; ?>,
+        salePrice: <?= (float)$initial_variant['sale_price']; ?>,
+        sku:       <?= json_encode($initial_variant['sku']); ?>,
+        stock:     <?= (int)$initial_variant['stock']; ?>
     };
 
     function formatMoney(val) {
@@ -2002,6 +2013,7 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
 
         activePack = {
             id:        cardEl.getAttribute('data-id') || '',
+            variantId: parseInt(cardEl.getAttribute('data-variant-id') || cardEl.getAttribute('data-id') || '0', 10) || null,
             unitType:  cardEl.getAttribute('data-unit-type') || activeUnitType,
             label:     cardEl.getAttribute('data-label') || '',
             unitQty:   parseFloat(cardEl.getAttribute('data-unit-qty') || '1'),
@@ -2019,7 +2031,8 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
         var input = document.getElementById('product-qty-input');
         if (!input) return;
         var current = parseInt(input.value, 10) || 1;
-        var next = Math.max(1, Math.min(20, current + delta));
+        var maxStock = (activePack && activePack.stock) ? parseInt(activePack.stock, 10) : 20;
+        var next = Math.max(1, Math.min(maxStock, current + delta));
         input.value = next;
         recalculateGrcPricing();
     };
@@ -2027,21 +2040,98 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
     window.grcDetailAddToCart = function(e) {
         if (e) e.preventDefault();
         var qty = parseInt(document.getElementById('product-qty-input')?.value || '1', 10) || 1;
+        var variantId = (activePack && (activePack.variantId || activePack.id))
+            ? parseInt(activePack.variantId || activePack.id, 10)
+            : null;
+        if (isNaN(variantId) || variantId <= 0) variantId = null;
+
+        var btn = document.getElementById('main-btn-atc');
+        var origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Adding...</span>';
+            btn.disabled = true;
+        }
+
         if (typeof grcAddToCart === 'function') {
-            grcAddToCart(productId, qty);
+            grcAddToCart(productId, qty, variantId);
+            setTimeout(function() {
+                if (btn) {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }
+            }, 600);
+        } else {
+            var fd = new FormData();
+            fd.append('product_id', productId);
+            fd.append('quantity', qty);
+            if (variantId) fd.append('variant_id', variantId);
+            fetch('<?= site_url("cart/add"); ?>', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: fd
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (btn) {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }
+                if (res && res.success) {
+                    if (typeof renderGrcCartDrawer === 'function') renderGrcCartDrawer(res);
+                    if (typeof showGrcToast === 'function') showGrcToast(res.message || 'Added to grocery bag!');
+                    if (typeof openGrcCartDrawer === 'function') openGrcCartDrawer();
+                } else {
+                    if (typeof showGrcToast === 'function') showGrcToast((res && res.message) ? res.message : 'Could not add to bag', true);
+                }
+            })
+            .catch(function() {
+                if (btn) {
+                    btn.innerHTML = origHtml;
+                    btn.disabled = false;
+                }
+                if (typeof showGrcToast === 'function') showGrcToast('Network error adding to bag', true);
+            });
         }
     };
 
     window.grcDetailBuyNow = function() {
         var qty = parseInt(document.getElementById('product-qty-input')?.value || '1', 10) || 1;
+        var variantId = (activePack && (activePack.variantId || activePack.id))
+            ? parseInt(activePack.variantId || activePack.id, 10)
+            : null;
+        if (isNaN(variantId) || variantId <= 0) variantId = null;
+
         var fd = new FormData();
         fd.append('product_id', productId);
         fd.append('quantity', qty);
+        if (variantId) fd.append('variant_id', variantId);
+
+        var btn = document.querySelector('.btn-grc-buy');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Processing...</span>';
+        }
+
         fetch('<?= site_url("cart/add"); ?>', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             body: fd
-        }).finally(function() {
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res && res.success) {
+                window.location.href = '<?= site_url("checkout" . $grc_qs); ?>';
+            } else {
+                if (typeof showGrcToast === 'function') {
+                    showGrcToast(res && res.message ? res.message : 'Could not add to bag', true);
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>Buy Now</span>';
+                }
+            }
+        })
+        .catch(function() {
             window.location.href = '<?= site_url("checkout" . $grc_qs); ?>';
         });
     };

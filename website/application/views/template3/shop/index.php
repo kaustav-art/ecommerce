@@ -622,11 +622,10 @@ if (!function_exists('grc_shop_unit_calc')) {
                                  <img class="aq-product-img-hover" src="<?= $p_img; ?>" alt="<?= html_escape($p_name); ?>" onerror="this.src='<?= $bazaro; ?>img/product/grocery-p-<?= (($p_idx % 12) + 1); ?>.jpg'">
                               </a>
                               <div class="aq-product-action-2 d-flex flex-column">
-                                 <button type="button" onclick="grcToggleWishlist(<?= $p_id; ?>)" class="aq-product-action-btn-2 aq-wishlist-btn aq-tooltip">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="19" height="16" viewBox="0 0 19 16" fill="none">
-                                       <path d="M5.83058 3.81134C4.89058 4.07825 4.22269 4.82839 4.13922 5.71098M9.34149 14.6355C11.2568 13.5878 13.0385 12.3546 14.6549 10.9581C15.7913 9.95244 16.6564 8.72639 17.184 7.37389C18.1334 4.75023 17.0244 1.74665 13.9209 0.857757C12.2899 0.391012 10.5085 1.54015 9.13406 2.45698C7.7591 1.54127 5.97836 0.392222 4.3472 0.857757C1.24372 1.74665 0.126783 4.75023 1.07618 7.37389C1.60376 8.72639 2.46886 9.95244 3.60523 10.9581C5.22159 12.3546 7.00335 13.5878 8.91865 14.6355L9.12608 14.7502L9.34149 14.6355Z" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                    <span class="aq-tooltip-item">Wishlist</span>
+                                 <?php $p_is_wish = in_array((int)$p_id, $user_wishlist_ids ?? []); ?>
+                                 <button type="button" onclick="grcToggleWishlist(<?= $p_id; ?>, this)" class="aq-product-action-btn-2 aq-wishlist-btn aq-tooltip <?= $p_is_wish ? 'active in-wishlist' : ''; ?>" data-product-id="<?= $p_id; ?>" title="<?= $p_is_wish ? 'Remove from Wishlist' : 'Add to Wishlist'; ?>">
+                                    <i class="<?= $p_is_wish ? 'fa-solid fa-heart text-danger' : 'fa-regular fa-heart'; ?>" style="font-size: 16px; <?= $p_is_wish ? 'color: #ef4444 !important;' : ''; ?>"></i>
+                                    <span class="aq-tooltip-item"><?= $p_is_wish ? 'Remove' : 'Wishlist'; ?></span>
                                  </button>
                               </div>
                            </div>

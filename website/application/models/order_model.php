@@ -135,6 +135,16 @@ class order_model extends CI_Model {
         return $this->db->where('tenant_id', $this->tid())->where('order_number', $order_number)->update('orders', $update);
     }
 
+    public function update_status($order_number, $order_status)
+    {
+        return $this->db->where('tenant_id', $this->tid())
+                        ->where('order_number', $order_number)
+                        ->update('orders', [
+                            'order_status' => $order_status,
+                            'updated_at'   => date('Y-m-d H:i:s')
+                        ]);
+    }
+
     public function cancel_order($order_number, $user_id = NULL)
     {
         $tid = $this->tid();

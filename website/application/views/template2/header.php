@@ -765,7 +765,7 @@ if (!function_exists('elt_resolve_img')) {
                         <?php endif; ?>
                      </li>
                      <li class="aq-header-top-wishlist d-none d-md-inline-block">
-                        <a href="<?= site_url('wishlist'); ?>" class="aq-wishlist-btn">
+                        <a href="<?= site_url('wishlist'); ?>" class="text-decoration-none" title="My Wishlist" aria-label="My Wishlist">
                            <span class="count-box wishlist-count"><?= $wish_cnt; ?></span>
                            <i>
                               <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">

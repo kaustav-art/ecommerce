@@ -79,10 +79,14 @@ class setting_model extends CI_Model {
         $tid = $this->tid();
         $rows = $this->db->where('tenant_id', $tid)->get('payment_gateways')->result_array();
         if (empty($rows) && $tid !== 1) {
-            // Auto-clone default gateway definitions for this tenant
-            $defaults = $this->db->where('tenant_id', 1)->get('payment_gateways')->result_array();
-            foreach ($defaults as $def) {
-                unset($def['id']);
+            // Auto-clone clean default gateway definitions for this tenant (COD active, online gateways inactive)
+            $defaultGateways = [
+                ['gateway_code' => 'cod', 'gateway_name' => 'Cash on Delivery (COD)', 'is_active' => 1, 'environment' => 'live', 'credentials' => json_encode(['instructions' => 'Pay with cash upon physical delivery of your package.'])],
+                ['gateway_code' => 'razorpay', 'gateway_name' => 'Razorpay Gateway (UPI, Cards, NetBanking)', 'is_active' => 0, 'environment' => 'test', 'credentials' => json_encode(['key_id' => '', 'key_secret' => ''])],
+                ['gateway_code' => 'stripe', 'gateway_name' => 'Stripe Payments (Credit / Debit Card)', 'is_active' => 0, 'environment' => 'test', 'credentials' => json_encode(['publishable_key' => '', 'secret_key' => '', 'webhook_secret' => ''])],
+                ['gateway_code' => 'payu', 'gateway_name' => 'PayU Gateway (PayU Money / Biz)', 'is_active' => 0, 'environment' => 'test', 'credentials' => json_encode(['merchant_key' => '', 'merchant_salt' => '', 'test_url' => 'https://test.payu.in/_payment', 'live_url' => 'https://secure.payu.in/_payment'])]
+            ];
+            foreach ($defaultGateways as $def) {
                 $def['tenant_id'] = $tid;
                 $this->db->insert('payment_gateways', $def);
             }

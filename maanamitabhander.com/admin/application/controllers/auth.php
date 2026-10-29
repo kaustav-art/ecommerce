@@ -68,7 +68,11 @@ class auth extends MY_Controller {
                 $email    = $this->input->post('email', TRUE);
                 $password = $this->input->post('password');
 
-                $admin = $this->admin_model->get_by_email($email);
+                if (!empty($this->folder_tenant_id) && $this->folder_tenant_id > 0) {
+                    $admin = $this->admin_model->get_by_email_and_tenant($email, $this->folder_tenant_id);
+                } else {
+                    $admin = $this->admin_model->get_by_email($email);
+                }
 
                 if ($admin && password_verify($password, $admin['password'])) {
                     if ($admin['status'] !== 'active') {

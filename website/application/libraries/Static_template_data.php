@@ -212,7 +212,7 @@ class Static_template_data {
             $c['descendant_ids']   = $desc['ids'];
             $c['descendant_slugs'] = $desc['slugs'];
             $c['descendant_names'] = $desc['names'];
-            $c['product_count']    = ($dbName === 'ecommerce_main') ? max(1, (int)$desc['count']) : (int)$desc['count'];
+            $c['product_count']    = ($tenantId <= 3) ? max(1, (int)$desc['count']) : (int)$desc['count'];
             $catById[$cid]         = $c;
             $allCategories[]       = $c;
             if ($c['parent_id'] === 0) {
@@ -244,7 +244,7 @@ class Static_template_data {
         $brands = [];
         foreach ($brStmt->fetchAll() as $br) {
             $br['id'] = (int)$br['id'];
-            $br['product_count'] = ($dbName === 'ecommerce_main') ? max(1, (int)$br['product_count']) : (int)$br['product_count'];
+            $br['product_count'] = ($tenantId <= 3) ? max(1, (int)$br['product_count']) : (int)$br['product_count'];
             $brands[] = $br;
         }
 

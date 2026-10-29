@@ -158,20 +158,24 @@ class payment_model extends CI_Model {
     public function init_razorpay($order)
     {
         $gateway = $this->get_gateway_config('razorpay');
-        if (!$gateway || !$gateway['is_active']) {
+        if (!$gateway || empty($gateway['is_active'])) {
             return ['success' => false, 'message' => 'Razorpay gateway is currently disabled.'];
         }
 
-        $credentials = $gateway['credentials'];
-        $key_id      = $credentials['key_id'] ?? '';
-        $key_secret  = $credentials['key_secret'] ?? '';
+        $credentials = $gateway['credentials'] ?? [];
+        $key_id      = trim($credentials['key_id'] ?? '');
+        $key_secret  = trim($credentials['key_secret'] ?? '');
+
+        if (empty($key_id) || empty($key_secret)) {
+            return ['success' => false, 'message' => 'Razorpay API keys are not configured. Please enter your Razorpay Key ID and Secret in Admin Settings, or choose Cash on Delivery.'];
+        }
 
         // Dynamic Currency and amount in sub-units (cents / paise)
         $currency_code  = $this->get_order_currency($order);
         $amount_subunit = (int) round($order['total_amount'] * 100);
         $razorpay_order_id = NULL;
 
-        if (!empty($key_id) && !empty($key_secret) && function_exists('curl_version')) {
+        if (function_exists('curl_version')) {
             $ch = curl_init('https://api.razorpay.com/v1/orders');
             curl_setopt($ch, CURLOPT_USERPWD, $key_id . ':' . $key_secret);
             curl_setopt($ch, CURLOPT_POST, TRUE);
@@ -186,6 +190,7 @@ class payment_model extends CI_Model {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
             $response = curl_exec($ch);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curl_err = curl_error($ch);
             curl_close($ch);
 
             if ($http_code === 200) {
@@ -193,6 +198,13 @@ class payment_model extends CI_Model {
                 if (!empty($res['id'])) {
                     $razorpay_order_id = $res['id'];
                 }
+            } else {
+                $res = json_decode($response, true);
+                $err_msg = $res['error']['description'] ?? ($res['message'] ?? ($curl_err ?: 'Authentication failed with Razorpay API.'));
+                return [
+                    'success' => false,
+                    'message' => 'Razorpay error: ' . $err_msg . '. Please verify your Razorpay Key ID and Secret in Admin Settings.'
+                ];
             }
         }
 

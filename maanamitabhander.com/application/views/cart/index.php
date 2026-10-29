@@ -15,24 +15,49 @@
         <!-- Flash messages -->
         <?php if ($this->session->flashdata('success')): ?>
             <div class="container mt-3" style="max-width: 1240px;">
-                <div class="alert alert-success alert-dismissible fade show rounded-2 py-2" role="alert">
-                    <i class="fa-solid fa-circle-check me-2"></i><?= $this->session->flashdata('success'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="alert alert-success alert-dismissible fade show rounded-2 py-2 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-circle-check me-2 fs-5 text-success"></i>
+                        <span><?= $this->session->flashdata('success'); ?></span>
+                    </div>
+                    <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         <?php endif; ?>
 
         <?php if ($this->session->flashdata('error')): ?>
             <div class="container mt-3" style="max-width: 1240px;">
-                <div class="alert alert-danger alert-dismissible fade show rounded-2 py-2" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->session->flashdata('error'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="alert alert-danger alert-dismissible fade show rounded-2 py-2 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-triangle-exclamation me-2 fs-5 text-danger"></i>
+                        <span><?= $this->session->flashdata('error'); ?></span>
+                    </div>
+                    <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         <?php endif; ?>
 
         <style>
         /* Cart Page Styles */
+        .btn-close-alert {
+            background: transparent !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            margin: 0 !important;
+            color: inherit !important;
+            opacity: 0.6 !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            transition: opacity 0.2s ease !important;
+        }
+        .btn-close-alert:hover {
+            opacity: 1 !important;
+        }
         .cart-page-wrapper {
             background-color: #f1f3f6;
             min-height: 80vh;
@@ -177,27 +202,31 @@
             color: #111827 !important;
         }
 
-        /* Yellow Proceed to Buy Button */
+        /* Proceed to Buy Button - Theme Color with Simple Hover Effect */
         .btn-proceed-buy {
-            background: #ffc200 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            color: #1e2022 !important;
+            background: #108910 !important;
+            background-color: #108910 !important;
+            border: 1px solid #108910 !important;
+            border-radius: 10px !important;
+            color: #ffffff !important;
             font-weight: 700 !important;
             font-size: 15px !important;
-            padding: 11px 24px !important;
-            transition: filter 0.15s ease, transform 0.1s ease !important;
+            padding: 12px 24px !important;
+            box-shadow: 0 4px 14px rgba(16, 137, 16, 0.2) !important;
+            transition: background-color 0.2s ease, border-color 0.2s ease !important;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            letter-spacing: 0.2px;
         }
-        .btn-proceed-buy:active {
-            transform: scale(0.98);
-        }
-        .btn-proceed-buy:hover {
-            filter: brightness(0.95);
-            color: #1e2022 !important;
+        .btn-proceed-buy:hover,
+        .btn-proceed-buy:focus {
+            background: #003D29 !important;
+            background-color: #003D29 !important;
+            border-color: #003D29 !important;
+            color: #ffffff !important;
         }
 
         @media (max-width: 767px) {
@@ -256,18 +285,18 @@
                             <h5 class="fw-bold text-dark mb-2" style="font-size: 18px; letter-spacing: -0.2px;">Delivering to</h5>
                             <div class="cart-address-card p-3 p-sm-4 bg-white border shadow-sm" style="background-color: #ffffff !important; border-radius: 16px; border-color: #e5e7eb !important;">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                    <div class="d-flex align-items-center gap-2 min-w-0" id="cart-address-header-box" style="cursor: pointer;" onclick="handleAddressAction()">
                                         <i class="fa-solid fa-house text-dark flex-shrink-0" style="font-size: 16px;"></i>
                                         <strong class="fw-bold text-dark text-truncate" id="display-address-name" style="font-size: 17px;">
                                             <?= html_escape($disp_name ?: (!empty($is_logged_in) ? 'Select Address' : 'Sign In to Select Address')); ?>
                                         </strong>
                                         <span class="badge bg-light text-secondary border text-uppercase d-none" id="display-address-tag"><?= html_escape($disp_tag); ?></span>
                                     </div>
-                                    <button type="button" class="btn btn-link p-0 text-decoration-none fw-bold flex-shrink-0 ms-2" style="color: #1a73e8; font-size: 16px;" onclick="openAddressModal()">
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none fw-bold flex-shrink-0 ms-2" id="btn-address-action" style="color: #1a73e8; font-size: 16px; cursor: pointer;" onclick="handleAddressAction(); event.stopPropagation();">
                                         <?= !empty($is_logged_in) ? 'Change' : 'Sign In'; ?>
                                     </button>
                                 </div>
-                                <div class="text-dark mb-2" style="font-size: 14px; line-height: 1.45; color: #212529 !important;" id="display-address-full">
+                                <div class="text-dark mb-2" style="font-size: 14px; line-height: 1.45; color: #212529 !important; <?= empty($is_logged_in) ? 'cursor: pointer;' : ''; ?>" id="display-address-full" <?= empty($is_logged_in) ? 'onclick="handleAddressAction()"' : ''; ?>>
                                     <?= !empty($is_logged_in) ? html_escape($disp_addr ?: 'Choose or add your shipping address') : 'Please sign in or register to set your delivery address'; ?><?= (!empty($disp_pin) && !empty($is_logged_in)) ? ', ' . html_escape($disp_pin) : ''; ?>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 text-dark" style="font-size: 14px; color: #212529 !important; <?= empty($disp_phone) ? 'display: none !important;' : ''; ?>" id="display-address-phone-wrap">
@@ -321,12 +350,25 @@
                                                 <?php endif; ?>
                                             </div>
 
-                                            <!-- Rating Badge -->
+                                            <!-- Rating (5 Stars) -->
+                                            <?php 
+                                                $item_rating = isset($item['rating']) && (float)$item['rating'] > 0 ? (float)$item['rating'] : 5.0;
+                                                $item_reviews = isset($item['reviews_count']) ? (int)$item['reviews_count'] : 0;
+                                                $r_score = round($item_rating * 2) / 2;
+                                            ?>
                                             <div class="d-flex align-items-center gap-1 mb-1">
-                                                <span class="badge bg-success text-white d-inline-flex align-items-center gap-1 px-1 py-0 rounded" style="font-size: 11px; font-weight: 600;">
-                                                    <?= number_format($item['rating'] ?? 4.2, 1); ?> <i class="fa-solid fa-star" style="font-size: 9px;"></i>
-                                                </span>
-                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item['reviews_count'] ?? 240); ?>)</span>
+                                                <div class="d-inline-flex align-items-center gap-1" style="font-size: 11px;">
+                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                        <?php if ($s <= $r_score): ?>
+                                                            <i class="fa-solid fa-star" style="color: #ff9f00;"></i>
+                                                        <?php elseif ($s - 0.5 == $r_score): ?>
+                                                            <i class="fa-solid fa-star-half-stroke" style="color: #ff9f00;"></i>
+                                                        <?php else: ?>
+                                                            <i class="fa-regular fa-star" style="color: #d1d5db;"></i>
+                                                        <?php endif; ?>
+                                                    <?php endfor; ?>
+                                                </div>
+                                                <span class="text-muted" style="font-size: 11px;">(<?= number_format($item_reviews); ?>)</span>
                                             </div>
 
                                             <!-- Price Row -->
@@ -580,6 +622,92 @@
 
         <script>
         var CURRENCY = '<?= $currency_symbol; ?>';
+
+        window.onCartLoginSuccess = function(data) {
+            window.IS_USER_LOGGED_IN = true;
+
+            var btnAction = document.getElementById('btn-address-action');
+            if (!btnAction) {
+                btnAction = document.querySelector('.cart-address-card button');
+            }
+            if (btnAction) {
+                btnAction.textContent = 'Change';
+                btnAction.onclick = function(e) {
+                    if (e) e.stopPropagation();
+                    openAddressModal();
+                };
+            }
+
+            var headerBox = document.getElementById('cart-address-header-box');
+            if (headerBox) {
+                headerBox.onclick = function() { openAddressModal(); };
+            }
+            var fullBox = document.getElementById('display-address-full');
+            if (fullBox) {
+                fullBox.onclick = function() { openAddressModal(); };
+            }
+
+            var hasAddr = data && data.has_address && data.default_address;
+
+            if (hasAddr) {
+                if (typeof window.updateDeliveryAddressUI === 'function') {
+                    window.updateDeliveryAddressUI(data.default_address);
+                }
+                if (typeof window.refreshAddressList === 'function') {
+                    window.refreshAddressList();
+                }
+            } else {
+                var dispName = document.getElementById('display-address-name');
+                if (dispName) dispName.textContent = 'Select Address';
+                if (fullBox) fullBox.textContent = 'Please choose or add your delivery address';
+                var phoneWrap = document.getElementById('display-address-phone-wrap');
+                if (phoneWrap) phoneWrap.style.setProperty('display', 'none', 'important');
+
+                if (typeof window.refreshAddressList === 'function') {
+                    window.refreshAddressList();
+                }
+
+                setTimeout(function() {
+                    if (typeof window.openAddressModal === 'function') {
+                        window.openAddressModal();
+                        if (typeof window.toggleNewAddressForm === 'function') {
+                            window.toggleNewAddressForm(true);
+                        }
+                    }
+                }, 200);
+            }
+        };
+
+        function handleAddressAction() {
+            if (!window.IS_USER_LOGGED_IN) {
+                if (typeof window.openLoginModal === 'function') {
+                    window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in or register to select your delivery address.');
+                } else {
+                    window.location.href = '<?= site_url("auth/login?redirect=" . urlencode("cart")); ?>';
+                }
+                return;
+            }
+            openAddressModal();
+        }
+        window.handleAddressAction = handleAddressAction;
+
+        function openAddressModal() {
+            if (!window.IS_USER_LOGGED_IN) {
+                handleAddressAction();
+                return;
+            }
+            var modalEl = document.getElementById('addressModal');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else if (typeof $ !== 'undefined') {
+                    $('#addressModal').modal('show');
+                }
+            } else {
+                window.location.href = '<?= site_url("account/addresses"); ?>';
+            }
+        }
+        window.openAddressModal = openAddressModal;
 
         function showCartToast(message, type) {
             type = type || 'warning';

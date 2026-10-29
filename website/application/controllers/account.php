@@ -230,13 +230,19 @@ class account extends MY_Controller {
 
     public function wishlist()
     {
+        if (!$this->is_logged_in() || empty($this->current_user['id'])) {
+            $this->session->set_flashdata('error', 'Please login first to view your wishlist.');
+            redirect('auth/login?redirect=' . urlencode('wishlist'));
+            return;
+        }
+
         $user     = $this->_get_account_user();
-        $products = Static_template_data::get('products');
-        $wishlist = array_slice($products, 0, 4);
+        $this->load->model('wishlist_model');
+        $wishlist = $this->wishlist_model->get_by_user((int)$this->current_user['id']);
 
         $data = [
             'title'              => 'My Wishlist - ' . $this->site_name,
-            'active_page'        => 'account',
+            'active_page'        => 'wishlist',
             'active_account_tab' => 'wishlist',
             'user'               => $user,
             'wishlist'           => $wishlist
@@ -245,14 +251,69 @@ class account extends MY_Controller {
         $this->render('account/wishlist', $data);
     }
 
-    public function wishlist_toggle($product_id = 1)
+    public function wishlist_toggle($product_id = null)
     {
-        if ($this->input->is_ajax_request()) {
-            echo json_encode(['status' => 'success', 'action' => 'added']);
+        if ($product_id === null) {
+            $product_id = $this->input->post('product_id') ?: $this->input->get('product_id');
+        }
+        $product_id = (int) $product_id;
+
+        if ($product_id <= 0) {
+            if ($this->input->is_ajax_request()) {
+                $this->json_response(['success' => false, 'status' => 'error', 'message' => 'Invalid product.']);
+                return;
+            }
+            redirect($_SERVER['HTTP_REFERER'] ?? 'wishlist');
             return;
         }
-        $this->session->set_flashdata('success', 'Product added to your wishlist (Template Demo Mode).');
-        redirect($_SERVER['HTTP_REFERER'] ?? 'account/wishlist');
+
+        // Wishlist is strictly for logged-in users
+        if (!$this->is_logged_in() || empty($this->current_user['id'])) {
+            $this->session->set_userdata('pending_wishlist', $product_id);
+            setcookie('pending_wishlist', (string)$product_id, time() + 3600, '/');
+
+            if ($this->input->is_ajax_request()) {
+                $this->json_response([
+                    'success'       => false,
+                    'status'        => 'error',
+                    'require_login' => true,
+                    'message'       => 'Please login first to add items to your wishlist.',
+                    'redirect'      => site_url('auth/login')
+                ]);
+                return;
+            }
+
+            $this->session->set_flashdata('error', 'Please login first to add items to your wishlist.');
+            redirect('auth/login?redirect=' . urlencode($_SERVER['HTTP_REFERER'] ?? 'wishlist'));
+            return;
+        }
+
+        $user_id = (int) $this->current_user['id'];
+        $this->load->model('wishlist_model');
+        $status  = $this->wishlist_model->toggle($user_id, $product_id);
+
+        $wishlist_count = (int) $this->db->where('tenant_id', $this->tenant_id)
+                                         ->where('user_id', $user_id)
+                                         ->count_all_results('wishlists');
+
+        $is_wishlisted = ($status === 'added');
+        $msg = $is_wishlisted ? 'Added to your wishlist!' : 'Removed from your wishlist.';
+
+        if ($this->input->is_ajax_request()) {
+            $this->json_response([
+                'success'        => true,
+                'status'         => 'success',
+                'action'         => $status,
+                'is_wishlisted'  => $is_wishlisted,
+                'wishlist_count' => $wishlist_count,
+                'product_id'     => $product_id,
+                'message'        => $msg
+            ]);
+            return;
+        }
+
+        $this->session->set_flashdata('success', $msg);
+        redirect($_SERVER['HTTP_REFERER'] ?? 'wishlist');
     }
 
     public function notifications()

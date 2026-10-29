@@ -184,9 +184,22 @@ class cart_model extends CI_Model {
                 $max_p = !empty($p_info['max_purchase_quantity']) ? (int) $p_info['max_purchase_quantity'] : 5;
                 $item['stock_max'] = isset($item['stock_max']) ? min((int)$item['stock_max'], $max_p) : $max_p;
                 $item['is_cod_allowed'] = isset($p_info['is_cod_allowed']) ? (int) $p_info['is_cod_allowed'] : 1;
-                $item['rating'] = !empty($p_info['rating']) ? (float) $p_info['rating'] : 4.2;
-                $item['reviews_count'] = !empty($p_info['reviews_count']) ? (int) $p_info['reviews_count'] : 240;
                 $item['short_description'] = !empty($p_info['short_description']) ? $p_info['short_description'] : '';
+
+                // Dynamic rating & reviews_count from product table and approved reviews
+                $rev_stats = $this->db->select('COUNT(*) as total_count, AVG(rating) as avg_rating')
+                                      ->where('tenant_id', $tid)
+                                      ->where('product_id', (int)$item['id'])
+                                      ->where('status', 'approved')
+                                      ->get('reviews')
+                                      ->row_array();
+                if (!empty($rev_stats) && (int)$rev_stats['total_count'] > 0) {
+                    $item['rating'] = round((float)$rev_stats['avg_rating'], 1);
+                    $item['reviews_count'] = (int)$rev_stats['total_count'];
+                } else {
+                    $item['rating'] = (isset($p_info['rating']) && (float)$p_info['rating'] > 0) ? (float)$p_info['rating'] : 5.0;
+                    $item['reviews_count'] = isset($p_info['reviews_count']) ? (int)$p_info['reviews_count'] : 0;
+                }
             }
         }
 
@@ -773,6 +786,27 @@ class cart_model extends CI_Model {
                     }
                 }
             }
+            // Also preserve and save any items that were in guest session cart into cart_items DB
+            if (!empty($cart) && is_array($cart)) {
+                foreach ($cart as $ckey => $citem) {
+                    if (!isset($new_cart[$ckey])) {
+                        $pid = (int) $citem['id'];
+                        $vid = !empty($citem['variant_id']) ? (int) $citem['variant_id'] : 0;
+                        $qty = max(1, (int) $citem['quantity']);
+                        $this->db->insert('cart_items', [
+                            'tenant_id'  => $tid,
+                            'user_id'    => (int) $user_id,
+                            'product_id' => $pid,
+                            'variant_id' => $vid,
+                            'quantity'   => $qty,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                        $new_cart[$ckey] = $citem;
+                    }
+                }
+            }
+
             $cart = $new_cart;
             $this->set_session_cart($cart);
         }
@@ -929,6 +963,20 @@ class cart_model extends CI_Model {
                            ->get()
                            ->row_array();
 
+        $rev_stats = $this->db->select('COUNT(*) as total_count, AVG(rating) as avg_rating')
+                              ->where('tenant_id', $this->tid())
+                              ->where('product_id', (int)$product['id'])
+                              ->where('status', 'approved')
+                              ->get('reviews')
+                              ->row_array();
+        if (!empty($rev_stats) && (int)$rev_stats['total_count'] > 0) {
+            $prod_rating = round((float)$rev_stats['avg_rating'], 1);
+            $prod_reviews = (int)$rev_stats['total_count'];
+        } else {
+            $prod_rating = (isset($p_info['rating']) && (float)$p_info['rating'] > 0) ? (float)$p_info['rating'] : 5.0;
+            $prod_reviews = isset($p_info['reviews_count']) ? (int)$p_info['reviews_count'] : 0;
+        }
+
         return [
             'cart_key'           => $cart_key,
             'id'                 => (int) $product['id'],
@@ -950,6 +998,8 @@ class cart_model extends CI_Model {
             'total'              => (float) ($price * $target_qty),
             'stock_max'          => $available_stock,
             'is_cod_allowed'     => isset($p_info['is_cod_allowed']) ? (int) $p_info['is_cod_allowed'] : 1,
+            'rating'             => $prod_rating,
+            'reviews_count'      => $prod_reviews,
             'short_description'  => !empty($p_info['short_description']) ? $p_info['short_description'] : ''
         ];
     }

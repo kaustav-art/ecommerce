@@ -233,11 +233,14 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        }
    }
 
-   function grcAddToCart(productId, quantity) {
+   function grcAddToCart(productId, quantity, variantId) {
        quantity = quantity || 1;
        var fd = new FormData();
        fd.append('product_id', productId);
        fd.append('quantity', quantity);
+       if (variantId) {
+           fd.append('variant_id', variantId);
+       }
 
        fetch('<?= site_url("cart/add"); ?>', {
            method: 'POST',
@@ -246,18 +249,23 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        })
        .then(function(r) { return r.json(); })
        .then(function(res) {
-           if (res.success) {
+           if (res && res.success) {
                renderGrcCartDrawer(res);
                showGrcToast(res.message || 'Added to grocery bag!');
                openGrcCartDrawer();
            } else {
-               showGrcToast(res.message || 'Could not add item', true);
+               showGrcToast((res && res.message) ? res.message : 'Could not add item', true);
            }
        })
        .catch(function() {
            showGrcToast('Network error adding to bag', true);
        });
    }
+   window.grcAddToCart = grcAddToCart;
+   window.renderGrcCartDrawer = renderGrcCartDrawer;
+   window.openGrcCartDrawer = openGrcCartDrawer;
+   window.closeGrcCartDrawer = closeGrcCartDrawer;
+   window.showGrcToast = showGrcToast;
 
    function grcRemoveCartItem(cartKey) {
        var fd = new FormData();
@@ -322,33 +330,31 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        }, 1000);
    })();
 
-   // Propagate ?preview_tpl=grocery only in Template Demo Mode & normalize Grocery theme accents on Template 3
+   // Normalize Grocery theme accents on Template 3
    document.addEventListener('DOMContentLoaded', function() {
-       var siteBase = '<?= rtrim(base_url(), "/"); ?>';
-       var isUserProject = <?= !empty($is_user_project) ? 'true' : 'false'; ?>;
        var defaultGrcImg = '<?= $bazaro; ?>img/product/grocery-p-3.jpg';
+<?php if (empty($is_user_project)): ?>
+       var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+       document.querySelectorAll('a[href]').forEach(function(a) {
+           var href = a.getAttribute('href');
+           if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+           if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+               var hashIdx = href.indexOf('#');
+               var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
+               var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
+               var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
+               a.setAttribute('href', baseHref + sep + 'preview_tpl=grocery' + hashPart);
+           }
+       });
 
-       if (!isUserProject) {
-           document.querySelectorAll('a[href]').forEach(function(a) {
-               var href = a.getAttribute('href');
-               if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-               if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
-                   var hashIdx = href.indexOf('#');
-                   var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
-                   var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
-                   var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
-                   a.setAttribute('href', baseHref + sep + 'preview_tpl=grocery' + hashPart);
-               }
-           });
-
-           document.querySelectorAll('form[action]').forEach(function(f) {
-               var act = f.getAttribute('action');
-               if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
-                   var sep = act.indexOf('?') === -1 ? '?' : '&';
-                   f.setAttribute('action', act + sep + 'preview_tpl=grocery');
-               }
-           });
-       }
+       document.querySelectorAll('form[action]').forEach(function(f) {
+           var act = f.getAttribute('action');
+           if (act && act.indexOf(siteBase) === 0 && act.indexOf('preview_tpl=') === -1) {
+               var sep = act.indexOf('?') === -1 ? '?' : '&';
+               f.setAttribute('action', act + sep + 'preview_tpl=grocery');
+           }
+       });
+<?php endif; ?>
 
        // Convert any residual inline Flipkart-blue (#2874f0) or fashion fallback images on shared views to Grocery theme
        document.querySelectorAll('[style*="#2874f0"], [style*="rgb(40, 116, 240)"], [style*="#f0f5ff"], [style*="#e1ecff"]').forEach(function(el) {
