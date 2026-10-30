@@ -20,12 +20,13 @@
                         <!-- Right Actions (Login / User Account, Wishlist & Cart) -->
                         <div class="store-actions-col flex-shrink-0 d-flex align-items-center gap-3 gap-md-4 order-2 order-md-3">
                             
-                            <!-- User Account (Always shows After-Login Dropdown Menu in Template Mode) -->
+                            <!-- User Account / Login -->
                             <div class="store-nav-account position-relative">
-                                <?php
-                                    $u_first = $current_user['first_name'] ?? 'Alex';
-                                    $u_name  = trim(($current_user['first_name'] ?? 'Alex') . ' ' . ($current_user['last_name'] ?? 'Morgan'));
-                                    $u_email = $current_user['email'] ?? 'alex.morgan@example.com';
+                                <?php if (!empty($is_logged_in)):
+                                    $u_first = !empty($current_user['first_name']) ? $current_user['first_name'] : 'Account';
+                                    $u_name  = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                                    if ($u_name === '') $u_name = 'My Account';
+                                    $u_email = !empty($current_user['email']) ? $current_user['email'] : ($current_user['phone'] ?? '');
                                 ?>
                                 <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
                                     <i class="fa-regular fa-circle-user store-action-icon"></i>
@@ -44,9 +45,11 @@
                                             <div class="fw-bold text-dark text-truncate" style="font-size: 14px;" title="<?= html_escape($u_name); ?>">
                                                 <?= html_escape($u_name); ?>
                                             </div>
+                                            <?php if ($u_email !== ''): ?>
                                             <div class="text-muted small text-truncate" style="font-size: 11.5px;" title="<?= html_escape($u_email); ?>">
                                                 <?= html_escape($u_email); ?>
                                             </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="py-2">
@@ -55,12 +58,21 @@
                                         <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a>
                                         <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a>
                                         <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a>
+                                        <div class="dropdown-divider my-1"></div>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center text-danger fw-semibold" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>Logout</a>
                                     </div>
                                 </div>
+                                <?php else: ?>
+                                <a href="#exampleModalToggle" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="Sign In">
+                                    <i class="fa-regular fa-circle-user store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline">Sign In</span>
+                                </a>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Wishlist -->
                             <div class="store-nav-wishlist">
+                                <?php if (!empty($is_logged_in)): ?>
                                 <a href="<?= site_url('wishlist'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
                                     <i class="fa-regular fa-heart store-action-icon"></i>
                                     <span class="store-action-text d-none d-md-inline">Wishlist</span>
@@ -68,6 +80,12 @@
                                         <span class="store-cart-badge" id="wishlist-counter"><?= $wishlist_count; ?></span>
                                     <?php endif; ?>
                                 </a>
+                                <?php else: ?>
+                                <a href="#exampleModalToggle" data-bs-toggle="modal" data-redirect-to="<?= site_url('wishlist'); ?>" data-login-message="Please sign in to view your wishlist." class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
+                                    <i class="fa-regular fa-heart store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline">Wishlist</span>
+                                </a>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Cart -->
@@ -1009,13 +1027,19 @@
                     }
 
                     autoTimer = setTimeout(function() {
-                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query))
+                        var autoPreviewQs = <?= empty($is_user_project) ? "'&preview_tpl=fashion'" : "''"; ?>;
+                        var itemPreviewQs = <?= empty($is_user_project) ? "'?preview_tpl=fashion'" : "''"; ?>;
+                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs)
                             .then(function(res) { return res.json(); })
                             .then(function(data) {
                                 if (data.results && data.results.length > 0) {
                                     var html = '';
                                     data.results.forEach(function(item) {
-                                        html += '<a href="' + item.url + '" class="store-auto-item">';
+                                        var itemUrl = item.url || '';
+                                        if (itemPreviewQs && itemUrl.indexOf('preview_tpl=') === -1) {
+                                            itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=fashion';
+                                        }
+                                        html += '<a href="' + itemUrl + '" class="store-auto-item">';
                                         html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= base_url("assets/images/collections/collection-circle/cls-circle1.jpg"); ?>\'">';
                                         html += '  <div class="flex-grow-1 overflow-hidden">';
                                         html += '    <div class="store-auto-title">' + item.title + '</div>';
@@ -1024,7 +1048,7 @@
                                         html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                                         html += '</a>';
                                     });
-                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs + '" class="store-auto-viewall">';
                                     html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                                     html += '</a>';
 

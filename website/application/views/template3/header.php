@@ -472,6 +472,150 @@
       .grc-category-aisles-bar {
          background-color: #003D29 !important;
          border-top: 1px solid rgba(255, 255, 255, 0.08);
+         position: relative;
+         z-index: 1040;
+      }
+      .grc-category-aisles-bar .grc-categories-wrap {
+         gap: 4px;
+         flex-wrap: nowrap !important;
+      }
+      @media (max-width: 1399px) {
+         .grc-category-aisles-bar .grc-categories-wrap {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+         }
+      }
+      .grc-category-aisles-bar .grc-categories-item {
+         position: relative;
+      }
+      .grc-category-aisles-bar .grc-categories-item > a {
+         color: #EAFDE8 !important;
+         padding: 12px 14px !important;
+         display: inline-flex !important;
+         flex-direction: column;
+         align-items: center;
+         justify-content: center;
+         border-radius: 10px !important;
+         text-decoration: none !important;
+         transition: background-color 0.2s ease, transform 0.2s ease !important;
+      }
+      .grc-category-aisles-bar .grc-categories-item:hover > a,
+      .grc-category-aisles-bar .grc-categories-item > a.show {
+         background-color: #0F4936 !important;
+         color: #ffffff !important;
+      }
+      .grc-category-aisles-bar .grc-categories-item > a .grc-categories-icon {
+         margin-bottom: 8px !important;
+         height: 28px !important;
+         display: flex !important;
+         align-items: center;
+         justify-content: center;
+      }
+      .grc-category-aisles-bar .grc-categories-item > a .grc-categories-title {
+         display: inline-flex !important;
+         align-items: center;
+         gap: 5px;
+         font-weight: 500 !important;
+         font-size: 14px !important;
+         line-height: 1.2 !important;
+         color: #ffffff !important;
+         white-space: nowrap;
+         text-transform: capitalize;
+      }
+      .grc-category-aisles-bar .grc-more-cats-dropdown > a {
+         padding: 8px 10px !important;
+         border-radius: 50% !important;
+      }
+      .grc-category-aisles-bar .grc-more-cats-dropdown > a .grc-categories-icon {
+         margin-bottom: 0 !important;
+         width: 36px !important;
+         height: 36px !important;
+         border-radius: 50% !important;
+         background: rgba(255, 255, 255, 0.16) !important;
+         transition: background-color 0.2s ease, transform 0.2s ease !important;
+      }
+      .grc-category-aisles-bar .grc-more-cats-dropdown > a:hover .grc-categories-icon,
+      .grc-category-aisles-bar .grc-more-cats-dropdown > a.show .grc-categories-icon {
+         background: #108910 !important;
+      }
+      .grc-category-aisles-bar .dropdown-toggle.hide-arrow::after {
+         display: none !important;
+      }
+
+      /* More Categories Dropdown Menu (Click Only) */
+      .grc-category-aisles-bar .grc-more-cats-dropdown .dropdown-menu {
+         background: #ffffff !important;
+         border: 1px solid #d1fae5 !important;
+         border-top: 3px solid #108910 !important;
+         border-radius: 14px !important;
+         box-shadow: 0 18px 40px rgba(0, 61, 41, 0.22) !important;
+         padding: 8px !important;
+         min-width: 245px !important;
+         margin-top: 8px !important;
+         z-index: 1055 !important;
+         text-align: left !important;
+      }
+      .grc-category-aisles-bar .grc-more-cats-dropdown .dropdown-menu.show {
+         animation: grcDropdownFadeIn 0.18s ease-out;
+      }
+      @keyframes grcDropdownFadeIn {
+         from {
+            opacity: 0;
+            transform: translateY(6px);
+         }
+         to {
+            opacity: 1;
+            transform: translateY(0);
+         }
+      }
+      /* Prevent main.css (.grc-categories-item a) from bleeding into dropdown links */
+      .grc-category-aisles-bar .grc-more-cats-dropdown .dropdown-menu a.dropdown-item {
+         display: flex !important;
+         align-items: center !important;
+         gap: 11px !important;
+         padding: 8px 11px !important;
+         border-radius: 10px !important;
+         color: #1f2937 !important;
+         background-color: transparent !important;
+         font-size: 13.5px !important;
+         font-weight: 600 !important;
+         line-height: 1.3 !important;
+         text-decoration: none !important;
+         text-transform: capitalize;
+         white-space: nowrap;
+         transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease !important;
+      }
+      .grc-category-aisles-bar .grc-more-cats-dropdown .dropdown-menu a.dropdown-item:hover,
+      .grc-category-aisles-bar .grc-more-cats-dropdown .dropdown-menu a.dropdown-item:focus {
+         background-color: #ecfdf5 !important;
+         color: #003D29 !important;
+         transform: translateX(2px);
+      }
+      .grc-category-aisles-bar .grc-dd-icon-box {
+         width: 32px;
+         height: 32px;
+         border-radius: 8px;
+         background: #f0fdf4;
+         border: 1px solid #dcfce7;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         flex-shrink: 0;
+         transition: background-color 0.16s ease, border-color 0.16s ease;
+      }
+      .grc-category-aisles-bar a.dropdown-item:hover .grc-dd-icon-box {
+         background: #dcfce7;
+         border-color: #86efac;
+      }
+      .grc-category-aisles-bar .grc-dd-arrow {
+         margin-left: auto;
+         font-size: 11px;
+         color: #9ca3af;
+         transition: transform 0.16s ease, color 0.16s ease;
+      }
+      .grc-category-aisles-bar a.dropdown-item:hover .grc-dd-arrow {
+         color: #108910;
+         transform: translateX(3px);
       }
 
       /* Strictly 1 line product titles with ellipsis (...) on overflow across all product cards */
@@ -1058,12 +1202,33 @@
    </header>
 
    <!-- Department Category Bar (Dark Green) -->
-   <nav class="grc-category-aisles-bar grc-header-ptb pt-10 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
+   <nav class="grc-category-aisles-bar grc-header-ptb pt-10 pb-15" data-bg-color="#003D29" style="background-color:#003D29;">
       <div class="container container-1630">
-         <div class="grc-categories-wrap d-lg-flex d-none justify-content-between align-items-center flex-wrap">
+         <div class="grc-categories-wrap d-lg-flex d-none justify-content-between align-items-center">
             <?php
             $dept_icons = ['fa-apple-whole', 'fa-carrot', 'fa-cheese', 'fa-bread-slice', 'fa-mug-hot', 'fa-jar', 'fa-Seedling', 'fa-fish', 'fa-cookie-bite', 'fa-bottle-water', 'fa-bowl-rice', 'fa-egg'];
-            // Strictly parent categories only (no sub categories)
+            $dept_default_imgs = [
+               'grocery/broccoli.png',
+               'grocery/apple.png',
+               'grocery/eggs.png',
+               'grocery/bread.png',
+               'grocery/groceries.png',
+               'grocery/orange-juice.png',
+               'grocery/carrot.png',
+               'grocery/grocery.png',
+               'grocery/healthy-food.png',
+               'grocery/shopping-bag.png'
+            ];
+            if (!function_exists('grc_resolve_cat_img')) {
+               function grc_resolve_cat_img($cat_arr, $fallback_url) {
+                  $raw = !empty($cat_arr['image']) ? $cat_arr['image'] : (!empty($cat_arr['raw_image']) ? $cat_arr['raw_image'] : '');
+                  if (empty($raw)) return $fallback_url;
+                  if (strpos($raw, 'http://') === 0 || strpos($raw, 'https://') === 0) return $raw;
+                  if (strpos($raw, 'assets/') === 0) return base_url($raw);
+                  return base_url('assets/images/' . ltrim($raw, '/'));
+               }
+            }
+            // Strictly parent categories only (no sub categories at top level)
             $parent_nav_cats = array_values(array_filter($nav_categories ?? [], function($c) {
                return empty($c['parent_id']) || (int)$c['parent_id'] === 0;
             }));
@@ -1074,27 +1239,13 @@
             if (!empty($visible_cats)):
                foreach ($visible_cats as $c_i => $cat):
                   $ic = $dept_icons[$c_i % count($dept_icons)];
-                  $raw_cat_img = !empty($cat['image']) ? $cat['image'] : (!empty($cat['raw_image']) ? $cat['raw_image'] : '');
-                  $cat_img_url = '';
-                  if (!empty($raw_cat_img)) {
-                     if (strpos($raw_cat_img, 'http://') === 0 || strpos($raw_cat_img, 'https://') === 0) {
-                        $cat_img_url = $raw_cat_img;
-                     } elseif (strpos($raw_cat_img, 'assets/') === 0) {
-                        $cat_img_url = base_url($raw_cat_img);
-                     } else {
-                        $cat_img_url = base_url('assets/images/' . ltrim($raw_cat_img, '/'));
-                     }
-                  }
+                  $fallback_cat_img = base_url('assets/images/' . $dept_default_imgs[$c_i % count($dept_default_imgs)]);
+                  $cat_img_url = grc_resolve_cat_img($cat, $fallback_cat_img);
             ?>
             <div class="grc-categories-item text-center">
                <a href="<?= site_url('shop/' . $cat['slug']); ?>">
                   <div class="grc-categories-icon d-flex align-items-center justify-content-center">
-                     <?php if (!empty($cat_img_url)): ?>
-                        <img src="<?= html_escape($cat_img_url); ?>" alt="<?= html_escape($cat['name']); ?>" style="max-height: 28px; max-width: 28px; width: auto; height: auto; object-fit: contain;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
-                        <span style="display:none;"><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
-                     <?php else: ?>
-                        <span><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
-                     <?php endif; ?>
+                     <img src="<?= html_escape($cat_img_url); ?>" alt="<?= html_escape($cat['name']); ?>" style="max-height: 28px; max-width: 28px; width: auto; height: auto; object-fit: contain;" onerror="this.onerror=null;this.src='<?= html_escape($fallback_cat_img); ?>';">
                   </div>
                   <span class="grc-categories-title"><?= html_escape($cat['name']); ?></span>
                </a>
@@ -1104,37 +1255,25 @@
             endif;
             ?>
             <?php if (!empty($dropdown_cats)): ?>
-            <!-- Arrow Button with Dropdown for Rest of Categories (shown if more than 8 categories) -->
+            <!-- More Categories Dropdown (shown if more than 8 parent categories, opens on click only) -->
             <div class="grc-categories-item text-center dropdown grc-more-cats-dropdown position-relative">
-               <a href="javascript:void(0);" class="text-decoration-none dropdown-toggle hide-arrow d-flex flex-column align-items-center justify-content-center" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" role="button" title="More Categories">
-                  <div class="grc-categories-icon d-flex align-items-center justify-content-center mb-0" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.18);">
-                     <span><i class="fa-solid fa-angles-right text-white" style="font-size: 14px;"></i></span>
+               <a href="javascript:void(0);" class="text-decoration-none dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" role="button" title="More Categories">
+                  <div class="grc-categories-icon d-flex align-items-center justify-content-center">
+                     <i class="fa-solid fa-angles-right text-white" style="font-size: 13px;"></i>
                   </div>
                </a>
-               <ul class="dropdown-menu dropdown-menu-end shadow-lg py-2" style="min-width: 220px; border-radius: 8px; max-height: 350px; overflow-y: auto; background: #ffffff; border: 1px solid rgba(0,0,0,0.1); z-index: 1050;">
+               <ul class="dropdown-menu dropdown-menu-end" style="max-height: 380px; overflow-y: auto;">
                   <?php foreach ($dropdown_cats as $d_i => $dcat): 
-                     $d_ic = $dept_icons[(8 + $d_i) % count($dept_icons)];
-                     $raw_dcat_img = !empty($dcat['image']) ? $dcat['image'] : (!empty($dcat['raw_image']) ? $dcat['raw_image'] : '');
-                     $dcat_img_url = '';
-                     if (!empty($raw_dcat_img)) {
-                        if (strpos($raw_dcat_img, 'http://') === 0 || strpos($raw_dcat_img, 'https://') === 0) {
-                           $dcat_img_url = $raw_dcat_img;
-                        } elseif (strpos($raw_dcat_img, 'assets/') === 0) {
-                           $dcat_img_url = base_url($raw_dcat_img);
-                        } else {
-                           $dcat_img_url = base_url('assets/images/' . ltrim($raw_dcat_img, '/'));
-                        }
-                     }
+                     $fallback_dcat_img = base_url('assets/images/' . $dept_default_imgs[(8 + $d_i) % count($dept_default_imgs)]);
+                     $dcat_img_url = grc_resolve_cat_img($dcat, $fallback_dcat_img);
                   ?>
                   <li>
-                     <a class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 fw-semibold text-dark" href="<?= site_url('shop/' . $dcat['slug']); ?>">
-                        <?php if (!empty($dcat_img_url)): ?>
-                           <img src="<?= html_escape($dcat_img_url); ?>" alt="<?= html_escape($dcat['name']); ?>" style="width: 22px; height: 22px; object-fit: contain;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
-                           <i class="fa-solid <?= $d_ic; ?> text-success" style="width: 18px; display: none;"></i>
-                        <?php else: ?>
-                           <i class="fa-solid <?= $d_ic; ?> text-success" style="width: 18px;"></i>
-                        <?php endif; ?>
+                     <a class="dropdown-item" href="<?= site_url('shop/' . $dcat['slug']); ?>">
+                        <span class="grc-dd-icon-box">
+                           <img src="<?= html_escape($dcat_img_url); ?>" alt="<?= html_escape($dcat['name']); ?>" style="width: 20px; height: 20px; object-fit: contain;" onerror="this.onerror=null;this.src='<?= html_escape($fallback_dcat_img); ?>';">
+                        </span>
                         <span><?= html_escape($dcat['name']); ?></span>
+                        <i class="fa-solid fa-chevron-right grc-dd-arrow"></i>
                      </a>
                   </li>
                   <?php endforeach; ?>

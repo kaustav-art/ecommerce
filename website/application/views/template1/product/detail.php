@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 // Collect all images (main image first, followed by gallery images)
@@ -81,7 +81,7 @@ $color_map = [];
 $initial_color = '';
 $initial_size = '';
 $initial_variant_id = 0;
-$initial_sku = $product['sku'];
+$initial_sku = $product['sku'] ?? ('SKU-' . ($product['id'] ?? '100'));
 
 if ($has_color && !empty($product['attributes']['color']['values'])) {
     foreach ($product['attributes']['color']['values'] as $idx => $c_val) {
@@ -805,7 +805,7 @@ if (!empty($initial_variant)) {
         color: #e53935 !important;
     }
 
-    /* Bottom-Left Floating Rating Badge (4 â˜… | 683 in product_deatils_mobile.jpeg) */
+    /* Bottom-Left Floating Rating Badge (4 ★ | 683 in product_deatils_mobile.jpeg) */
     .mobile-gallery-rating-badge {
         position: absolute !important;
         bottom: 14px !important;
@@ -1180,9 +1180,9 @@ if (!empty($initial_variant)) {
                         <i class="icon icon-arrRight"></i>
                         <a href="<?= site_url('shop'); ?>" class="text text-caption-1">Shop</a>
                         <i class="icon icon-arrRight"></i>
-                        <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text text-caption-1"><?= html_escape($product['category_name']); ?></a>
+                        <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text text-caption-1"><?= html_escape($product['category_name'] ?? 'Shop'); ?></a>
                         <i class="icon icon-arrRight"></i>
-                        <span class="text text-caption-1"><?= html_escape($product['title']); ?></span>
+                        <span class="text text-caption-1"><?= html_escape($product['title'] ?? ''); ?></span>
                     </div>
                     <div class="tf-breadcrumb-prev-next">
                         <a href="<?= site_url('shop'); ?>" class="tf-breadcrumb-back" title="Back to shop">
@@ -1383,7 +1383,7 @@ if (!empty($initial_variant)) {
                                                         <?php endif; ?>
                                                     <?php endif; ?>
                                                     <?php if (!empty($product['category_name'])): ?>
-                                                        <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                                        <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>
@@ -1417,13 +1417,13 @@ if (!empty($initial_variant)) {
                                                     <div class="tf-product-info-rate d-flex align-items-center gap-1">
                                                         <div class="list-star text-muted" style="font-size: 13px;">
                                                             <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                                <i class="fa-regular fa-star text-secondary" style="opacity: 0.35;"></i>
+                                                                <i class="fa-regular fa-star text-secondary" style="opacity: 0.45;"></i>
                                                             <?php endfor; ?>
                                                         </div>
-                                                        <div class="text text-caption-1 text-secondary ms-1">(No reviews yet)</div>
+                                                        <div class="text text-caption-1 text-secondary ms-1">(0)</div>
                                                     </div>
                                                     <span class="text-secondary">|</span>
-                                                    <a href="#tab-customer-reviews" class="text-primary small text-decoration-none fw-semibold" onclick="activateReviewTab()">Write a review</a>
+                                                    <a href="#tab-customer-reviews" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">See reviews</a>
                                                 <?php endif; ?>
                                             </div>
 
@@ -1697,7 +1697,7 @@ if (!empty($initial_variant)) {
                                             </li>
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Category:</p>
-                                                <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name']); ?></a></p>
+                                                <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name'] ?? 'Shop'); ?></a></p>
                                             </li>
                                         </ul>
 
@@ -1857,7 +1857,7 @@ if (!empty($initial_variant)) {
                                                     </svg>
                                                 </div>
                                             </div>
-                                            <div class="text-caption-2">MACHINE WASHING MAX 30Â°C / 85ÂºF SHORT SPIN DRY</div>
+                                            <div class="text-caption-2">MACHINE WASHING MAX 30°C / 85ºF SHORT SPIN DRY</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1898,108 +1898,100 @@ if (!empty($initial_variant)) {
                                                     <?php endfor; ?>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div class="btn-style-4 text-btn-uppercase letter-1 btn-comment-review btn-cancel-review">Cancel Review</div>
-                                                <div class="btn-style-4 text-btn-uppercase letter-1 btn-comment-review btn-write-review">Write a review</div>
-                                            </div>
                                         </div>
                                         <div class="reply-comment style-1 cancel-review-wrap">
                                             <div class="mb_24">
                                                 <h4 class=""><?= sprintf('%02d', $total_review_count); ?> <?= ($total_review_count == 1) ? 'Review' : 'Reviews'; ?></h4>
                                             </div>
                                             <div class="reply-comment-wrap">
-                                                <?php if (!empty($product['reviews'])): ?>
-                                                    <?php foreach ($product['reviews'] as $rev): ?>
+                                                <?php if (!empty($product['reviews'])):
+                                                    $latest_reviews = array_slice($product['reviews'], 0, 5);
+                                                ?>
+                                                    <?php foreach ($latest_reviews as $rev):
+                                                        $raw_r_avatar = trim((string)($rev['user_avatar'] ?? ($rev['avatar'] ?? '')));
+                                                        $has_r_avatar = ($raw_r_avatar !== '' && !in_array(strtolower($raw_r_avatar), ['default-user.png', 'user-default.jpg', 'default.png'], true));
+                                                        $r_avatar_url = '';
+                                                        if ($has_r_avatar) {
+                                                            $clean_r_av = ltrim($raw_r_avatar, '/');
+                                                            if (strpos($clean_r_av, 'assets/images/') === 0) {
+                                                                $clean_r_av = substr($clean_r_av, strlen('assets/images/'));
+                                                            }
+                                                            $r_avatar_url = (strpos($clean_r_av, 'http://') === 0 || strpos($clean_r_av, 'https://') === 0)
+                                                                ? $clean_r_av
+                                                                : base_url('assets/images/' . $clean_r_av);
+                                                        }
+                                                    ?>
                                                         <div class="reply-comment-item">
-                                                            <div class="user">
-                                                                <div class="image">
-                                                                    <img src="<?= base_url('assets/images/avatar/user-default.jpg'); ?>" alt="<?= html_escape($rev['customer_name']); ?>">
+                                                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                                                <div class="user d-flex align-items-center gap-2">
+                                                                    <?php if ($has_r_avatar): ?>
+                                                                        <img src="<?= $r_avatar_url; ?>" alt="<?= html_escape($rev['customer_name']); ?>" class="rounded-circle shadow-sm border" style="width: 30px; height: 30px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                                                        <div class="rounded-circle align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0; display: none;">
+                                                                            <i class="fa-solid fa-user"></i>
+                                                                        </div>
+                                                                    <?php else: ?>
+                                                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0;">
+                                                                            <i class="fa-solid fa-user"></i>
+                                                                        </div>
+                                                                    <?php endif; ?>
+                                                                    <div>
+                                                                        <h6 class="mb-0">
+                                                                            <a href="javascript:void(0);" class="link"><?= html_escape($rev['customer_name']); ?></a>
+                                                                        </h6>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <h6>
-                                                                        <a href="javascript:void(0);" class="link"><?= html_escape($rev['customer_name']); ?></a>
-                                                                    </h6>
-                                                                    <div class="day text-secondary-2 text-caption-1"><?= date('j M, Y', strtotime($rev['created_at'])); ?></div>
-                                                                </div>
+                                                                <div class="day text-secondary-2 text-caption-1 ms-auto text-nowrap"><?= date('j M, Y', strtotime($rev['created_at'])); ?></div>
                                                             </div>
                                                             <!-- Rating stars and title -->
-                                                            <div class="d-flex align-items-center gap-2 my-2">
-                                                                <div class="list-star" style="color: #ff9f00; font-size: 13px;">
+                                                            <div class="d-flex align-items-center gap-1 flex-wrap my-2">
+                                                                <div class="list-star d-inline-flex align-items-center gap-1" style="color: #ff9f00; font-size: 13px;">
                                                                     <?php for ($s = 1; $s <= 5; $s++): ?>
                                                                         <i class="<?= ($rev['rating'] >= $s) ? 'fa-solid' : 'fa-regular'; ?> fa-star"></i>
                                                                     <?php endfor; ?>
+                                                                    <span class="fw-bold text-dark ms-1" style="font-size: 13.5px;"><?= number_format((float)$rev['rating'], 1); ?></span>
                                                                 </div>
                                                                 <?php if (!empty($rev['title'])): ?>
+                                                                    <span class="text-muted mx-1" style="font-size: 14px; line-height: 1;">&bull;</span>
                                                                     <strong class="text-dark small"><?= html_escape($rev['title']); ?></strong>
                                                                 <?php endif; ?>
                                                             </div>
                                                             <p class="text-secondary"><?= nl2br(html_escape($rev['review'])); ?></p>
                                                             <?php 
                                                             if (!empty($rev['images'])):
-                                                                $r_images = json_decode($rev['images'], true) ?: [];
+                                                                $r_images = is_array($rev['images']) ? $rev['images'] : (json_decode($rev['images'], true) ?: []);
                                                                 if (!empty($r_images)):
                                                             ?>
                                                                 <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
-                                                                    <?php foreach ($r_images as $img_rel): ?>
-                                                                        <a href="<?= base_url('website/assets/images/' . $img_rel); ?>" target="_blank">
-                                                                            <img src="<?= base_url('website/assets/images/' . $img_rel); ?>" class="border rounded" style="width: 60px; height: 60px; object-fit: cover;" onerror="this.src='<?= base_url('assets/images/' . $img_rel); ?>'">
+                                                                    <?php foreach ($r_images as $img_rel):
+                                                                        $clean_rel = ltrim(trim((string)$img_rel), '/');
+                                                                        if (strpos($clean_rel, 'assets/images/') === 0) {
+                                                                            $clean_rel = substr($clean_rel, strlen('assets/images/'));
+                                                                        }
+                                                                        $img_full_url = base_url('assets/images/' . $clean_rel);
+                                                                        $img_fallback = base_url('website/assets/images/' . $clean_rel);
+                                                                    ?>
+                                                                        <a href="<?= $img_full_url; ?>" target="_blank">
+                                                                            <img src="<?= $img_full_url; ?>" class="border rounded" style="width: 120px; height: 120px; object-fit: cover;" onerror="this.onerror=null;this.src='<?= $img_fallback; ?>'">
                                                                         </a>
                                                                     <?php endforeach; ?>
                                                                 </div>
                                                             <?php endif; endif; ?>
                                                         </div>
                                                     <?php endforeach; ?>
+                                                    <?php if (count($product['reviews']) > 5): ?>
+                                                        <div class="mt-3 pt-2">
+                                                            <a href="<?= site_url('product/reviews/' . $product['slug']); ?>" class="btn btn-outline-dark fw-semibold px-4 py-2 rounded-1" style="font-size: 14px;">
+                                                                Show All Reviews (<?= number_format(count($product['reviews'])); ?>) <i class="fa-solid fa-arrow-right ms-1"></i>
+                                                            </a>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 <?php else: ?>
                                                     <div class="text-center py-4 text-secondary">
-                                                        <p class="mb-0">No reviews yet. Be the first to write a review for this product!</p>
+                                                        <p class="mb-0">No customer reviews yet for this product.</p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
-                                        </div>  
-                                        <form class="form-write-review write-review-wrap" action="<?= site_url('product/review'); ?>" method="POST">
-                                            <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-                                            <input type="hidden" name="product_slug" value="<?= $product['slug']; ?>">
-                                            <div class="heading">
-                                                <h4>Write a review:</h4>
-                                                <div class="list-rating-check">
-                                                    <input type="radio" id="star5" name="rating" value="5" checked>
-                                                    <label for="star5" title="text"></label>
-                                                    <input type="radio" id="star4" name="rating" value="4">
-                                                    <label for="star4" title="text"></label>
-                                                    <input type="radio" id="star3" name="rating" value="3">
-                                                    <label for="star3" title="text"></label>
-                                                    <input type="radio" id="star2" name="rating" value="2">
-                                                    <label for="star2" title="text"></label>
-                                                    <input type="radio" id="star1" name="rating" value="1">
-                                                    <label for="star1" title="text"></label>
-                                                </div>
-                                            </div>
-                                            <div class="mb_32">
-                                                <div class="mb_8">Review Title</div>
-                                                <fieldset class="mb_20">
-                                                    <input class="" type="text" placeholder="Give your review a title" name="title" tabindex="2" value="" aria-required="true">
-                                                </fieldset>
-                                                <div class="mb_8">Review</div>
-                                                <fieldset class="d-flex mb_20">
-                                                    <textarea class="" rows="4" placeholder="Write your comment here" name="review" tabindex="2" aria-required="true" required=""></textarea>
-                                                </fieldset>
-                                                <div class="cols mb_20">
-                                                    <fieldset class="">
-                                                        <input class="" type="text" placeholder="You Name (Public)" name="name" tabindex="2" value="<?= html_escape($current_user['name'] ?? ''); ?>" aria-required="true" required="">
-                                                    </fieldset>
-                                                    <fieldset class="">
-                                                        <input class="" type="email" placeholder="Your email (private)" name="email" tabindex="2" value="<?= html_escape($current_user['email'] ?? ''); ?>" aria-required="true" required="">
-                                                    </fieldset>
-                                                </div>
-                                                <div class="d-flex align-items-center check-save">
-                                                    <input type="checkbox" name="availability" class="tf-check" id="check1" checked>
-                                                    <label class="text-secondary text-caption-1" for="check1">Save my name, email, and website in this browser for the next time I comment.</label>
-                                                </div>
-                                            </div>
-                                            <div class="button-submit">
-                                                <button class="text-btn-uppercase" type="submit">Submit Reviews</button>
-                                            </div>
-                                        </form>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="widget-content-inner">
@@ -2011,7 +2003,7 @@ if (!empty($initial_variant)) {
                                         </div>
                                         <div class="w-100">
                                             <div class="text-btn-uppercase mb_12">Import duties information</div>
-                                            <p>Let us handle the legwork. Delivery duties are included in the item price when shipping to all EU countries (excluding the Canary Islands), plus The United Kingdom, USA, Canada, China Mainland, Australia, New Zealand, Puerto Rico, Switzerland, Singapore, Republic Of Korea, Kuwait, Mexico, Qatar, India, Norway, Saudi Arabia, Taiwan Region, Thailand, U.A.E., Japan, Brazil, Isle of Man, San Marino, Colombia, Chile, Argentina, Egypt, Lebanon, Hong Kong SAR, Bahrain and Turkey. All import duties are included in your order â€“ the price you see is the price you pay.</p>
+                                            <p>Let us handle the legwork. Delivery duties are included in the item price when shipping to all EU countries (excluding the Canary Islands), plus The United Kingdom, USA, Canada, China Mainland, Australia, New Zealand, Puerto Rico, Switzerland, Singapore, Republic Of Korea, Kuwait, Mexico, Qatar, India, Norway, Saudi Arabia, Taiwan Region, Thailand, U.A.E., Japan, Brazil, Isle of Man, San Marino, Colombia, Chile, Argentina, Egypt, Lebanon, Hong Kong SAR, Bahrain and Turkey. All import duties are included in your order – the price you see is the price you pay.</p>
                                         </div>
                                         <div class="w-100">
                                             <div class="text-btn-uppercase mb_12">Estimated delivery</div>
@@ -2059,72 +2051,6 @@ if (!empty($initial_variant)) {
         </section>
         <!-- /Product_Description_Tabs -->
 
-        <!-- FREQUENTLY BOUGHT TOGETHER -->
-        <?php if (!empty($frequently_bought_together)): ?>
-            <section class="py-5 border-top">
-                <div class="container">
-                    <h4 class="fw-bold mb-4">Frequently Bought Together</h4>
-                    <div class="row align-items-center g-4">
-                        <div class="col-lg-8">
-                            <div class="d-flex align-items-center gap-3 flex-wrap">
-                                <!-- Main Item -->
-                                <div class="card border rounded p-2 text-center" style="width: 140px;">
-                                    <img src="<?= base_url('assets/images/' . $all_images[0]); ?>" class="card-img-top rounded mb-2" style="height: 120px; object-fit: cover;" alt="<?= html_escape($product['title']); ?>">
-                                    <div class="small fw-bold text-truncate"><?= html_escape($product['title']); ?></div>
-                                    <div class="small text-danger fw-bold"><?= $currency_symbol . number_format($current_price, 2); ?></div>
-                                </div>
-
-                                <?php foreach ($frequently_bought_together as $idx => $fbt): 
-                                    $fbt_price = !empty($fbt['sale_price']) ? (float) $fbt['sale_price'] : (float) $fbt['price'];
-                                ?>
-                                    <div class="fs-4 text-muted fw-bold">+</div>
-                                    <div class="card border rounded p-2 text-center" style="width: 140px;">
-                                        <a href="<?= site_url('product/' . $fbt['slug']); ?>">
-                                            <img src="<?= base_url('assets/images/' . $fbt['main_image']); ?>" class="card-img-top rounded mb-2" style="height: 120px; object-fit: cover;" alt="<?= html_escape($fbt['title']); ?>" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                        </a>
-                                        <div class="small fw-bold text-truncate"><?= html_escape($fbt['title']); ?></div>
-                                        <div class="small text-danger fw-bold"><?= $currency_symbol . number_format($fbt_price, 2); ?></div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                            <div class="mt-3">
-                                <div class="form-check mb-1">
-                                    <input class="form-check-input" type="checkbox" checked disabled id="fbt-main-check">
-                                    <label class="form-check-label small" for="fbt-main-check">
-                                        <strong>This item:</strong> <?= html_escape($product['title']); ?> (<?= $currency_symbol . number_format($current_price, 2); ?>)
-                                    </label>
-                                </div>
-                                <?php 
-                                $bundle_sum = $current_price;
-                                foreach ($frequently_bought_together as $idx => $fbt): 
-                                    $f_price = !empty($fbt['sale_price']) ? (float) $fbt['sale_price'] : (float) $fbt['price'];
-                                    $bundle_sum += $f_price;
-                                ?>
-                                    <div class="form-check mb-1">
-                                        <input class="form-check-input fbt-checkbox" type="checkbox" checked id="fbt-item-<?= $fbt['id']; ?>" data-id="<?= $fbt['id']; ?>" data-price="<?= $f_price; ?>" onchange="updateBundleTotal()">
-                                        <label class="form-check-label small" for="fbt-item-<?= $fbt['id']; ?>">
-                                            <?= html_escape($fbt['title']); ?> (<?= $currency_symbol . number_format($f_price, 2); ?>)
-                                        </label>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4">
-                            <div class="card p-4 border bg-light text-center">
-                                <div class="text-secondary small mb-1">Total price for selected items:</div>
-                                <div class="fs-2 fw-bold text-primary mb-3" id="bundle-total-price"><?= $currency_symbol . number_format($bundle_sum, 2); ?></div>
-                                <button type="button" class="btn btn-primary fw-bold py-2 w-100" onclick="addBundleToCart()">
-                                    <i class="fa-solid fa-cart-plus me-1"></i> Add Selected to Cart
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
-
         <!-- RELATED PRODUCTS & RECENTLY VIEWED TABS -->
         <?php if (!empty($related_products) || !empty($recently_viewed_products)): ?>
             <section class="flat-spacing border-top">
@@ -2150,7 +2076,7 @@ if (!empty($initial_variant)) {
                                         <div class="swiper-wrapper">
                                             <?php foreach ($related_products as $rp): ?>
                                                 <div class="swiper-slide">
-                                                    <?php $this->load->view('template1/home/_product_card', ['p' => $rp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
+                                                    <?php $this->load->view('home/_product_card', ['p' => $rp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -2173,7 +2099,7 @@ if (!empty($initial_variant)) {
                                         <div class="swiper-wrapper">
                                             <?php foreach ($recently_viewed_products as $rvp): ?>
                                                 <div class="swiper-slide">
-                                                    <?php $this->load->view('template1/home/_product_card', ['p' => $rvp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
+                                                    <?php $this->load->view('home/_product_card', ['p' => $rvp, 'currency_symbol' => $currency_symbol ?? '$']); ?>
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -3465,4 +3391,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-

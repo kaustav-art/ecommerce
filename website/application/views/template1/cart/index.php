@@ -15,24 +15,49 @@
         <!-- Flash messages -->
         <?php if ($this->session->flashdata('success')): ?>
             <div class="container mt-3" style="max-width: 1240px;">
-                <div class="alert alert-success alert-dismissible fade show rounded-2 py-2" role="alert">
-                    <i class="fa-solid fa-circle-check me-2"></i><?= $this->session->flashdata('success'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="alert alert-success alert-dismissible fade show rounded-2 py-2 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-circle-check me-2 fs-5 text-success"></i>
+                        <span><?= $this->session->flashdata('success'); ?></span>
+                    </div>
+                    <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         <?php endif; ?>
 
         <?php if ($this->session->flashdata('error')): ?>
             <div class="container mt-3" style="max-width: 1240px;">
-                <div class="alert alert-danger alert-dismissible fade show rounded-2 py-2" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i><?= $this->session->flashdata('error'); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="alert alert-danger alert-dismissible fade show rounded-2 py-2 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-triangle-exclamation me-2 fs-5 text-danger"></i>
+                        <span><?= $this->session->flashdata('error'); ?></span>
+                    </div>
+                    <button type="button" class="btn-close-alert" onclick="this.closest('.alert').remove();" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         <?php endif; ?>
 
         <style>
         /* Cart Page Styles */
+        .btn-close-alert {
+            background: transparent !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            margin: 0 !important;
+            color: inherit !important;
+            opacity: 0.6 !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            transition: opacity 0.2s ease !important;
+        }
+        .btn-close-alert:hover {
+            opacity: 1 !important;
+        }
         .cart-page-wrapper {
             background-color: #f1f3f6;
             min-height: 80vh;
@@ -177,18 +202,18 @@
             color: #111827 !important;
         }
 
-        /* Yellow Proceed to Buy Button */
+        /* Proceed to Buy Button - Theme Color with Simple Hover Effect */
         .btn-proceed-buy {
-            background: linear-gradient(180deg, #ffd814 0%, #ffc200 100%) !important;
-            background-color: #ffc200 !important;
-            border: 1px solid #e2aa00 !important;
+            background: #108910 !important;
+            background-color: #108910 !important;
+            border: 1px solid #108910 !important;
             border-radius: 10px !important;
-            color: #0f1111 !important;
+            color: #ffffff !important;
             font-weight: 700 !important;
             font-size: 15px !important;
             padding: 12px 24px !important;
-            box-shadow: 0 2px 6px rgba(255, 194, 0, 0.35) !important;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: 0 4px 14px rgba(16, 137, 16, 0.2) !important;
+            transition: background-color 0.2s ease, border-color 0.2s ease !important;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -198,18 +223,10 @@
         }
         .btn-proceed-buy:hover,
         .btn-proceed-buy:focus {
-            background: linear-gradient(180deg, #f7ca00 0%, #f0b800 100%) !important;
-            background-color: #f0b800 !important;
-            border-color: #cca000 !important;
-            color: #000000 !important;
-            box-shadow: 0 6px 18px rgba(240, 184, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
-            transform: translateY(-2px);
-        }
-        .btn-proceed-buy:active {
-            background: #e6ad00 !important;
-            border-color: #b89000 !important;
-            transform: translateY(0) scale(0.98);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+            background: #003D29 !important;
+            background-color: #003D29 !important;
+            border-color: #003D29 !important;
+            color: #ffffff !important;
         }
 
         @media (max-width: 767px) {
@@ -268,18 +285,18 @@
                             <h5 class="fw-bold text-dark mb-2" style="font-size: 18px; letter-spacing: -0.2px;">Delivering to</h5>
                             <div class="cart-address-card p-3 p-sm-4 bg-white border shadow-sm" style="background-color: #ffffff !important; border-radius: 16px; border-color: #e5e7eb !important;">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                    <div class="d-flex align-items-center gap-2 min-w-0" id="cart-address-header-box" style="cursor: pointer;" onclick="handleAddressAction()">
                                         <i class="fa-solid fa-house text-dark flex-shrink-0" style="font-size: 16px;"></i>
                                         <strong class="fw-bold text-dark text-truncate" id="display-address-name" style="font-size: 17px;">
                                             <?= html_escape($disp_name ?: (!empty($is_logged_in) ? 'Select Address' : 'Sign In to Select Address')); ?>
                                         </strong>
                                         <span class="badge bg-light text-secondary border text-uppercase d-none" id="display-address-tag"><?= html_escape($disp_tag); ?></span>
                                     </div>
-                                    <button type="button" class="btn btn-link p-0 text-decoration-none fw-bold flex-shrink-0 ms-2" style="color: #1a73e8; font-size: 16px;" onclick="openAddressModal()">
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none fw-bold flex-shrink-0 ms-2" id="btn-address-action" style="color: #1a73e8; font-size: 16px; cursor: pointer;" onclick="handleAddressAction(); event.stopPropagation();">
                                         <?= !empty($is_logged_in) ? 'Change' : 'Sign In'; ?>
                                     </button>
                                 </div>
-                                <div class="text-dark mb-2" style="font-size: 14px; line-height: 1.45; color: #212529 !important;" id="display-address-full">
+                                <div class="text-dark mb-2" style="font-size: 14px; line-height: 1.45; color: #212529 !important; <?= empty($is_logged_in) ? 'cursor: pointer;' : ''; ?>" id="display-address-full" <?= empty($is_logged_in) ? 'onclick="handleAddressAction()"' : ''; ?>>
                                     <?= !empty($is_logged_in) ? html_escape($disp_addr ?: 'Choose or add your shipping address') : 'Please sign in or register to set your delivery address'; ?><?= (!empty($disp_pin) && !empty($is_logged_in)) ? ', ' . html_escape($disp_pin) : ''; ?>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 text-dark" style="font-size: 14px; color: #212529 !important; <?= empty($disp_phone) ? 'display: none !important;' : ''; ?>" id="display-address-phone-wrap">
@@ -606,6 +623,92 @@
         <script>
         var CURRENCY = '<?= $currency_symbol; ?>';
 
+        window.onCartLoginSuccess = function(data) {
+            window.IS_USER_LOGGED_IN = true;
+
+            var btnAction = document.getElementById('btn-address-action');
+            if (!btnAction) {
+                btnAction = document.querySelector('.cart-address-card button');
+            }
+            if (btnAction) {
+                btnAction.textContent = 'Change';
+                btnAction.onclick = function(e) {
+                    if (e) e.stopPropagation();
+                    openAddressModal();
+                };
+            }
+
+            var headerBox = document.getElementById('cart-address-header-box');
+            if (headerBox) {
+                headerBox.onclick = function() { openAddressModal(); };
+            }
+            var fullBox = document.getElementById('display-address-full');
+            if (fullBox) {
+                fullBox.onclick = function() { openAddressModal(); };
+            }
+
+            var hasAddr = data && data.has_address && data.default_address;
+
+            if (hasAddr) {
+                if (typeof window.updateDeliveryAddressUI === 'function') {
+                    window.updateDeliveryAddressUI(data.default_address);
+                }
+                if (typeof window.refreshAddressList === 'function') {
+                    window.refreshAddressList();
+                }
+            } else {
+                var dispName = document.getElementById('display-address-name');
+                if (dispName) dispName.textContent = 'Select Address';
+                if (fullBox) fullBox.textContent = 'Please choose or add your delivery address';
+                var phoneWrap = document.getElementById('display-address-phone-wrap');
+                if (phoneWrap) phoneWrap.style.setProperty('display', 'none', 'important');
+
+                if (typeof window.refreshAddressList === 'function') {
+                    window.refreshAddressList();
+                }
+
+                setTimeout(function() {
+                    if (typeof window.openAddressModal === 'function') {
+                        window.openAddressModal();
+                        if (typeof window.toggleNewAddressForm === 'function') {
+                            window.toggleNewAddressForm(true);
+                        }
+                    }
+                }, 200);
+            }
+        };
+
+        function handleAddressAction() {
+            if (!window.IS_USER_LOGGED_IN) {
+                if (typeof window.openLoginModal === 'function') {
+                    window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in or register to select your delivery address.');
+                } else {
+                    window.location.href = '<?= site_url("auth/login?redirect=" . urlencode("cart")); ?>';
+                }
+                return;
+            }
+            openAddressModal();
+        }
+        window.handleAddressAction = handleAddressAction;
+
+        function openAddressModal() {
+            if (!window.IS_USER_LOGGED_IN) {
+                handleAddressAction();
+                return;
+            }
+            var modalEl = document.getElementById('addressModal');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else if (typeof $ !== 'undefined') {
+                    $('#addressModal').modal('show');
+                }
+            } else {
+                window.location.href = '<?= site_url("account/addresses"); ?>';
+            }
+        }
+        window.openAddressModal = openAddressModal;
+
         function showCartToast(message, type) {
             type = type || 'warning';
             var existingToast = document.getElementById('cart-toast-notice');
@@ -618,13 +721,15 @@
             toast.className = 'position-fixed bottom-0 end-0 p-3';
             toast.style.zIndex = '99999';
             toast.innerHTML = 
-                '<div class="toast show align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert">' +
-                    '<div class="d-flex">' +
-                        '<div class="toast-body d-flex align-items-center gap-2">' +
-                            '<i class="fa-solid ' + icon + ' fs-5 text-warning"></i>' +
+                '<div class="toast show ' + bgClass + ' border-0 shadow-lg rounded-3" role="alert" style="max-width: 400px;">' +
+                    '<div class="d-flex align-items-center justify-content-between py-2 ps-3 pe-2 gap-2">' +
+                        '<div class="toast-body d-flex align-items-center gap-2 p-0 flex-grow-1" style="font-size: 13.5px; line-height: 1.45;">' +
+                            '<i class="fa-solid ' + icon + ' fs-5 text-warning flex-shrink-0"></i>' +
                             '<span>' + message + '</span>' +
                         '</div>' +
-                        '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest(\'#cart-toast-notice\').remove()"></button>' +
+                        '<button type="button" class="fk-toast-close-btn" aria-label="Close" onclick="this.closest(\'#cart-toast-notice\').remove()" style="position: static !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; border-radius: 6px !important; background: transparent !important; color: inherit !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; opacity: 0.85 !important; cursor: pointer !important; box-shadow: none !important; transform: none !important;">' +
+                            '<i class="fa-solid fa-xmark" style="font-size: 15px; line-height: 1;"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(toast);

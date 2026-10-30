@@ -1009,13 +1009,19 @@
                     }
 
                     autoTimer = setTimeout(function() {
-                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query))
+                        var autoPreviewQs = <?= empty($is_user_project) ? "'&preview_tpl=fashion'" : "''"; ?>;
+                        var itemPreviewQs = <?= empty($is_user_project) ? "'?preview_tpl=fashion'" : "''"; ?>;
+                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs)
                             .then(function(res) { return res.json(); })
                             .then(function(data) {
                                 if (data.results && data.results.length > 0) {
                                     var html = '';
                                     data.results.forEach(function(item) {
-                                        html += '<a href="' + item.url + '" class="store-auto-item">';
+                                        var itemUrl = item.url || '';
+                                        if (itemPreviewQs && itemUrl.indexOf('preview_tpl=') === -1) {
+                                            itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=fashion';
+                                        }
+                                        html += '<a href="' + itemUrl + '" class="store-auto-item">';
                                         html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= base_url("assets/images/collections/collection-circle/cls-circle1.jpg"); ?>\'">';
                                         html += '  <div class="flex-grow-1 overflow-hidden">';
                                         html += '    <div class="store-auto-title">' + item.title + '</div>';
@@ -1024,7 +1030,7 @@
                                         html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                                         html += '</a>';
                                     });
-                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs + '" class="store-auto-viewall">';
                                     html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                                     html += '</a>';
 

@@ -217,7 +217,7 @@
                                 <div class="cart-address-card p-3 p-sm-4 bg-white border shadow-sm tf-delivery-address-card" id="step-card-address" style="background-color: #ffffff !important; border-radius: 16px; border-color: #e5e7eb !important;">
                                     <div id="address-box-selected">
                                         <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                            <div class="d-flex align-items-center gap-2 min-w-0" <?= empty($this->is_logged_in()) ? 'style="cursor: pointer;" onclick="openAddressModal()"' : ''; ?>>
                                                 <i class="fa-solid fa-house text-dark flex-shrink-0" style="font-size: 16px;"></i>
                                                 <strong class="fw-bold text-dark text-truncate" id="display-address-name" style="font-size: 17px;">
                                                     <?= html_escape($disp_name ?: (!empty($this->is_logged_in()) ? 'Select Address' : 'Sign In to Select Address')); ?>
@@ -658,13 +658,15 @@
             toast.className = 'position-fixed bottom-0 end-0 p-3';
             toast.style.zIndex = '99999';
             toast.innerHTML = 
-                '<div class="toast show align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert">' +
-                    '<div class="d-flex">' +
-                        '<div class="toast-body d-flex align-items-center gap-2">' +
-                            '<i class="fa-solid ' + icon + ' fs-5"></i>' +
+                '<div class="toast show ' + bgClass + ' border-0 shadow-lg rounded-3" role="alert" style="max-width: 400px;">' +
+                    '<div class="d-flex align-items-center justify-content-between py-2 ps-3 pe-2 gap-2">' +
+                        '<div class="toast-body d-flex align-items-center gap-2 p-0 flex-grow-1" style="font-size: 13.5px; line-height: 1.45;">' +
+                            '<i class="fa-solid ' + icon + ' fs-5 flex-shrink-0"></i>' +
                             '<span>' + message + '</span>' +
                         '</div>' +
-                        '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest(\'#checkout-toast-notice\').remove()"></button>' +
+                        '<button type="button" class="fk-toast-close-btn" aria-label="Close" onclick="this.closest(\'#checkout-toast-notice\').remove()" style="position: static !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; border-radius: 6px !important; background: transparent !important; color: inherit !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; opacity: 0.85 !important; cursor: pointer !important; box-shadow: none !important; transform: none !important;">' +
+                            '<i class="fa-solid fa-xmark" style="font-size: 15px; line-height: 1;"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(toast);

@@ -138,6 +138,14 @@ class product_model extends CI_Model {
         if (!isset($prod['image']) && isset($prod['main_image'])) {
             $prod['image'] = $prod['main_image'];
         }
+        $rev_cnt = isset($prod['reviews_count']) ? (int)$prod['reviews_count'] : 0;
+        if ($rev_cnt <= 0) {
+            $prod['reviews_count'] = 0;
+            $prod['rating']        = 0.0;
+        } else {
+            $prod['reviews_count'] = $rev_cnt;
+            $prod['rating']        = isset($prod['rating']) ? round((float)$prod['rating'], 1) : 0.0;
+        }
         if (isset($prod['base_price'])) {
             $this->apply_flash_sale_pricing($prod);
             return;
@@ -480,7 +488,7 @@ class product_model extends CI_Model {
         $count = $this->db->where('tenant_id', $tid)->where('product_id', $data['product_id'])->where('status', 'approved')->count_all_results('reviews');
 
         $this->db->where('tenant_id', $tid)->where('id', $data['product_id'])->update('products', [
-            'rating'        => $stats['avg_rating'] ?: 5.0,
+            'rating'        => ($count > 0 && !empty($stats['avg_rating'])) ? round((float)$stats['avg_rating'], 1) : 0.0,
             'reviews_count' => $count
         ]);
 

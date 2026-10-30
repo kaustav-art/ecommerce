@@ -99,6 +99,67 @@
         if (typeof WOW !== 'undefined') {
             new WOW().init();
         }
+<?php if (empty($is_user_project)): ?>
+        (function() {
+            var siteBase = '<?= rtrim(base_url(), "/"); ?>';
+            var tplParam = 'fashion';
+
+            // Ensure current browser URL always displays ?preview_tpl=fashion on all pages
+            if (window.location.search.indexOf('preview_tpl=') === -1 && window.history && window.history.replaceState) {
+                var curUrl = window.location.pathname + (window.location.search ? window.location.search + '&preview_tpl=' + tplParam : '?preview_tpl=' + tplParam) + window.location.hash;
+                window.history.replaceState({}, '', curUrl);
+            }
+
+            function appendPreviewTpl(root) {
+                if (!root || !root.querySelectorAll) return;
+                root.querySelectorAll('a[href]').forEach(function(a) {
+                    var href = a.getAttribute('href');
+                    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+                    if (href.indexOf(siteBase) === 0 && href.indexOf('preview_tpl=') === -1) {
+                        var hashIdx = href.indexOf('#');
+                        var baseHref = hashIdx !== -1 ? href.substring(0, hashIdx) : href;
+                        var hashPart = hashIdx !== -1 ? href.substring(hashIdx) : '';
+                        var sep = baseHref.indexOf('?') === -1 ? '?' : '&';
+                        a.setAttribute('href', baseHref + sep + 'preview_tpl=' + tplParam + hashPart);
+                    }
+                });
+
+                root.querySelectorAll('form[action]').forEach(function(f) {
+                    var act = f.getAttribute('action');
+                    if (act && act.indexOf(siteBase) === 0) {
+                        if (act.indexOf('preview_tpl=') === -1) {
+                            var sep = act.indexOf('?') === -1 ? '?' : '&';
+                            f.setAttribute('action', act + sep + 'preview_tpl=' + tplParam);
+                        }
+                        var method = (f.getAttribute('method') || 'get').toLowerCase();
+                        if (method === 'get' && !f.querySelector('input[name="preview_tpl"]')) {
+                            var inp = document.createElement('input');
+                            inp.type = 'hidden';
+                            inp.name = 'preview_tpl';
+                            inp.value = tplParam;
+                            f.appendChild(inp);
+                        }
+                    }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                appendPreviewTpl(document);
+                if (typeof MutationObserver !== 'undefined') {
+                    var obs = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(m) {
+                            m.addedNodes.forEach(function(node) {
+                                if (node.nodeType === 1) {
+                                    appendPreviewTpl(node);
+                                }
+                            });
+                        });
+                    });
+                    obs.observe(document.body, { childList: true, subtree: true });
+                }
+            });
+        })();
+<?php endif; ?>
     </script>
 </body>
 </html>

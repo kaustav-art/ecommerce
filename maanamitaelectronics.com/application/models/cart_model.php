@@ -16,17 +16,37 @@ class cart_model extends CI_Model {
         return isset($CI->tenant_id) ? (int) $CI->tenant_id : 1;
     }
 
+    private function active_user_id()
+    {
+        $CI =& get_instance();
+        if (!empty($CI->is_preview_mode) || empty($CI->is_user_project)) {
+            return 0;
+        }
+        $tid = $this->tid();
+        $uid = (int) $this->session->userdata('user_id');
+        $user_tid = (int) $this->session->userdata('user_tenant_id');
+        if ($uid <= 0 || !$this->session->userdata('user_logged_in') || ($user_tid > 0 && $user_tid !== $tid)) {
+            return 0;
+        }
+        $u_row = $this->db->select('id')->where('id', $uid)->where('tenant_id', $tid)->get('users')->row_array();
+        return !empty($u_row['id']) ? (int) $u_row['id'] : 0;
+    }
+
+    private function is_valid_tenant_product($product_id)
+    {
+        $pid = (int) $product_id;
+        if ($pid <= 0) {
+            return false;
+        }
+        $p_row = $this->db->select('id')->where('id', $pid)->where('tenant_id', $this->tid())->get('products')->row_array();
+        return !empty($p_row['id']);
+    }
+
     private function get_session_cart()
     {
         $tid = $this->tid();
         $key = 'cart_t_' . $tid;
         $cart = $this->session->userdata($key);
-        if (!is_array($cart) && $tid === 1) {
-            $legacy = $this->session->userdata('cart');
-            if (is_array($legacy)) {
-                $cart = $legacy;
-            }
-        }
         return is_array($cart) ? $cart : [];
     }
 
@@ -34,13 +54,12 @@ class cart_model extends CI_Model {
     {
         $tid = $this->tid();
         $this->session->set_userdata('cart_t_' . $tid, $cart);
-        $this->session->set_userdata('cart', $cart);
     }
 
     public function get_items()
     {
         $tid = $this->tid();
-        $user_id = $this->session->userdata('user_id');
+        $user_id = $this->active_user_id();
         $cart = $this->get_session_cart();
 
         if ($user_id) {
@@ -374,8 +393,8 @@ class cart_model extends CI_Model {
         $this->set_session_cart($cart);
 
         // Synchronize with database for logged-in user
-        $user_id = $this->session->userdata('user_id');
-        if ($user_id) {
+        $user_id = $this->active_user_id();
+        if ($user_id && $this->is_valid_tenant_product($product_id)) {
             $vid = $variant ? (int)$variant['id'] : (!empty($variant_id) ? (int)$variant_id : 0);
             $existing = $this->db->where('tenant_id', $tid)
                                  ->where('user_id', (int)$user_id)
@@ -444,7 +463,7 @@ class cart_model extends CI_Model {
         $this->set_session_cart($cart);
 
         // Synchronize with database for logged-in user
-        $user_id = $this->session->userdata('user_id');
+        $user_id = $this->active_user_id();
         if ($user_id) {
             $parts = explode('_', (string)$cart_key);
             $pid = (int) $parts[0];
@@ -486,7 +505,7 @@ class cart_model extends CI_Model {
             unset($cart[$cart_key]);
             $this->set_session_cart($cart);
 
-            $user_id = $this->session->userdata('user_id');
+            $user_id = $this->active_user_id();
             if ($user_id) {
                 $pid = (int) $item['id'];
                 $vid = !empty($item['variant_id']) ? (int)$item['variant_id'] : 0;
@@ -504,7 +523,7 @@ class cart_model extends CI_Model {
     public function clear_cart()
     {
         $tid = $this->tid();
-        $user_id = $this->session->userdata('user_id');
+        $user_id = $this->active_user_id();
         if ($user_id) {
             $this->db->where('tenant_id', $tid)->where('user_id', (int) $user_id)->delete('cart_items');
         }
@@ -675,18 +694,20 @@ class cart_model extends CI_Model {
         }
 
         $item = $cart[$cart_key];
-        $user_id = $this->session->userdata('user_id') ?: NULL;
+        $user_id = $this->active_user_id() ?: NULL;
         $session_id = $this->session->session_id ?: session_id();
 
-        // Insert into cart_saved_items
-        $this->db->insert('cart_saved_items', [
-            'tenant_id'  => $tid,
-            'user_id'    => $user_id,
-            'session_id' => $session_id,
-            'product_id' => $item['id'],
-            'variant_id' => $item['variant_id'] ?? NULL,
-            'quantity'   => $item['quantity']
-        ]);
+        // Insert into cart_saved_items only if product belongs to current tenant
+        if ($this->is_valid_tenant_product($item['id'] ?? 0)) {
+            $this->db->insert('cart_saved_items', [
+                'tenant_id'  => $tid,
+                'user_id'    => $user_id,
+                'session_id' => $session_id,
+                'product_id' => $item['id'],
+                'variant_id' => $item['variant_id'] ?? NULL,
+                'quantity'   => $item['quantity']
+            ]);
+        }
 
         // Remove from current cart
         unset($cart[$cart_key]);
@@ -709,7 +730,7 @@ class cart_model extends CI_Model {
     public function get_saved_items()
     {
         $tid = $this->tid();
-        $user_id = $this->session->userdata('user_id') ?: NULL;
+        $user_id = $this->active_user_id() ?: NULL;
         $session_id = $this->session->session_id ?: session_id();
 
         $this->db->select('csi.*, p.title as product_title, p.slug as product_slug, p.main_image as product_image, p.price as product_price, p.sale_price as product_sale_price, pv.title as variant_title, pv.price as variant_price, pv.sale_price as variant_sale_price, pv.image as variant_image')
@@ -795,6 +816,7 @@ class cart_model extends CI_Model {
      */
     public function sync_db_with_session($user_id, $cart)
     {
+        $user_id = $this->active_user_id();
         if (empty($user_id)) {
             return $cart;
         }
@@ -827,6 +849,14 @@ class cart_model extends CI_Model {
         if (!$is_synced) {
             $new_cart = [];
             foreach ($db_map as $ckey => $info) {
+                if (!$this->is_valid_tenant_product($info['product_id'])) {
+                    $this->db->where('tenant_id', $tid)
+                             ->where('user_id', (int)$user_id)
+                             ->where('product_id', (int)$info['product_id'])
+                             ->where('variant_id', !empty($info['variant_id']) ? (int)$info['variant_id'] : 0)
+                             ->delete('cart_items');
+                    continue;
+                }
                 if (isset($cart[$ckey])) {
                     $item = $cart[$ckey];
                     $item['quantity'] = $info['quantity'];
@@ -849,7 +879,9 @@ class cart_model extends CI_Model {
             if (!empty($cart) && is_array($cart)) {
                 foreach ($cart as $ckey => $citem) {
                     $pid = (int) ($citem['id'] ?? 0);
-                    if ($pid <= 0) continue;
+                    if ($pid <= 0 || !$this->is_valid_tenant_product($pid)) {
+                        continue;
+                    }
                     $vid = !empty($citem['variant_id']) ? (int) $citem['variant_id'] : 0;
                     $actual_key = (string) $pid . ($vid ? '_' . $vid : '');
 
@@ -894,6 +926,7 @@ class cart_model extends CI_Model {
      */
     public function sync_session_to_db($user_id)
     {
+        $user_id = $this->active_user_id() ?: (int) $user_id;
         if (empty($user_id)) {
             return;
         }
@@ -906,7 +939,7 @@ class cart_model extends CI_Model {
         if (!empty($session_cart) && is_array($session_cart)) {
             foreach ($session_cart as $ckey => $item) {
                 $pid = (int) ($item['id'] ?? $item['product_id'] ?? 0);
-                if ($pid <= 0) continue;
+                if ($pid <= 0 || !$this->is_valid_tenant_product($pid)) continue;
                 $vid = !empty($item['variant_id']) ? (int) $item['variant_id'] : 0;
                 $ukey = $pid . '_' . $vid;
                 $qty = max(1, (int) ($item['quantity'] ?? 1));
@@ -931,6 +964,10 @@ class cart_model extends CI_Model {
                 $pid = $item['product_id'];
                 $vid = $item['variant_id'];
                 $qty = $item['quantity'];
+
+                if (!$this->is_valid_tenant_product($pid)) {
+                    continue;
+                }
 
                 $existing = $this->db->where('tenant_id', $tid)
                                      ->where('user_id', (int) $user_id)

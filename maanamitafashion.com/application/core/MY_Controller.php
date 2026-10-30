@@ -395,13 +395,23 @@ class MY_Controller extends CI_Controller {
                     }
                 }
 
+                $cat_name_str = $tp['category_name'] ?? 'Featured';
+                $cat_slug_str = url_title(strtolower($cat_name_str), '-', TRUE) ?: 'featured';
+                $sku_str      = !empty($tp['sku']) ? $tp['sku'] : ('SKU-' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $tp['slug'] ?? 'PROD'), 0, 6)) . '-' . (int)$tp['id']);
+
                 $products[] = [
                     'id'                     => (int)$tp['id'],
                     'title'                  => $tp['name'],
                     'name'                   => $tp['name'],
                     'slug'                   => $tp['slug'],
-                    'category_name'          => $tp['category_name'] ?? 'Featured',
+                    'sku'                    => $sku_str,
+                    'category_id'            => 0,
+                    'category_name'          => $cat_name_str,
+                    'category_slug'          => $cat_slug_str,
+                    'brand_name'             => $tp['brand_name'] ?? 'Store',
+                    'brand_slug'             => url_title(strtolower($tp['brand_name'] ?? 'store'), '-', TRUE),
                     'price'                  => (float)$tp['price'],
+                    'regular_price'          => (float)$tp['price'],
                     'sale_price'             => (!empty($tp['sale_price']) && (float)$tp['sale_price'] > 0) ? (float)$tp['sale_price'] : null,
                     'main_image'             => $main_img,
                     'primary_image'          => $main_img,
@@ -413,10 +423,17 @@ class MY_Controller extends CI_Controller {
                     'unit_label'             => $clean_unit,
                     'short_description'      => $tp['short_desc'] ?? '',
                     'description'            => $tp['short_desc'] ?? '',
-                    'rating'                 => isset($tp['rating']) ? (float)$tp['rating'] : 4.8,
-                    'reviews_count'          => isset($tp['reviews_count']) ? (int)$tp['reviews_count'] : 18,
+                    'rating'                 => isset($tp['rating']) ? (float)$tp['rating'] : 0.0,
+                    'reviews_count'          => isset($tp['reviews_count']) ? (int)$tp['reviews_count'] : 0,
                     'stock'                  => 25,
                     'stock_qty'              => 25,
+                    'stock_quantity'         => 25,
+                    'stock_status'           => 'in_stock',
+                    'is_cod_allowed'         => 1,
+                    'variants'               => [],
+                    'attributes'             => [],
+                    'specifications'         => [],
+                    'reviews'                => [],
                 ];
             }
         }

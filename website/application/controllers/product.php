@@ -19,7 +19,11 @@ class product extends MY_Controller {
 
     public function detail($slug = 'common')
     {
+        $tpl_key      = $this->template_registry->get_tpl_key($this->active_template);
         $all_products = Static_template_data::get('products');
+        if (empty($all_products)) {
+            $all_products = $this->get_dynamic_template_products($tpl_key);
+        }
         $product      = NULL;
 
         $clean_slug = trim((string)$slug);
@@ -33,28 +37,27 @@ class product extends MY_Controller {
         }
 
         // Only merge template_products showcase overrides when running in master demo mode (not user project)
-        if (!$this->is_user_project && $this->active_template === 'grocery') {
-            $grc_products = $this->get_dynamic_template_products('template3');
-            if (!empty($grc_products)) {
-                $matched_grc = null;
-                foreach ($grc_products as $gp) {
-                    if (!empty($gp['slug']) && strcasecmp($gp['slug'], $clean_slug) === 0) {
-                        $matched_grc = $gp;
+        if (!$this->is_user_project) {
+            $tpl_products = $this->get_dynamic_template_products($tpl_key);
+            if (!empty($tpl_products)) {
+                $matched_tpl = null;
+                foreach ($tpl_products as $gp) {
+                    if ((!empty($gp['slug']) && strcasecmp($gp['slug'], $clean_slug) === 0) || (is_numeric($clean_slug) && (int)$gp['id'] === (int)$clean_slug)) {
+                        $matched_tpl = $gp;
                         break;
                     }
                 }
-                if ($matched_grc) {
-                    $product = $product ? array_merge($product, $matched_grc) : $matched_grc;
+                if ($matched_tpl) {
+                    $product = $product ? array_merge($product, $matched_tpl) : $matched_tpl;
                 }
             }
         }
 
         if (!$product) {
-            $product = Static_template_data::get('common_product');
+            $product = !empty($all_products[0]) ? $all_products[0] : Static_template_data::get('common_product');
         }
 
         // Normalize image paths for active template
-        $tpl_key = $this->template_registry->get_tpl_key($this->active_template);
         if (!empty($product['main_image'])) {
             $product['primary_image'] = $this->normalize_tpl_image($product['main_image'], $tpl_key);
             $product['image']         = $product['primary_image'];

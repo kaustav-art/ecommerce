@@ -20,9 +20,16 @@ class shop extends MY_Controller {
             $root_categories = $dyn_cats;
             $all_products    = $this->get_dynamic_template_products($tpl_key);
         } else {
-            $all_categories  = $db_all_categories;
+            $dyn_cats        = $this->get_dynamic_template_categories($tpl_key);
+            $all_categories  = !empty($db_all_categories) ? $db_all_categories : $dyn_cats;
             $root_categories = Static_template_data::get('root_categories');
+            if (empty($root_categories)) {
+                $root_categories = $dyn_cats;
+            }
             $all_products    = Static_template_data::get('products');
+            if (empty($all_products)) {
+                $all_products = $this->get_dynamic_template_products($tpl_key);
+            }
         }
         $brands            = Static_template_data::get('brands');
         $filter_sizes      = Static_template_data::get('filter_sizes');

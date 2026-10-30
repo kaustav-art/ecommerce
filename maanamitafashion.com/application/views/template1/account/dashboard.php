@@ -1,4 +1,4 @@
-﻿        <!-- breadcrumb -->
+        <!-- breadcrumb -->
         <div class="bg-light py-2 border-bottom">
             <div class="container" style="max-width: 1240px;">
                 <nav aria-label="breadcrumb">
@@ -17,7 +17,7 @@
                 <div class="row g-3">
                     <!-- Left Menu -->
                     <div class="col-lg-3 col-md-4">
-                        <?php $this->load->view('template1/account/sidebar'); ?>
+                        <?php $this->load->view('account/sidebar'); ?>
                     </div>
 
                     <!-- Right Content -->
@@ -128,4 +128,3 @@
                 </div>
             </div>
         </section>
-

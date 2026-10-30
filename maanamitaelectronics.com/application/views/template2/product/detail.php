@@ -1042,13 +1042,13 @@ if (!empty($initial_variant)) {
                                     <div class="tf-product-info-rate d-flex align-items-center gap-1">
                                        <div class="list-star text-muted" style="font-size: 13px;">
                                           <?php for ($s = 1; $s <= 5; $s++): ?>
-                                             <i class="fa-regular fa-star text-secondary" style="opacity: 0.35;"></i>
+                                             <i class="fa-regular fa-star text-secondary" style="opacity: 0.45;"></i>
                                           <?php endfor; ?>
                                        </div>
-                                       <div class="text text-caption-1 text-secondary ms-1">(No reviews yet)</div>
+                                       <div class="text text-caption-1 text-secondary ms-1">(0)</div>
                                     </div>
                                     <span class="text-secondary">|</span>
-                                    <a href="#navPresentationTab" class="text-primary small text-decoration-none fw-semibold" onclick="activateReviewTab()">Write a review</a>
+                                    <a href="#navPresentationTab" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">See reviews</a>
                                  <?php endif; ?>
                               </div>
 
@@ -1346,7 +1346,7 @@ if (!empty($initial_variant)) {
                         <div class="product-details-nav nav nav-tab justify-content-center p-relative" id="navPresentationTab" role="tablist">
                            <button class="nav-links active" id="nav-description-tab" data-bs-toggle="tab" data-bs-target="#nav-description" type="button" role="tab" aria-controls="nav-description" aria-selected="true">Description</button>
                            <button class="nav-links" id="nav-addInfo-tab" data-bs-toggle="tab" data-bs-target="#nav-addInfo" type="button" role="tab" aria-controls="nav-addInfo" aria-selected="false">Additional information</button>
-                           <button class="nav-links" id="nav-review-tab" data-bs-toggle="tab" data-bs-target="#nav-review" type="button" role="tab" aria-controls="nav-review" aria-selected="false">Reviews (4)</button>
+                           <button class="nav-links" id="nav-review-tab" data-bs-toggle="tab" data-bs-target="#nav-review" type="button" role="tab" aria-controls="nav-review" aria-selected="false">Customer Reviews (<?= (int)$display_review_count; ?>)</button>
                            <button class="nav-links" id="nav-question-tab" data-bs-toggle="tab" data-bs-target="#nav-question" type="button" role="tab" aria-controls="nav-question" aria-selected="false">Ask & Question</button>
                            <button class="nav-links" id="nav-faq-tab" data-bs-toggle="tab" data-bs-target="#nav-faq" type="button" role="tab" aria-controls="nav-faq" aria-selected="false">Faq</button>
                         </div>
@@ -1428,319 +1428,175 @@ if (!empty($initial_variant)) {
                            </div>
                         </div>
                         <div class="tab-pane fade" id="nav-review" role="tabpanel" aria-labelledby="nav-review-tab" tabindex="0">
-                           <div class="product-details-tab-item">
-                              <div class="product-details-review-wrapper">
-                                 <div class="row">
-                                    <div class="col-xl-6">
-                                       <div class="product-details-review-statics mb-30">
-                                          <!-- number -->
-                                          <div class="product-details-review-number d-inline-block mb-50">
-                                             <h3 class="product-details-review-number-title">Customer reviews</h3>
-                                             <div class="product-details-review-summery d-flex align-items-center">
-                                                <div class="product-details-review-summery-value">
-                                                   <span>4.5</span>
-                                                </div>
-                                                <div class="product-details-review-summery-rating d-flex align-items-center">
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <p>(36 Reviews)</p>
-                                                </div>
+                           <div class="product-details-tab-item pt-4">
+                              <div class="row g-4">
+                                 <!-- Left Column: Product Rating Summary & Breakdown Bar -->
+                                 <div class="col-lg-4 col-md-5">
+                                    <div class="p-4 rounded-3 border bg-white" style="border-color:#e5e7eb !important;">
+                                       <h5 class="fw-bold mb-3" style="color:#0B0D0E; font-size:17px;">Customer Ratings</h5>
+                                       <?php
+                                       $bar_total     = $total_review_count;
+                                       $bar_avg       = $computed_avg;
+                                       $bar_counts    = $rating_counts;
+                                       $bar_avg_round = round($bar_avg * 2) / 2;
+                                       ?>
+                                       <div class="d-flex align-items-center gap-3">
+                                          <div class="text-center px-2">
+                                             <div class="fw-bold" style="font-size:38px; line-height:1.1; color:#0B0D0E;">
+                                                <?= number_format($bar_avg, 1); ?>
                                              </div>
-                                             <div class="product-details-review-rating-list">
-                                                <div class="product-details-review-rating-item d-flex align-items-center">
-                                                   <span>5 Start</span>
-                                                   <div class="product-details-review-rating-bar">
-                                                      <span class="product-details-review-rating-bar-inner" data-width="82%"></span>
-                                                   </div>
-                                                   <div class="product-details-review-rating-percent">
-                                                      <span>82%</span>
-                                                   </div>
-                                                </div>
-                                                <div class="product-details-review-rating-item d-flex align-items-center">
-                                                   <span>4 Start</span>
-                                                   <div class="product-details-review-rating-bar">
-                                                      <span class="product-details-review-rating-bar-inner" data-width="30%"></span>
-                                                   </div>
-                                                   <div class="product-details-review-rating-percent">
-                                                      <span>30%</span>
-                                                   </div>
-                                                </div>
-                                                <div class="product-details-review-rating-item d-flex align-items-center">
-                                                   <span>3 Start</span>
-                                                   <div class="product-details-review-rating-bar">
-                                                      <span class="product-details-review-rating-bar-inner" data-width="15%"></span>
-                                                   </div>
-                                                   <div class="product-details-review-rating-percent">
-                                                      <span>15%</span>
-                                                   </div>
-                                                </div>
-                                                <div class="product-details-review-rating-item d-flex align-items-center">
-                                                   <span>2 Start</span>
-                                                   <div class="product-details-review-rating-bar">
-                                                      <span class="product-details-review-rating-bar-inner" data-width="6%"></span>
-                                                   </div>
-                                                   <div class="product-details-review-rating-percent">
-                                                      <span>6%</span>
-                                                   </div>
-                                                </div>
-                                                <div class="product-details-review-rating-item d-flex align-items-center">
-                                                   <span>1 Start</span>
-                                                   <div class="product-details-review-rating-bar">
-                                                      <span class="product-details-review-rating-bar-inner" data-width="10%"></span>
-                                                   </div>
-                                                   <div class="product-details-review-rating-percent">
-                                                      <span>10%</span>
-                                                   </div>
-                                                </div>
+                                             <div class="text-warning my-1" style="font-size:14px;">
+                                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                   <?php if ($bar_avg > 0 && $s <= floor($bar_avg_round)): ?>
+                                                      <i class="fa-solid fa-star"></i>
+                                                   <?php elseif ($bar_avg > 0 && ($s - 0.5) == $bar_avg_round): ?>
+                                                      <i class="fa-solid fa-star-half-stroke"></i>
+                                                   <?php else: ?>
+                                                      <i class="fa-regular fa-star" style="color:#d1d5db;"></i>
+                                                   <?php endif; ?>
+                                                <?php endfor; ?>
                                              </div>
-                                          </div>
-   
-                                          <!-- reviews -->
-                                          <div class="product-details-review-list pr-110">
-                                             <h3 class="product-details-review-title">Rating & Review</h3>
-                                             <div class="product-details-review-avater d-flex align-items-start">
-                                                <div class="product-details-review-avater-thumb">
-                                                   <a href="#">
-                                                      <img src="<?= $bazaro; ?>img/avater/avater-1.jpg" alt="">
-                                                   </a>
-                                                </div>
-                                                <div class="product-details-review-avater-content">
-                                                   <div class="product-details-review-avater-rating d-flex align-items-center">
-                                                      <?php for ($s = 0; $s < 5; $s++): ?>
-                                                      <span>
-                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                            <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                         </svg>
-                                                      </span>
-                                                      <?php endfor; ?>
-                                                   </div>
-                                                   <h3 class="product-details-review-avater-title">Eleanor Fant</h3>
-                                                   <span class="product-details-review-avater-meta">06 March, 2023 </span>
-                                                   <div class="product-details-review-avater-comment">
-                                                      <p>Designed very similarly to the nearly double priced Galaxy tab S6, with the only removal being.</p>
-                                                   </div>
-                                                </div>
-                                             </div>
-                                             <div class="product-details-review-avater d-flex align-items-start">
-                                                <div class="product-details-review-avater-thumb">
-                                                   <a href="#">
-                                                      <img src="<?= $bazaro; ?>img/avater/avater-2.jpg" alt="">
-                                                   </a>
-                                                </div>
-                                                <div class="product-details-review-avater-content">
-                                                   <div class="product-details-review-avater-rating d-flex align-items-center">
-                                                      <?php for ($s = 0; $s < 5; $s++): ?>
-                                                      <span>
-                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                            <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                         </svg>
-                                                      </span>
-                                                      <?php endfor; ?>
-                                                   </div>
-                                                   <h3 class="product-details-review-avater-title">Orio Madrid</h3>
-                                                   <span class="product-details-review-avater-meta">06 January, 2026</span>
-                                                   <div class="product-details-review-avater-comment">
-                                                      <p>This review is for the Samsung Tab S6 Lite, 64gb wifi in blue. purchased this product performed.</p>
-                                                   </div>
-                                                </div>
+                                             <div class="text-muted small" style="font-size:12px;">
+                                                <?= number_format($bar_total); ?> <?= ($bar_total === 1) ? 'Rating' : 'Ratings'; ?>
                                              </div>
                                           </div>
 
-                                       </div>
-                                    </div> <!-- end col -->
-                                    <div class="col-xl-6">
-                                       <div class="product-details-review-form mb-30">
-                                          <h3 class="product-details-review-form-title">Review this product</h3>
-                                          <p>Your email address will not be published. Required fields are marked *</p>
-                                          <form action="#" onsubmit="event.preventDefault(); if(typeof showEltToast==='function')showEltToast('Review submitted!');">
-                                             <div class="product-details-review-form-rating d-flex align-items-center">
-                                                <p>Your Rating :</p>
-                                                <div class="product-details-review-form-rating-icon d-flex align-items-center">
-                                                   <?php for ($s = 0; $s < 5; $s++): ?>
-                                                   <span>
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                         <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"/>
-                                                      </svg>
-                                                   </span>
-                                                   <?php endfor; ?>
+                                          <div class="flex-grow-1 ps-2 border-start">
+                                             <?php
+                                             $bar_colors = [
+                                                 5 => '#108910',
+                                                 4 => '#26a541',
+                                                 3 => '#26a541',
+                                                 2 => '#ff9f00',
+                                                 1 => '#ff6161'
+                                             ];
+                                             for ($star = 5; $star >= 1; $star--):
+                                                 $s_cnt = (int)($bar_counts[$star] ?? 0);
+                                                 $s_pct = $bar_total > 0 ? round(($s_cnt / $bar_total) * 100, 1) : 0;
+                                                 $s_col = $bar_colors[$star];
+                                             ?>
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                   <div class="d-inline-flex align-items-center gap-1 fw-semibold text-dark" style="width:32px; font-size:12px;">
+                                                      <span><?= $star; ?></span>
+                                                      <i class="fa-solid fa-star" style="font-size:10px; color:#f59e0b;"></i>
+                                                   </div>
+                                                   <div class="flex-grow-1 rounded-pill overflow-hidden" style="height:8px; background-color:#f1f5f9;">
+                                                      <div class="h-100 rounded-pill" style="width:<?= $s_pct; ?>%; background-color:<?= $s_col; ?>; transition:width 0.3s ease;"></div>
+                                                   </div>
+                                                   <div class="text-muted text-end" style="width:32px; font-size:12px;">
+                                                      <?= number_format($s_cnt); ?>
+                                                   </div>
                                                 </div>
-                                             </div>
-                                             <div class="product-details-review-input-wrapper">
-                                                <div class="product-details-review-input-box">
-                                                   <label class="aq-form-label" for="msg">Your Review *</label>
-                                                   <textarea class="aq-form-control brr-0" id="msg" name="msg" placeholder="Write your review here..."></textarea>
-                                                </div>
-                                                <div class="product-details-review-input-box">
-                                                   <label class="aq-form-label" for="name">Your Name*</label>
-                                                   <input class="aq-form-control brr-0" name="name" id="name" type="text" placeholder="bazaro">
-                                                </div>
-                                                <div class="product-details-review-input-box">
-                                                   <label class="aq-form-label" for="email">Your Email*</label>
-                                                   <input class="aq-form-control brr-0" name="email" id="email" type="email" placeholder="bazaro@mail.com">
-                                                </div>
-                                             </div>
-                                             <div class="product-details-review-suggetions mb-20">
-                                                <div class="product-details-review-remeber">
-                                                   <input class="aq-form-checkbox" id="remeber" type="checkbox">
-                                                   <label class="aq-form-checkbox-label" for="remeber">Save my name, email, and website in this browser for the next time I comment.</label>
-                                                </div>
-                                             </div>
-                                             <div class="product-details-review-btn-wrapper">
-                                                <button type="submit" class="aq-btn-black">Submit Review</button>
-                                             </div>
-                                          </form>
+                                             <?php endfor; ?>
+                                          </div>
                                        </div>
                                     </div>
                                  </div>
-                                 <div class="row">
-                                    <div class="col-lg-12">
-                                       <div class="aq-product-details-review-header-container mt-50">
-                                          <div class="aq-product-details-review-header-left">
-                                             <h3 class="product-details-review-title">Product Reviews</h3>
-                                          </div>
-                                          
-                                          <div class="aq-product-details-review-header-right">
-                                             <div class="aq-product-details-review-header-action-item">
-                                                <span class="aq-product-details-review-header-label">Sort:</span>
-                                                <div class="aqf-bundle-select aq-select">
-                                                   <select>
-                                                      <option>Relevance</option>
-                                                      <option>Most Recent</option>
-                                                   </select>
-                                                </div>
-                                             </div>
 
-                                             <div class="aq-product-details-review-header-action-item">
-                                                <span class="aq-product-details-review-header-icon">
-                                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="12" viewBox="0 0 13 12" fill="none">
-                                                      <path d="M11.75 0.75H0.750015L5.15002 6.00556V9.63889L7.35002 10.75V6.00556L11.75 0.75Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                                   </svg>
-                                                </span>
-                                                <span class="aq-product-details-review-header-label">Filter:</span>
-                                                <div class="aqf-bundle-select aq-select">
-                                                   <select>
-                                                      <option>All star</option>
-                                                      <option>5 Star</option>
-                                                      <option>4 Star</option>
-                                                      <option>3 Star</option>
-                                                      <option>2 Star</option>
-                                                      <option>1 Star</option>
-                                                   </select>
-                                                </div>
+                                 <!-- Right Column: Customer Reviews & Customer Images (Latest 5) -->
+                                 <div class="col-lg-8 col-md-7">
+                                    <h4 class="fw-bold mb-3" style="color:#0B0D0E; font-size:18px;">
+                                       Customer Reviews (<?= number_format($bar_total); ?>)
+                                    </h4>
+                                    <?php if (!empty($actual_reviews)):
+                                       $latest_reviews = array_slice($actual_reviews, 0, 5);
+                                       $prod_slug_for_rev = !empty($product['slug']) ? $product['slug'] : (int)($product['id'] ?? 1);
+                                    ?>
+                                       <?php foreach ($latest_reviews as $rev):
+                                          $r_name   = $rev['customer_name'] ?? ($rev['name'] ?? 'Customer');
+                                          $r_stars  = max(1, min(5, (int)($rev['rating'] ?? 5)));
+                                          $r_title  = trim((string)($rev['title'] ?? ''));
+                                          $r_text   = trim((string)($rev['comment'] ?? ($rev['review'] ?? '')));
+                                          $r_date   = !empty($rev['created_at']) ? date('d M, Y', strtotime($rev['created_at'])) : '';
+                                          $r_images = [];
+                                          if (!empty($rev['images'])) {
+                                              $decoded_imgs = is_array($rev['images']) ? $rev['images'] : json_decode($rev['images'], true);
+                                              if (is_array($decoded_imgs)) {
+                                                  $r_images = array_values(array_filter($decoded_imgs));
+                                              }
+                                          }
+                                          $raw_r_avatar = trim((string)($rev['user_avatar'] ?? ($rev['avatar'] ?? '')));
+                                          $has_r_avatar = ($raw_r_avatar !== '' && !in_array(strtolower($raw_r_avatar), ['default-user.png', 'user-default.jpg', 'default.png'], true));
+                                          $r_avatar_url = '';
+                                          if ($has_r_avatar) {
+                                              $clean_r_av = ltrim($raw_r_avatar, '/');
+                                              if (strpos($clean_r_av, 'assets/images/') === 0) {
+                                                  $clean_r_av = substr($clean_r_av, strlen('assets/images/'));
+                                              }
+                                              $r_avatar_url = (strpos($clean_r_av, 'http://') === 0 || strpos($clean_r_av, 'https://') === 0)
+                                                  ? $clean_r_av
+                                                  : base_url('assets/images/' . $clean_r_av);
+                                          }
+                                       ?>
+                                       <div class="p-3 mb-3 rounded-3 border bg-white" style="border-color:#e5e7eb !important;">
+                                          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                             <div class="d-flex align-items-center gap-2">
+                                                <?php if ($has_r_avatar): ?>
+                                                   <img src="<?= $r_avatar_url; ?>" alt="<?= html_escape($r_name); ?>" class="rounded-circle shadow-sm border" style="width: 30px; height: 30px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                                   <div class="rounded-circle align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0; display: none;">
+                                                      <i class="fa-solid fa-user"></i>
+                                                   </div>
+                                                <?php else: ?>
+                                                   <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0;">
+                                                      <i class="fa-solid fa-user"></i>
+                                                   </div>
+                                                <?php endif; ?>
+                                                <div class="fw-semibold text-dark" style="font-size:14px;"><?= html_escape($r_name); ?></div>
                                              </div>
+                                             <?php if ($r_date !== ''): ?>
+                                                <span class="text-muted small ms-auto text-nowrap" style="font-size:12px;"><?= html_escape($r_date); ?></span>
+                                             <?php endif; ?>
                                           </div>
+
+                                          <div class="d-flex align-items-center gap-1 flex-wrap mb-2">
+                                             <span class="d-inline-flex align-items-center gap-1" style="color:#f59e0b; font-size:13px;">
+                                                <?php for ($si = 1; $si <= 5; $si++): ?>
+                                                   <i class="fa-<?= $si <= $r_stars ? 'solid' : 'regular'; ?> fa-star"></i>
+                                                <?php endfor; ?>
+                                                <span class="fw-bold text-dark ms-1" style="font-size:13.5px;"><?= number_format($r_stars, 1); ?></span>
+                                             </span>
+                                             <?php if ($r_title !== ''): ?>
+                                                <span class="text-muted mx-1" style="font-size:14px; line-height:1;">&bull;</span>
+                                                <strong class="text-dark" style="font-size:14px;"><?= html_escape($r_title); ?></strong>
+                                             <?php endif; ?>
+                                          </div>
+
+                                          <?php if ($r_text !== ''): ?>
+                                             <p class="mb-2 text-secondary" style="font-size:13.5px; line-height:1.55;"><?= nl2br(html_escape($r_text)); ?></p>
+                                          <?php endif; ?>
+
+                                          <?php if (!empty($r_images)): ?>
+                                             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                                                <?php foreach ($r_images as $img_rel):
+                                                   $clean_rel = ltrim(trim((string)$img_rel), '/');
+                                                   if (strpos($clean_rel, 'assets/images/') === 0) {
+                                                       $clean_rel = substr($clean_rel, strlen('assets/images/'));
+                                                   }
+                                                   $img_full_url = base_url('assets/images/' . $clean_rel);
+                                                   $img_fallback = base_url('website/assets/images/' . $clean_rel);
+                                                ?>
+                                                   <a href="<?= $img_full_url; ?>" target="_blank" class="d-inline-block border rounded-2 overflow-hidden" style="width:120px; height:120px; border-color:#e5e7eb !important;">
+                                                      <img src="<?= $img_full_url; ?>" alt="Review photo" style="width:120px; height:120px; object-fit:cover;" onerror="this.onerror=null;this.src='<?= $img_fallback; ?>';">
+                                                   </a>
+                                                <?php endforeach; ?>
+                                             </div>
+                                          <?php endif; ?>
                                        </div>
-                                       <div class="aq-product-details-review">
-                                          <div class="aq-product-details-review-container">
-                                             <div class="aq-product-details-review-item">
-                                                <div class="aq-product-details-review-top">
-                                                   <div class="product-details-review-avater-rating d-flex align-items-center">
-                                                      <?php for ($s = 0; $s < 5; $s++): ?>
-                                                      <span>
-                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                            <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"></path>
-                                                         </svg>
-                                                      </span>
-                                                      <?php endfor; ?>
-                                                   </div>
-                                                   <span class="aq-product-details-review-date">13 Dec 2025</span>
-                                                </div>
-                                                
-                                                <div class="aq-product-details-review-user">
-                                                   <span class="aq-product-details-review-user-name">0***7</span>
-                                                   <span class="aq-product-details-review-verified">
-                                                      <i class="fas fa-check-circle"></i> Verified Purchase
-                                                   </span>
-                                                </div>
+                                       <?php endforeach; ?>
 
-                                                <p class="aq-product-details-review-text">
-                                                   Have to wait long time at collection point due to only one delivery counter and long que for receiving products. But the product quality is genuine.
-                                                </p>
-
-                                                <div class="aq-product-details-review-gallery">
-                                                   <div class="aq-product-details-review-thumb">
-                                                      <img src="<?= $bazaro; ?>img/fashion-1/product/product-1/front-img-1.jpg" alt="Review Image">
-                                                   </div>
-                                                </div>
-
-                                                <div class="aq-product-details-review-footer">
-                                                   <div class="aq-product-details-review-helpful">
-                                                      <i class="far fa-thumbs-up"></i>
-                                                      <span>5</span>
-                                                   </div>
-                                                </div>
-                                             </div>
-
-                                             <div class="aq-product-details-review-item">
-                                                <div class="aq-product-details-review-top">
-                                                   <div class="product-details-review-avater-rating d-flex align-items-center">
-                                                      <?php for ($s = 0; $s < 5; $s++): ?>
-                                                      <span>
-                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                            <path d="M9.55008 7.09107C9.3947 7.24165 9.32331 7.45942 9.3587 7.673L9.89203 10.6246C9.93703 10.8748 9.83144 11.1279 9.62207 11.2725C9.4169 11.4225 9.14393 11.4405 8.92016 11.3205L6.26311 9.9347C6.17072 9.88551 6.06813 9.85911 5.96315 9.85611H5.80057C5.74417 9.86451 5.68898 9.88251 5.63859 9.9101L2.98094 11.3025C2.84955 11.3685 2.70077 11.3919 2.55499 11.3685C2.19984 11.3013 1.96287 10.963 2.02106 10.606L2.55499 7.6544C2.59039 7.43903 2.519 7.22006 2.36362 7.06708L0.1973 4.96735C0.0161234 4.79157 -0.0468684 4.52761 0.0359208 4.28944C0.11631 4.05187 0.321483 3.87849 0.569251 3.8395L3.55086 3.40695C3.77763 3.38356 3.97681 3.24558 4.07879 3.0416L5.39262 0.347955C5.42382 0.287962 5.46401 0.23277 5.51261 0.185976L5.5666 0.143981C5.59479 0.112785 5.62719 0.0869886 5.66319 0.0659914L5.72858 0.0419945L5.83056 0H6.08313C6.3087 0.0233969 6.50728 0.158379 6.61106 0.359953L7.94229 3.0416C8.03828 3.23778 8.22485 3.37396 8.44022 3.40695L11.4218 3.8395C11.6738 3.87549 11.8844 4.04947 11.9678 4.28944C12.0464 4.53001 11.9786 4.79397 11.7938 4.96735L9.55008 7.09107Z" fill="currentcolor"></path>
-                                                         </svg>
-                                                      </span>
-                                                      <?php endfor; ?>
-                                                   </div>
-                                                   <span class="aq-product-details-review-date">23 Oct 2025</span>
-                                                </div>
-                                                
-                                                <div class="aq-product-details-review-user">
-                                                   <span class="aq-product-details-review-user-name">Golam Rahman</span>
-                                                   <span class="aq-product-details-review-verified">
-                                                      <i class="fas fa-check-circle"></i> Verified Purchase
-                                                   </span>
-                                                </div>
-
-                                                <p class="aq-product-details-review-text">
-                                                   Stylish and comfortable. The design looks just like the photos, though I wish the material were slightly thicker.
-                                                </p>
-
-                                                <div class="aq-product-details-review-gallery">
-                                                   <div class="aq-product-details-review-thumb">
-                                                      <img src="<?= $bazaro; ?>img/fashion-1/product/product-1/front-img-1.jpg" alt="Review Image">
-                                                   </div>
-                                                   <div class="aq-product-details-review-thumb">
-                                                      <img src="<?= $bazaro; ?>img/fashion-1/product/product-1/front-img-2.jpg" alt="Review Image">
-                                                   </div>
-                                                   <div class="aq-product-details-review-thumb">
-                                                      <img src="<?= $bazaro; ?>img/fashion-1/product/product-1/front-img-3.jpg" alt="Review Image">
-                                                   </div>
-                                                </div>
-
-                                                <div class="aq-product-details-review-footer">
-                                                   <div class="aq-product-details-review-helpful">
-                                                      <i class="far fa-thumbs-up"></i>
-                                                      <span>2</span>
-                                                   </div>
-                                                </div>
-                                             </div>
+                                       <?php if (count($actual_reviews) > 5): ?>
+                                          <div class="mt-3">
+                                             <a href="<?= site_url('product/reviews/' . $prod_slug_for_rev . $elt_qs); ?>" class="btn btn-outline-dark fw-semibold px-4 py-2 rounded-2" style="font-size:14px;">
+                                                Show All Reviews (<?= number_format(count($actual_reviews)); ?>) <i class="fa-solid fa-arrow-right ms-1"></i>
+                                             </a>
                                           </div>
+                                       <?php endif; ?>
+                                    <?php else: ?>
+                                       <div class="p-4 rounded-3 border bg-white text-center text-muted">
+                                          <i class="fa-regular fa-comment-dots fs-2 mb-2 text-secondary"></i>
+                                          <p class="mb-0">No customer reviews yet for <strong><?= html_escape($product['title'] ?? $product['name'] ?? 'this product'); ?></strong>.</p>
                                        </div>
-                                    </div>
+                                    <?php endif; ?>
                                  </div>
                               </div>
                            </div>
@@ -1909,6 +1765,85 @@ if (!empty($initial_variant)) {
             </div>
          </div>
       </div>
+      <?php if (!empty($related_products)): ?>
+      <div class="elt-arrival-area elt-arrival-style pb-100">
+         <div class="container">
+            <div class="elt-arrival-top mb-35">
+               <div class="row align-items-center">
+                  <div class="col-md-6">
+                     <div class="elt-arrival-title-box text-center text-md-start">
+                        <h4 class="aq-section-title ff-onest-bold fs-32 mb-0">Related Products</h4>
+                     </div>
+                  </div>
+                  <div class="col-md-6">
+                     <div class="elt-arrival-top-btn text-center text-md-end">
+                        <a class="aq-btn-link aq-btn-underline" href="<?= site_url('shop' . $elt_qs); ?>">View All Electronics</a>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <div class="row gx-15 row-cols-xl-4 row-cols-lg-3 row-cols-md-2 row-cols-sm-2 row-cols-1">
+               <?php foreach (array_slice($related_products, 0, 4) as $rp_idx => $rp):
+                  $rp_id      = (int)($rp['id'] ?? ($rp_idx + 1));
+                  $rp_name    = !empty($rp['name']) ? $rp['name'] : ($rp['title'] ?? 'Electronics Item');
+                  $rp_slug    = !empty($rp['slug']) ? site_url('product/' . $rp['slug'] . $elt_qs) : site_url('product/' . $rp_id . $elt_qs);
+                  $rp_raw_img = !empty($rp['primary_image']) ? $rp['primary_image'] : (!empty($rp['main_image']) ? $rp['main_image'] : ($rp['image'] ?? ''));
+                  $rp_img     = $bazaro . 'img/electronics/arrival-product/product-' . (($rp_idx % 8) + 1) . '/product-1.jpg';
+                  if (!empty($rp_raw_img)) {
+                      if (strpos($rp_raw_img, 'http://') === 0 || strpos($rp_raw_img, 'https://') === 0) {
+                          $rp_img = $rp_raw_img;
+                      } else {
+                          $clean_rp = ltrim($rp_raw_img, '/');
+                          if (strpos($clean_rp, 'assets/') === 0 || strpos($clean_rp, 'uploads/') === 0) {
+                              $rp_img = base_url($clean_rp);
+                          } else {
+                              $rp_img = base_url('assets/images/' . $clean_rp);
+                          }
+                      }
+                  }
+                  $rp_reg     = (float)($rp['regular_price'] ?? $rp['price'] ?? 199.00);
+                  $rp_sal     = (!empty($rp['sale_price']) && (float)$rp['sale_price'] > 0 && (float)$rp['sale_price'] < $rp_reg) ? (float)$rp['sale_price'] : $rp_reg;
+                  $rp_disc    = ($rp_sal < $rp_reg && $rp_reg > 0) ? round((($rp_reg - $rp_sal) / $rp_reg) * 100) : 0;
+                  $rp_rev_cnt = (isset($rp['reviews']) && is_array($rp['reviews'])) ? count($rp['reviews']) : (int)($rp['reviews_count'] ?? 0);
+                  $rp_rating  = $rp_rev_cnt > 0 ? (float)($rp['rating'] ?? 0) : 0.0;
+                  $rp_stars   = (int)round($rp_rating);
+               ?>
+               <div class="col">
+                  <div class="aq-product-item aq-product-main d-flex flex-column justify-content-between mb-15">
+                     <div class="aq-product-thumb aq-img-hover-wrap p-relative mb-10">
+                        <?php if ($rp_disc > 0): ?>
+                        <div class="aq-product-badge">
+                           <span class="clr-sale">-<?= $rp_disc; ?>%</span>
+                        </div>
+                        <?php endif; ?>
+                        <a href="<?= $rp_slug; ?>">
+                           <img class="aq-product-img" src="<?= $rp_img; ?>" alt="<?= html_escape($rp_name); ?>">
+                        </a>
+                     </div>
+                     <div class="aq-product-content text-center">
+                        <h4 class="aq-product-title mb-1"><a href="<?= $rp_slug; ?>"><?= html_escape($rp_name); ?></a></h4>
+                        <div class="aq-product-ratting text-warning small mb-1 d-flex align-items-center justify-content-center gap-1">
+                           <span>
+                              <?php for ($si = 1; $si <= 5; $si++): ?>
+                                 <i class="fa-<?= ($si <= $rp_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                              <?php endfor; ?>
+                           </span>
+                           <span class="text-muted" style="font-size:12px;">(<?= $rp_rev_cnt; ?>)</span>
+                        </div>
+                        <div class="aq-product-price">
+                           <ins><span class="aq-product-new-price"><?= $currency_symbol . number_format($rp_sal, 2); ?></span></ins>
+                           <?php if ($rp_reg > $rp_sal): ?>
+                           <del><span class="aq-product-old-price"><?= $currency_symbol . number_format($rp_reg, 2); ?></span></del>
+                           <?php endif; ?>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <?php endforeach; ?>
+            </div>
+         </div>
+      </div>
+      <?php endif; ?>
       <!-- Content -->
 
    </main>

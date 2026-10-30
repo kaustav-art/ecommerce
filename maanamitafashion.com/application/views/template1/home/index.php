@@ -1,4 +1,4 @@
-﻿        <!-- Slider -->
+        <!-- Slider -->
         <section class="tf-slideshow slider-default slider-effect-fade">
             <div dir="ltr" class="swiper tf-sw-slideshow" data-effect="fade" data-preview="1" data-tablet="1" data-mobile="1" data-centered="false" data-space="0" data-space-mb="0" data-loop="true" data-auto-play="true">
                 <div class="swiper-wrapper">
@@ -65,7 +65,7 @@
                 <div class="tf-grid-layout tf-col-2 lg-col-3 xl-col-4" id="homeProductGrid">
                     <?php if (!empty($products)): ?>
                         <?php foreach ($products as $p): ?>
-                            <?php $this->load->view('template1/home/_product_card', ['p' => $p, 'currency_symbol' => $currency_symbol ?? '$']); ?>
+                            <?php $this->load->view('home/_product_card', ['p' => $p, 'currency_symbol' => $currency_symbol ?? '$']); ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="col-12 text-center py-5">
@@ -269,4 +269,3 @@
             }
         });
         </script>
-

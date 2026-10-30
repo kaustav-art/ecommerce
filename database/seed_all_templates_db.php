@@ -693,12 +693,16 @@ function seed_tenant2_grocery(PDO $pdo) {
 
     // 3. Categories
     $categories = [
-        ['name' => 'Fresh Vegetables',   'slug' => 'fresh-vegetables', 'desc' => 'Crisp Hydroponic & Organic Farm Greens',     'img' => 'assets/templates/bazaro/img/product/grocery-p-1.jpg'],
-        ['name' => 'Organic Fruits',     'slug' => 'organic-fruits',   'desc' => 'Orchard Fresh Berries, Avocados & Apples',   'img' => 'assets/templates/bazaro/img/product/grocery-p-2.jpg'],
-        ['name' => 'Dairy & Farm Eggs',  'slug' => 'dairy-eggs',       'desc' => 'Pasture-Raised A2 Milk, Yogurt & Brown Eggs','img' => 'assets/templates/bazaro/img/product/grocery-p-3.jpg'],
-        ['name' => 'Bakery & Breads',    'slug' => 'bakery-breads',    'desc' => 'Stoneground Sourdough & Morning Pastries',   'img' => 'assets/templates/bazaro/img/product/grocery-p-4.jpg'],
-        ['name' => 'Organic Pantry',     'slug' => 'meats-seafood',    'desc' => 'Raw Wildflower Honey, Nuts & Cold Oils',     'img' => 'assets/templates/bazaro/img/product/grocery-p-5.jpg'],
-        ['name' => 'Organic Juices',     'slug' => 'beverages-juices', 'desc' => '100% Cold-Pressed Juices & Wellness Drinks', 'img' => 'assets/templates/bazaro/img/product/grocery-p-6.jpg'],
+        ['name' => 'Fresh Vegetables',       'slug' => 'fresh-vegetables',     'desc' => 'Crisp Hydroponic & Organic Farm Greens',     'img' => 'grocery/broccoli.png'],
+        ['name' => 'Organic Fruits',         'slug' => 'organic-fruits',       'desc' => 'Orchard Fresh Berries, Avocados & Apples',   'img' => 'grocery/apple.png'],
+        ['name' => 'Dairy & Farm Eggs',      'slug' => 'dairy-eggs',           'desc' => 'Pasture-Raised A2 Milk, Yogurt & Brown Eggs','img' => 'grocery/eggs.png'],
+        ['name' => 'Bakery & Breads',        'slug' => 'bakery-breads',        'desc' => 'Stoneground Sourdough & Morning Pastries',   'img' => 'grocery/bread.png'],
+        ['name' => 'Organic Pantry',         'slug' => 'meats-seafood',        'desc' => 'Raw Wildflower Honey, Nuts & Cold Oils',     'img' => 'grocery/groceries.png'],
+        ['name' => 'Organic Juices',         'slug' => 'beverages-juices',     'desc' => '100% Cold-Pressed Juices & Wellness Drinks', 'img' => 'grocery/orange-juice.png'],
+        ['name' => 'Root & Farm Greens',     'slug' => 'root-farm-greens',     'desc' => 'Farm-Fresh Carrots, Beets & Root Produce',   'img' => 'grocery/carrot.png'],
+        ['name' => 'Snacks & Branded Foods', 'slug' => 'snacks-branded-foods', 'desc' => 'Wholesome Snacks, Cereals & Packaged Foods', 'img' => 'grocery/grocery.png'],
+        ['name' => 'Healthy & Diet Foods',   'slug' => 'healthy-diet-foods',   'desc' => 'Nutrient-Rich Superfoods & Healthy Staples', 'img' => 'grocery/healthy-food.png'],
+        ['name' => 'Daily Essentials',       'slug' => 'daily-essentials',     'desc' => 'Everyday Household & Grocery Must-Haves',    'img' => 'grocery/shopping-bag.png'],
     ];
     $catMap = [];
     $insCat = $pdo->prepare("INSERT INTO `categories` (`tenant_id`, `parent_id`, `name`, `slug`, `description`, `image`, `is_featured`, `sort_order`, `status`) VALUES (?, 0, ?, ?, ?, ?, 1, ?, 'active')");

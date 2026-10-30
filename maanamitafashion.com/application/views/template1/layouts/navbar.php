@@ -9,9 +9,8 @@
                         <div class="store-logo-col flex-shrink-0 order-1">
                             <a href="<?= site_url('home'); ?>" class="logo-header d-inline-block">
                                 <?php
-                                  $raw_logo = trim((string)($store_settings['site_logo'] ?? ''));
-                                  $web_logo = ($raw_logo !== '')
-                                    ? ((strpos($raw_logo, 'assets/') === 0) ? base_url($raw_logo) : base_url('assets/images/logo/' . $raw_logo))
+                                  $web_logo = !empty($store_settings['site_logo'])
+                                    ? base_url('assets/images/logo/' . $store_settings['site_logo'])
                                     : base_url('assets/images/logo/logo.webp');
                                 ?>
                                 <img src="<?= $web_logo; ?>" alt="<?= html_escape($site_name ?? ($store_settings['site_name'] ?? 'Store')); ?>" class="logo" style="max-height: 42px; width: auto; object-fit: contain;" onerror="this.src='<?= base_url('assets/images/logo/logo.webp'); ?>'">
@@ -21,56 +20,59 @@
                         <!-- Right Actions (Login / User Account, Wishlist & Cart) -->
                         <div class="store-actions-col flex-shrink-0 d-flex align-items-center gap-3 gap-md-4 order-2 order-md-3">
                             
-                            <!-- User Account -->
+                            <!-- User Account / Login -->
                             <div class="store-nav-account position-relative">
-                                <?php if (!empty($is_logged_in) && !empty($current_user)): ?>
-                                    <?php
-                                        $u_first = $current_user['first_name'] ?? 'Member';
-                                        $u_name  = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? '')) ?: 'Member';
-                                        $u_email = $current_user['email'] ?? ($current_user['phone'] ?? '');
-                                    ?>
-                                    <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
-                                        <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline"><?= html_escape($u_first); ?></span>
-                                        <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
-                                    </a>
+                                <?php if (!empty($is_logged_in)):
+                                    $u_first = !empty($current_user['first_name']) ? $current_user['first_name'] : 'Account';
+                                    $u_name  = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                                    if ($u_name === '') $u_name = 'My Account';
+                                    $u_email = !empty($current_user['email']) ? $current_user['email'] : ($current_user['phone'] ?? '');
+                                ?>
+                                <a href="<?= site_url('account/profile'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="<?= html_escape($u_name); ?>">
+                                    <i class="fa-regular fa-circle-user store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline"><?= html_escape($u_first); ?></span>
+                                    <i class="fa-solid fa-chevron-down store-action-chevron d-none d-md-inline"></i>
+                                </a>
 
-                                    <!-- User Account Drawer Menu (Opens on hover) -->
-                                    <div class="after-login-drawer-menu shadow-lg">
-                                        <div class="drawer-user-header p-3 border-bottom d-flex align-items-center">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden me-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 16px; font-weight: bold;">
-                                                <?= strtoupper(substr($u_first, 0, 1)); ?>
-                                            </div>
-                                            <div class="overflow-hidden" style="min-width: 0;">
-                                                <div class="text-muted text-uppercase" style="font-size: 10.5px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
-                                                <div class="fw-bold text-dark text-truncate" style="font-size: 14px;" title="<?= html_escape($u_name); ?>">
-                                                    <?= html_escape($u_name); ?>
-                                                </div>
-                                                <div class="text-muted small text-truncate" style="font-size: 11.5px;" title="<?= html_escape($u_email); ?>">
-                                                    <?= html_escape($u_email); ?>
-                                                </div>
-                                            </div>
+                                <!-- User Account Drawer Menu (Opens on hover) -->
+                                <div class="after-login-drawer-menu shadow-lg">
+                                    <div class="drawer-user-header p-3 border-bottom d-flex align-items-center">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm overflow-hidden me-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 16px; font-weight: bold;">
+                                            <?= strtoupper(substr($u_first, 0, 1)); ?>
                                         </div>
-                                        <div class="py-2">
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/profile'); ?>"><i class="fa-regular fa-user text-primary me-3" style="width: 16px;"></i>My Profile</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive text-primary me-3" style="width: 16px;"></i>Orders</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a>
-                                            <div class="dropdown-divider my-1"></div>
-                                            <a class="dropdown-item py-2 px-3 d-flex align-items-center text-danger" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>Logout</a>
+                                        <div class="overflow-hidden" style="min-width: 0;">
+                                            <div class="text-muted text-uppercase" style="font-size: 10.5px; letter-spacing: 0.5px; font-weight: 600;">Welcome</div>
+                                            <div class="fw-bold text-dark text-truncate" style="font-size: 14px;" title="<?= html_escape($u_name); ?>">
+                                                <?= html_escape($u_name); ?>
+                                            </div>
+                                            <?php if ($u_email !== ''): ?>
+                                            <div class="text-muted small text-truncate" style="font-size: 11.5px;" title="<?= html_escape($u_email); ?>">
+                                                <?= html_escape($u_email); ?>
+                                            </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
+                                    <div class="py-2">
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/profile'); ?>"><i class="fa-regular fa-user text-primary me-3" style="width: 16px;"></i>My Profile</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/orders'); ?>"><i class="fa-solid fa-box-archive text-primary me-3" style="width: 16px;"></i>Orders</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/address'); ?>"><i class="fa-solid fa-location-dot text-primary me-3" style="width: 16px;"></i>Saved Address</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('wishlist'); ?>"><i class="fa-regular fa-heart text-primary me-3" style="width: 16px;"></i>Wishlist</a>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center" href="<?= site_url('account/notifications'); ?>"><i class="fa-regular fa-bell text-primary me-3" style="width: 16px;"></i>Notification</a>
+                                        <div class="dropdown-divider my-1"></div>
+                                        <a class="dropdown-item py-2 px-3 d-flex align-items-center text-danger fw-semibold" href="<?= site_url('logout'); ?>"><i class="fa-solid fa-arrow-right-from-bracket me-3" style="width: 16px;"></i>Logout</a>
+                                    </div>
+                                </div>
                                 <?php else: ?>
-                                    <a href="#exampleModalToggle" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="Sign In">
-                                        <i class="fa-regular fa-circle-user store-action-icon"></i>
-                                        <span class="store-action-text d-none d-md-inline">Login</span>
-                                    </a>
+                                <a href="#exampleModalToggle" data-bs-toggle="modal" class="store-nav-action-link d-flex align-items-center text-decoration-none" title="Sign In">
+                                    <i class="fa-regular fa-circle-user store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline">Sign In</span>
+                                </a>
                                 <?php endif; ?>
                             </div>
 
                             <!-- Wishlist -->
                             <div class="store-nav-wishlist">
+                                <?php if (!empty($is_logged_in)): ?>
                                 <a href="<?= site_url('wishlist'); ?>" class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
                                     <i class="fa-regular fa-heart store-action-icon"></i>
                                     <span class="store-action-text d-none d-md-inline">Wishlist</span>
@@ -78,6 +80,12 @@
                                         <span class="store-cart-badge" id="wishlist-counter"><?= $wishlist_count; ?></span>
                                     <?php endif; ?>
                                 </a>
+                                <?php else: ?>
+                                <a href="#exampleModalToggle" data-bs-toggle="modal" data-redirect-to="<?= site_url('wishlist'); ?>" data-login-message="Please sign in to view your wishlist." class="store-nav-action-link d-flex align-items-center text-decoration-none position-relative" title="Wishlist">
+                                    <i class="fa-regular fa-heart store-action-icon"></i>
+                                    <span class="store-action-text d-none d-md-inline">Wishlist</span>
+                                </a>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Cart -->
@@ -1019,13 +1027,19 @@
                     }
 
                     autoTimer = setTimeout(function() {
-                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query))
+                        var autoPreviewQs = <?= empty($is_user_project) ? "'&preview_tpl=fashion'" : "''"; ?>;
+                        var itemPreviewQs = <?= empty($is_user_project) ? "'?preview_tpl=fashion'" : "''"; ?>;
+                        fetch('<?= site_url("shop/autocomplete"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs)
                             .then(function(res) { return res.json(); })
                             .then(function(data) {
                                 if (data.results && data.results.length > 0) {
                                     var html = '';
                                     data.results.forEach(function(item) {
-                                        html += '<a href="' + item.url + '" class="store-auto-item">';
+                                        var itemUrl = item.url || '';
+                                        if (itemPreviewQs && itemUrl.indexOf('preview_tpl=') === -1) {
+                                            itemUrl += (itemUrl.indexOf('?') === -1 ? '?' : '&') + 'preview_tpl=fashion';
+                                        }
+                                        html += '<a href="' + itemUrl + '" class="store-auto-item">';
                                         html += '  <img src="' + item.image + '" class="store-auto-img" alt="' + item.title + '" onerror="this.src=\'<?= base_url("assets/images/collections/collection-circle/cls-circle1.jpg"); ?>\'">';
                                         html += '  <div class="flex-grow-1 overflow-hidden">';
                                         html += '    <div class="store-auto-title">' + item.title + '</div>';
@@ -1034,7 +1048,7 @@
                                         html += '  <div class="store-auto-price">' + item.price_html + '</div>';
                                         html += '</a>';
                                     });
-                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + '" class="store-auto-viewall">';
+                                    html += '<a href="<?= site_url("shop"); ?>?q=' + encodeURIComponent(query) + autoPreviewQs + '" class="store-auto-viewall">';
                                     html += '  View all results for "<strong>' + query.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong>" <i class="fa-solid fa-arrow-right ms-1"></i>';
                                     html += '</a>';
 

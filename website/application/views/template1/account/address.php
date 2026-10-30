@@ -1,4 +1,4 @@
-﻿        <!-- breadcrumb -->
+        <!-- breadcrumb -->
         <div class="bg-light py-2 border-bottom">
             <div class="container" style="max-width: 1240px;">
                 <nav aria-label="breadcrumb">
@@ -18,7 +18,7 @@
                 <div class="row g-3">
                     <!-- Left Sidebar -->
                     <div class="col-lg-3 col-md-4">
-                        <?php $this->load->view('template1/account/sidebar'); ?>
+                        <?php $this->load->view('account/sidebar'); ?>
                     </div>
 
                     <!-- Right Content -->
@@ -74,12 +74,12 @@
                                             <input type="text" name="postcode" id="addr_postcode" class="form-control rounded-1 bg-white" placeholder="Pincode" maxlength="6" pattern="[0-9]{6}" required style="height: 48px; border-color: #e0e0e0;">
                                         </div>
                                         <div class="col-md-6">
-                                            <input type="text" name="locality" id="addr_locality" class="form-control rounded-1 bg-white" placeholder="Locality" required style="height: 48px; border-color: #e0e0e0;">
+                                            <input type="text" name="locality" id="addr_locality" class="form-control rounded-1 bg-white" placeholder="Locality" style="height: 48px; border-color: #e0e0e0;">
                                         </div>
 
                                         <!-- Address (Area and Street) -->
                                         <div class="col-12">
-                                            <textarea name="address_1" id="addr_address_1" class="form-control rounded-1 bg-white" rows="3" placeholder="Address (Area and Street)" required style="border-color: #e0e0e0; resize: vertical;"></textarea>
+                                            <textarea name="address_1" id="addr_address_1" class="form-control rounded-1 bg-white" rows="3" placeholder="Address (Area and Street)" required style="border-color: #e0e0e0; resize: vertical; height: auto !important; min-height: 84px !important; line-height: 1.5 !important;"></textarea>
                                         </div>
 
                                         <!-- City & State -->
@@ -236,6 +236,19 @@
         </section>
         <!-- /my-account -->
 
+        <style>
+        #fk-address-form .form-control,
+        #fk-address-form .form-select {
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+        }
+        #fk-address-form .form-control:focus,
+        #fk-address-form .form-select:focus {
+            border-color: var(--bs-primary, #108910) !important;
+            box-shadow: 0 0 0 3px rgba(16, 137, 16, 0.12) !important;
+        }
+        </style>
+
         <script>
         function openAddressForm() {
             var box = document.getElementById('address-form-box');
@@ -268,13 +281,52 @@
             title.innerText = 'EDIT ADDRESS';
             document.getElementById('addr_id').value = addr.id || '';
             document.getElementById('addr_name').value = ((addr.first_name || '') + ' ' + (addr.last_name || '')).trim();
-            document.getElementById('addr_phone').value = addr.phone || '';
+
+            var rawPhone = String(addr.phone || '').replace(/\D/g, '');
+            if (rawPhone.length > 10) {
+                rawPhone = rawPhone.slice(-10);
+            }
+            document.getElementById('addr_phone').value = rawPhone || (addr.phone || '');
             document.getElementById('addr_postcode').value = addr.postcode || '';
-            document.getElementById('addr_locality').value = addr.address_2 || '';
+
+            var rawAddr2 = addr.address_2 || '';
+            var rawLandmark = addr.landmark || '';
+            if (!rawLandmark && rawAddr2.indexOf(', Near ') !== -1) {
+                var splitParts = rawAddr2.split(', Near ');
+                rawAddr2 = splitParts[0] || '';
+                rawLandmark = splitParts.slice(1).join(', Near ') || '';
+            } else if (!rawLandmark && rawAddr2.indexOf('Near ') === 0) {
+                rawLandmark = rawAddr2.substring(5);
+                rawAddr2 = '';
+            }
+
+            document.getElementById('addr_locality').value = rawAddr2;
             document.getElementById('addr_address_1').value = addr.address_1 || '';
             document.getElementById('addr_city').value = addr.city || '';
-            document.getElementById('addr_state').value = addr.state || '';
-            document.getElementById('addr_landmark').value = addr.landmark || '';
+
+            var stateSelect = document.getElementById('addr_state');
+            var targetState = (addr.state || '').trim();
+            if (stateSelect) {
+                var matchedState = false;
+                for (var i = 0; i < stateSelect.options.length; i++) {
+                    if (stateSelect.options[i].value.toLowerCase() === targetState.toLowerCase()) {
+                        stateSelect.selectedIndex = i;
+                        matchedState = true;
+                        break;
+                    }
+                }
+                if (!matchedState && targetState !== '') {
+                    var customOpt = document.createElement('option');
+                    customOpt.value = targetState;
+                    customOpt.text = targetState;
+                    stateSelect.appendChild(customOpt);
+                    stateSelect.value = targetState;
+                } else if (!matchedState) {
+                    stateSelect.selectedIndex = 0;
+                }
+            }
+
+            document.getElementById('addr_landmark').value = rawLandmark;
             document.getElementById('addr_alternate_phone').value = addr.alternate_phone || '';
 
             var tag = (addr.company || '').toUpperCase();
@@ -340,5 +392,4 @@
             }, { timeout: 10000 });
         }
         </script>
-
 

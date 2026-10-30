@@ -81,7 +81,7 @@ $color_map = [];
 $initial_color = '';
 $initial_size = '';
 $initial_variant_id = 0;
-$initial_sku = $product['sku'];
+$initial_sku = $product['sku'] ?? ('SKU-' . ($product['id'] ?? '100'));
 
 if ($has_color && !empty($product['attributes']['color']['values'])) {
     foreach ($product['attributes']['color']['values'] as $idx => $c_val) {
@@ -1180,9 +1180,9 @@ if (!empty($initial_variant)) {
                         <i class="icon icon-arrRight"></i>
                         <a href="<?= site_url('shop'); ?>" class="text text-caption-1">Shop</a>
                         <i class="icon icon-arrRight"></i>
-                        <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text text-caption-1"><?= html_escape($product['category_name']); ?></a>
+                        <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text text-caption-1"><?= html_escape($product['category_name'] ?? 'Shop'); ?></a>
                         <i class="icon icon-arrRight"></i>
-                        <span class="text text-caption-1"><?= html_escape($product['title']); ?></span>
+                        <span class="text text-caption-1"><?= html_escape($product['title'] ?? ''); ?></span>
                     </div>
                     <div class="tf-breadcrumb-prev-next">
                         <a href="<?= site_url('shop'); ?>" class="tf-breadcrumb-back" title="Back to shop">
@@ -1383,7 +1383,7 @@ if (!empty($initial_variant)) {
                                                         <?php endif; ?>
                                                     <?php endif; ?>
                                                     <?php if (!empty($product['category_name'])): ?>
-                                                        <a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
+                                                        <a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text-secondary text-decoration-none small"><?= html_escape($product['category_name']); ?></a>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>
@@ -1417,13 +1417,13 @@ if (!empty($initial_variant)) {
                                                     <div class="tf-product-info-rate d-flex align-items-center gap-1">
                                                         <div class="list-star text-muted" style="font-size: 13px;">
                                                             <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                                <i class="fa-regular fa-star text-secondary" style="opacity: 0.35;"></i>
+                                                                <i class="fa-regular fa-star text-secondary" style="opacity: 0.45;"></i>
                                                             <?php endfor; ?>
                                                         </div>
-                                                        <div class="text text-caption-1 text-secondary ms-1">(No reviews yet)</div>
+                                                        <div class="text text-caption-1 text-secondary ms-1">(0)</div>
                                                     </div>
                                                     <span class="text-secondary">|</span>
-                                                    <a href="#tab-customer-reviews" class="text-primary small text-decoration-none fw-semibold" onclick="activateReviewTab()">Write a review</a>
+                                                    <a href="#tab-customer-reviews" class="text-secondary small text-decoration-none" onclick="activateReviewTab()">See reviews</a>
                                                 <?php endif; ?>
                                             </div>
 
@@ -1697,7 +1697,7 @@ if (!empty($initial_variant)) {
                                             </li>
                                             <li class="d-flex gap-2 py-1">
                                                 <p class="text-caption-1 mb-0 text-secondary">Category:</p>
-                                                <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . $product['category_slug']); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name']); ?></a></p>
+                                                <p class="text-caption-1 mb-0"><a href="<?= site_url('shop/' . ($product['category_slug'] ?? '')); ?>" class="text-primary text-decoration-none fw-semibold"><?= html_escape($product['category_name'] ?? 'Shop'); ?></a></p>
                                             </li>
                                         </ul>
 
@@ -2050,72 +2050,6 @@ if (!empty($initial_variant)) {
             </div>
         </section>
         <!-- /Product_Description_Tabs -->
-
-        <!-- FREQUENTLY BOUGHT TOGETHER -->
-        <?php if (!empty($frequently_bought_together)): ?>
-            <section class="py-5 border-top">
-                <div class="container">
-                    <h4 class="fw-bold mb-4">Frequently Bought Together</h4>
-                    <div class="row align-items-center g-4">
-                        <div class="col-lg-8">
-                            <div class="d-flex align-items-center gap-3 flex-wrap">
-                                <!-- Main Item -->
-                                <div class="card border rounded p-2 text-center" style="width: 140px;">
-                                    <img src="<?= base_url('assets/images/' . $all_images[0]); ?>" class="card-img-top rounded mb-2" style="height: 120px; object-fit: cover;" alt="<?= html_escape($product['title']); ?>">
-                                    <div class="small fw-bold text-truncate"><?= html_escape($product['title']); ?></div>
-                                    <div class="small text-danger fw-bold"><?= $currency_symbol . number_format($current_price, 2); ?></div>
-                                </div>
-
-                                <?php foreach ($frequently_bought_together as $idx => $fbt): 
-                                    $fbt_price = !empty($fbt['sale_price']) ? (float) $fbt['sale_price'] : (float) $fbt['price'];
-                                ?>
-                                    <div class="fs-4 text-muted fw-bold">+</div>
-                                    <div class="card border rounded p-2 text-center" style="width: 140px;">
-                                        <a href="<?= site_url('product/' . $fbt['slug']); ?>">
-                                            <img src="<?= base_url('assets/images/' . $fbt['main_image']); ?>" class="card-img-top rounded mb-2" style="height: 120px; object-fit: cover;" alt="<?= html_escape($fbt['title']); ?>" onerror="this.src='<?= base_url('assets/images/products/womens/women-1.jpg'); ?>'">
-                                        </a>
-                                        <div class="small fw-bold text-truncate"><?= html_escape($fbt['title']); ?></div>
-                                        <div class="small text-danger fw-bold"><?= $currency_symbol . number_format($fbt_price, 2); ?></div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                            <div class="mt-3">
-                                <div class="form-check mb-1">
-                                    <input class="form-check-input" type="checkbox" checked disabled id="fbt-main-check">
-                                    <label class="form-check-label small" for="fbt-main-check">
-                                        <strong>This item:</strong> <?= html_escape($product['title']); ?> (<?= $currency_symbol . number_format($current_price, 2); ?>)
-                                    </label>
-                                </div>
-                                <?php 
-                                $bundle_sum = $current_price;
-                                foreach ($frequently_bought_together as $idx => $fbt): 
-                                    $f_price = !empty($fbt['sale_price']) ? (float) $fbt['sale_price'] : (float) $fbt['price'];
-                                    $bundle_sum += $f_price;
-                                ?>
-                                    <div class="form-check mb-1">
-                                        <input class="form-check-input fbt-checkbox" type="checkbox" checked id="fbt-item-<?= $fbt['id']; ?>" data-id="<?= $fbt['id']; ?>" data-price="<?= $f_price; ?>" onchange="updateBundleTotal()">
-                                        <label class="form-check-label small" for="fbt-item-<?= $fbt['id']; ?>">
-                                            <?= html_escape($fbt['title']); ?> (<?= $currency_symbol . number_format($f_price, 2); ?>)
-                                        </label>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4">
-                            <div class="card p-4 border bg-light text-center">
-                                <div class="text-secondary small mb-1">Total price for selected items:</div>
-                                <div class="fs-2 fw-bold text-primary mb-3" id="bundle-total-price"><?= $currency_symbol . number_format($bundle_sum, 2); ?></div>
-                                <button type="button" class="btn btn-primary fw-bold py-2 w-100" onclick="addBundleToCart()">
-                                    <i class="fa-solid fa-cart-plus me-1"></i> Add Selected to Cart
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        <?php endif; ?>
 
         <!-- RELATED PRODUCTS & RECENTLY VIEWED TABS -->
         <?php if (!empty($related_products) || !empty($recently_viewed_products)): ?>

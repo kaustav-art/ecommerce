@@ -1,6 +1,6 @@
-﻿<?php if (!empty($products)): ?>
+<?php if (!empty($products)): ?>
     <?php foreach ($products as $p): ?>
-        <?php $this->load->view('template1/home/_product_card', ['p' => $p, 'currency_symbol' => $currency_symbol ?? '$']); ?>
+        <?php $this->load->view('home/_product_card', ['p' => $p, 'currency_symbol' => $currency_symbol ?? '$']); ?>
     <?php endforeach; ?>
 <?php elseif (empty($is_append)): ?>
     <?php

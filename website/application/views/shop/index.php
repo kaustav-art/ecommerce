@@ -442,6 +442,9 @@
         // Collect current filter parameters
         function getFilterParams() {
             const params = new URLSearchParams();
+<?php if (empty($is_user_project)): ?>
+            params.set('preview_tpl', 'fashion');
+<?php endif; ?>
 
             // Sort
             const sortInput = document.getElementById('filter-sort-input');

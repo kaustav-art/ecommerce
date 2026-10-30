@@ -84,9 +84,22 @@ if ($active_template === 'electronics') {
                                 <!-- Details -->
                                 <div class="d-flex flex-column flex-grow-1">
                                     <span class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 11px; letter-spacing: 0.5px;"><?= html_escape($cat_name); ?></span>
-                                    <h5 class="fw-bold text-dark text-truncate mb-2" style="font-size: 14.5px;" title="<?= html_escape($item_name); ?>">
+                                    <h5 class="fw-bold text-dark text-truncate mb-1" style="font-size: 14.5px;" title="<?= html_escape($item_name); ?>">
                                         <a href="<?= $prod_url; ?>" class="text-dark text-decoration-none"><?= html_escape($item_name); ?></a>
                                     </h5>
+                                    <?php
+                                    $w_rev_cnt = (isset($item['reviews']) && is_array($item['reviews'])) ? count($item['reviews']) : (int)($item['reviews_count'] ?? 0);
+                                    $w_rating  = $w_rev_cnt > 0 ? (float)($item['rating'] ?? 0) : 0.0;
+                                    $w_stars   = (int)round($w_rating);
+                                    ?>
+                                    <div class="d-flex align-items-center gap-1 text-warning small mb-2">
+                                        <span>
+                                            <?php for ($si = 1; $si <= 5; $si++): ?>
+                                                <i class="fa-<?= ($si <= $w_stars) ? 'solid' : 'regular'; ?> fa-star" style="font-size: 12px;"></i>
+                                            <?php endfor; ?>
+                                        </span>
+                                        <span class="text-muted" style="font-size: 12px;">(<?= $w_rev_cnt; ?>)</span>
+                                    </div>
 
                                     <div class="d-flex align-items-baseline gap-2 mb-3 mt-auto">
                                         <?php if ($sal_price > 0): ?>

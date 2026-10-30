@@ -38,15 +38,27 @@ $cats_list = !empty($all_categories) ? $all_categories : (!empty($nav_categories
 $active_cat_slug = $filters['category_slug'] ?? ($selected_category['slug'] ?? '');
 $elt_qs = empty($is_user_project) ? '?preview_tpl=electronics' : '';
 $total_all_cnt = isset($total_all_products) ? (int)$total_all_products : count($products);
-$tech_brands = ['Apple', 'Sony', 'Samsung', 'Bose', 'ASUS ROG', 'DJI', 'Logitech'];
-$tech_specs  = [
-    'Active Noise Cancelling',
-    'Wireless Bluetooth 5.3',
-    'Fast USB-C Charging',
-    '5G Ultra Wideband',
-    '4K UHD Display / Camera',
-    'Water Resistant IP68'
-];
+if (!empty($is_user_project)) {
+    $tech_brands = [];
+    if (!empty($brands) && is_array($brands)) {
+        foreach ($brands as $b) {
+            if (!empty($b['name'])) {
+                $tech_brands[] = $b['name'];
+            }
+        }
+    }
+    $tech_specs = [];
+} else {
+    $tech_brands = ['Apple', 'Sony', 'Samsung', 'Bose', 'ASUS ROG', 'DJI', 'Logitech'];
+    $tech_specs  = [
+        'Active Noise Cancelling',
+        'Wireless Bluetooth 5.3',
+        'Fast USB-C Charging',
+        '5G Ultra Wideband',
+        '4K UHD Display / Camera',
+        'Water Resistant IP68'
+    ];
+}
 ?>
 
 <style>
@@ -573,6 +585,7 @@ $tech_specs  = [
                   </div>
 
                   <!-- Hardware Brands Filter -->
+                  <?php if (!empty($tech_brands)): ?>
                   <div class="elt-filter-block">
                      <h6 class="elt-filter-heading">Hardware Brands</h6>
                      <?php foreach ($tech_brands as $b_idx => $b_name): ?>
@@ -581,12 +594,13 @@ $tech_specs  = [
                               <input type="checkbox" class="elt-brand-checkbox" value="<?= html_escape($b_name); ?>">
                               <?= html_escape($b_name); ?>
                            </span>
-                           <span class="text-muted small">(<?= (($b_idx * 3 + 4) % 9) + 2; ?>)</span>
                         </label>
                      <?php endforeach; ?>
                   </div>
+                  <?php endif; ?>
 
                   <!-- Key Tech Specifications -->
+                  <?php if (!empty($tech_specs)): ?>
                   <div class="elt-filter-block">
                      <h6 class="elt-filter-heading">Key Tech Specs</h6>
                      <?php foreach ($tech_specs as $spec): ?>
@@ -598,6 +612,7 @@ $tech_specs  = [
                         </label>
                      <?php endforeach; ?>
                   </div>
+                  <?php endif; ?>
                </div>
             </div>
 
@@ -654,9 +669,10 @@ $tech_specs  = [
                                  : (float)($p['price'] ?? 199);
                      $p_old    = (float)($p['price'] ?? $p_price);
                      $p_disc   = ($p_old > $p_price && $p_old > 0) ? round((($p_old - $p_price) / $p_old) * 100) : 0;
-                     $p_rating = isset($p['rating']) ? (float)$p['rating'] : 4.8;
-                     $p_rev    = isset($p['reviews_count']) ? (int)$p['reviews_count'] : 24;
-                     $p_brand  = $tech_brands[$idx % count($tech_brands)];
+                     $p_rev    = (isset($p['reviews']) && is_array($p['reviews'])) ? count($p['reviews']) : (int)($p['reviews_count'] ?? 0);
+                     $p_rating = $p_rev > 0 ? (float)($p['rating'] ?? 0) : 0.0;
+                     $p_stars  = (int)round($p_rating);
+                     $p_brand  = !empty($p['brand_name']) ? $p['brand_name'] : (!empty($p['brand']) ? $p['brand'] : (!empty($tech_brands) ? $tech_brands[$idx % count($tech_brands)] : ''));
                      $p_specs  = $spec_pairs[$idx % count($spec_pairs)];
                      $p_desc   = !empty($p['short_description']) ? $p['short_description'] : 'Engineered with next-gen hardware architecture, studio-grade acoustics, and all-day battery performance.';
 
@@ -684,7 +700,7 @@ $tech_specs  = [
                               <div class="aq-product-badge">
                                  <span class="clr-sale">-<?= $p_disc; ?>%</span>
                               </div>
-                           <?php else: ?>
+                           <?php elseif ($p_brand !== ''): ?>
                               <div class="aq-product-badge">
                                  <span style="background:#0B0D0E;color:#E1EEB7;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;"><?= html_escape($p_brand); ?></span>
                               </div>
@@ -722,8 +738,12 @@ $tech_specs  = [
                               <span class="text-uppercase fw-bold" style="font-size:11px;color:#64748b;letter-spacing:0.4px;">
                                  <?= html_escape($p_cat); ?>
                               </span>
-                              <span class="small fw-semibold" style="font-size:12px;color:#f59e0b;">
-                                 <i class="fa-solid fa-star"></i> <?= number_format($p_rating, 1); ?>
+                              <span class="small fw-semibold d-inline-flex align-items-center gap-1" style="font-size:12px;color:#f59e0b;">
+                                 <span>
+                                    <?php for ($si = 1; $si <= 5; $si++): ?>
+                                       <i class="fa-<?= ($si <= $p_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                                    <?php endfor; ?>
+                                 </span>
                                  <span class="text-muted fw-normal">(<?= $p_rev; ?>)</span>
                               </span>
                            </div>
@@ -756,14 +776,29 @@ $tech_specs  = [
                   <?php endforeach; ?>
                </div>
 
-               <!-- Empty Filter State -->
-               <div id="eltNoResultsBox" class="text-center py-5 bg-white rounded-4 border d-none">
-                  <i class="fa-solid fa-microchip mb-3" style="font-size:38px;color:#94a3b8;"></i>
-                  <h5 class="fw-bold text-dark">No matching electronics found</h5>
-                  <p class="text-muted small mb-3">Try adjusting your price range, brand selection, or search keyword.</p>
-                  <button type="button" class="aq-btn-black radius-30 border-0" onclick="document.getElementById('eltResetFiltersBtn').click();">
-                     Reset Tech Filters
+               <!-- Empty Filter / No Products State -->
+               <?php
+                  $elt_has_filters = !empty($filters['search']) || !empty($filters['min_price']) || !empty($filters['max_price']) || !empty($filters['on_sale']) || !empty($filters['attr_value_ids']) || !empty($selected_brands);
+               ?>
+               <div id="eltNoResultsBox" class="empty-products-state text-center <?= empty($products) ? '' : 'd-none'; ?>" style="width: 100%; padding: 60px 24px; background: #ffffff; border: 1px dashed #e5e7eb; border-radius: 16px; margin: 10px 0 30px;">
+                  <div class="empty-icon-box mb-3 d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px; border-radius: 50%; background: #f8fafc; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #eef1f6;">
+                     <i class="fa-solid fa-box-open" style="font-size: 28px; color: #9ca3af;"></i>
+                  </div>
+                  <h5 class="fw-bold mb-2" style="font-size: 19px; color: #1f2937; letter-spacing: -0.2px;">No products found</h5>
+                  <p class="text-muted mb-0" style="font-size: 14px; max-width: 440px; margin: 0 auto; line-height: 1.55;">
+                     <?php if (!empty($selected_category) && !$elt_has_filters): ?>
+                        There are currently no products available in <?= html_escape($selected_category['name']); ?>.
+                     <?php elseif ($elt_has_filters): ?>
+                        We couldn't find any products matching your selected filters.
+                     <?php else: ?>
+                        There are currently no products available in this section.
+                     <?php endif; ?>
+                  </p>
+                  <?php if (!empty($products)): ?>
+                  <button type="button" class="aq-btn-black radius-30 border-0 mt-3" onclick="document.getElementById('eltResetFiltersBtn').click();">
+                     Reset Filters
                   </button>
+                  <?php endif; ?>
                </div>
 
             </div>

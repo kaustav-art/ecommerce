@@ -77,14 +77,20 @@
                                     <!-- Rating Row -->
                                     <tr>
                                         <th class="text-start ps-3 bg-light text-muted small text-uppercase">Rating</th>
-                                        <?php foreach ($products as $p): ?>
+                                        <?php foreach ($products as $p):
+                                            $cp_rev_cnt = (isset($p['reviews']) && is_array($p['reviews'])) ? count($p['reviews']) : (int)($p['reviews_count'] ?? 0);
+                                            $cp_rating  = $cp_rev_cnt > 0 ? (float)($p['rating'] ?? 0) : 0.0;
+                                            $cp_stars   = (int)round($cp_rating);
+                                        ?>
                                             <td>
-                                                <div class="text-warning small mb-1">
-                                                    <?php for ($s = 1; $s <= 5; $s++): ?>
-                                                        <i class="fa-<?= ($s <= round($p['rating'])) ? 'solid' : 'regular'; ?> fa-star"></i>
-                                                    <?php endfor; ?>
+                                                <div class="text-warning small d-inline-flex align-items-center gap-1">
+                                                    <span>
+                                                        <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                            <i class="fa-<?= ($s <= $cp_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                                                        <?php endfor; ?>
+                                                    </span>
+                                                    <span class="text-muted">(<?= $cp_rev_cnt; ?>)</span>
                                                 </div>
-                                                <small class="text-muted">(<?= $p['reviews_count']; ?> reviews)</small>
                                             </td>
                                         <?php endforeach; ?>
                                     </tr>

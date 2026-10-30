@@ -245,12 +245,16 @@ $cats = [
     ['template2', 1, 'Gaming Consoles', 'gaming-consoles', '19 Products', 'assets/templates/bazaro/img/electronics/category/cat-6.jpg', 6, 'active'],
 
     // Template 3: Grocery
-    ['template3', 1, 'Fresh Vegetables', 'fresh-vegetables', '32 Items', 'assets/templates/bazaro/img/product/grocery-p-1.jpg', 1, 'active'],
-    ['template3', 1, 'Organic Fruits', 'organic-fruits', '28 Items', 'assets/templates/bazaro/img/product/grocery-p-2.jpg', 2, 'active'],
-    ['template3', 1, 'Dairy & Farm Eggs', 'dairy-eggs', '19 Items', 'assets/templates/bazaro/img/product/grocery-p-3.jpg', 3, 'active'],
-    ['template3', 1, 'Bakery & Breads', 'bakery-breads', '15 Items', 'assets/templates/bazaro/img/product/grocery-p-4.jpg', 4, 'active'],
-    ['template3', 1, 'Fresh Meats & Fish', 'meats-seafood', '14 Items', 'assets/templates/bazaro/img/product/grocery-p-5.jpg', 5, 'active'],
-    ['template3', 1, 'Organic Juices', 'beverages-juices', '24 Items', 'assets/templates/bazaro/img/product/grocery-p-6.jpg', 6, 'active'],
+    ['template3', 1, 'Fresh Vegetables',       'fresh-vegetables',     '32 Items', 'grocery/broccoli.png',     1,  'active'],
+    ['template3', 1, 'Organic Fruits',         'organic-fruits',       '28 Items', 'grocery/apple.png',        2,  'active'],
+    ['template3', 1, 'Dairy & Farm Eggs',      'dairy-eggs',           '19 Items', 'grocery/eggs.png',         3,  'active'],
+    ['template3', 1, 'Bakery & Breads',        'bakery-breads',        '15 Items', 'grocery/bread.png',        4,  'active'],
+    ['template3', 1, 'Organic Pantry',         'meats-seafood',        '14 Items', 'grocery/groceries.png',    5,  'active'],
+    ['template3', 1, 'Organic Juices',         'beverages-juices',     '24 Items', 'grocery/orange-juice.png', 6,  'active'],
+    ['template3', 1, 'Root & Farm Greens',     'root-farm-greens',     '18 Items', 'grocery/carrot.png',       7,  'active'],
+    ['template3', 1, 'Snacks & Branded Foods', 'snacks-branded-foods', '20 Items', 'grocery/grocery.png',      8,  'active'],
+    ['template3', 1, 'Healthy & Diet Foods',   'healthy-diet-foods',   '16 Items', 'grocery/healthy-food.png', 9,  'active'],
+    ['template3', 1, 'Daily Essentials',       'daily-essentials',     '25 Items', 'grocery/shopping-bag.png', 10, 'active'],
 ];
 
 $insCat = $pdo->prepare("INSERT INTO `template_categories`

@@ -80,9 +80,9 @@ foreach ([$products ?? [], $featured_products ?? [], $new_products ?? [], $bests
     }
 }
 
-$deals_list    = !empty($sale_products) ? array_slice($sale_products, 0, 6) : (!empty($deal_products) ? array_slice($deal_products, 0, 6) : array_slice($all_products, 0, 6));
-$arrivals_list = !empty($new_products) ? array_slice($new_products, 0, 8) : array_slice($all_products, 0, 8);
-$spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empty($featured_product) ? $featured_product : (!empty($all_products[0]) ? $all_products[0] : null));
+$deals_list     = (!empty($flash_sale) && (!empty($flash_sale_products) || !empty($deal_products))) ? (!empty($flash_sale_products) ? $flash_sale_products : $deal_products) : [];
+$arrivals_list  = !empty($new_products) ? array_slice($new_products, 0, 8) : array_slice($all_products, 0, 8);
+$spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empty($all_products[0]) ? $all_products[0] : (empty($is_user_project) && !empty($featured_product) ? $featured_product : null));
 ?>
 
    <main>
@@ -350,13 +350,11 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                   </div>
                </div>
             </div>
-            <div class="elt-categories-cupon-text text-center">
-               <p>Super discount for your first purchase <a href="<?= site_url('shop'); ?>">TECH2026</a> Use discount code in the checkout!</p>
-            </div>
          </div>
       </div>
       <!-- categories area end -->
 
+      <?php if (!empty($flash_sale) && !empty($deals_list)): ?>
       <!-- deals area start -->
       <div class="aq-product-3-area pt-100 pb-120">
          <div class="container">
@@ -364,19 +362,21 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                <div class="row">
                   <div class="col-xl-4 col-lg-6">
                      <div class="aq-product-3-title-box text-center text-lg-start">
-                        <h4 class="aq-section-title ff-onest-bold fs-36">Today's best Deals</h4>
+                        <h4 class="aq-section-title ff-onest-bold fs-36"><?= html_escape(!empty($flash_sale['title']) ? $flash_sale['title'] : "Today's best Deals"); ?></h4>
                      </div>
                   </div>
                   <div class="col-xl-8 col-lg-6">
                      <div class="aq-product-3-top-right d-flex justify-content-center justify-content-lg-end align-items-center">
                         <div class="aqf-deals-countbox d-flex align-items-center justify-content-center justify-content-lg-end">
-                           <div class="aq-date-countdown" data-date="2027-02-10T23:55:59"></div>
                            <div class="aq-countdown-text mr-20"><span>Ends in</span></div>
-                           <div id="countdown" class="aq-countdown-style-2 d-inline-flex align-items-center">
-                              <div class="count-box"><span id="days">05</span><i>:</i></div>
-                              <div class="count-box"><span id="hours">11</span><i>:</i></div>
-                              <div class="count-box"><span id="minutes">42</span><i>:</i></div>
-                              <div class="count-box"><span id="seconds">19</span></div>
+                           <?php
+                               $fs_end_time = !empty($flash_sale['end_time']) ? $flash_sale['end_time'] : date('Y-m-d H:i:s', strtotime('+2 days'));
+                           ?>
+                           <div id="eltCountdown" class="aq-countdown-style-2 d-inline-flex align-items-center" data-end-time="<?= html_escape($fs_end_time); ?>">
+                              <div class="count-box"><span id="days" class="elt-days">00</span><i>:</i></div>
+                              <div class="count-box"><span id="hours" class="elt-hours">00</span><i>:</i></div>
+                              <div class="count-box"><span id="minutes" class="elt-minutes">00</span><i>:</i></div>
+                              <div class="count-box"><span id="seconds" class="elt-seconds">00</span></div>
                            </div>
                         </div>
                         <div class="aq-product-3-top-btn">
@@ -405,7 +405,10 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                       $d_cat   = !empty($dp['category_name']) ? $dp['category_name'] : (!empty($dp['brand']) ? $dp['brand'] : 'Electronics');
                       $d_price = isset($dp['display_price']) ? (float)$dp['display_price'] : (float)(!empty($dp['sale_price']) && $dp['sale_price'] < $dp['price'] ? $dp['sale_price'] : $dp['price']);
                       $d_old   = isset($dp['original_price']) ? (float)$dp['original_price'] : (float)($dp['mrp'] ?? $dp['price'] ?? 0);
-                      $d_disc  = ($d_old > $d_price && $d_old > 0) ? round((($d_old - $d_price) / $d_old) * 100) : 15;
+                      $d_disc  = !empty($dp['total_discount_percent']) ? (int)$dp['total_discount_percent'] : (($d_old > $d_price && $d_old > 0) ? round((($d_old - $d_price) / $d_old) * 100) : 15);
+                      $d_rev_cnt = (isset($dp['reviews']) && is_array($dp['reviews'])) ? count($dp['reviews']) : (int)($dp['reviews_count'] ?? 0);
+                      $d_rating  = $d_rev_cnt > 0 ? (float)($dp['rating'] ?? 0) : 0.0;
+                      $d_stars   = (int)round($d_rating);
                   ?>
                   <div class="col">
                      <div class="aq-product-3-item d-flex align-items-center mb-5">
@@ -419,9 +422,17 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                         </div>
                         <div class="aq-product-content aq-product-3-content">
                            <span class="aq-product-category"><?= html_escape($d_cat); ?></span>
-                           <h4 class="aq-product-title ff-onest fs-18 mb-10">
+                           <h4 class="aq-product-title ff-onest fs-18 mb-1">
                               <a href="<?= $d_slug; ?>"><?= html_escape($d_name); ?></a>
                            </h4>
+                           <div class="aq-product-ratting text-warning small mb-1 d-flex align-items-center gap-1">
+                              <span>
+                                 <?php for ($si = 1; $si <= 5; $si++): ?>
+                                    <i class="fa-<?= ($si <= $d_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                                 <?php endfor; ?>
+                              </span>
+                              <span class="text-muted" style="font-size:12px;">(<?= $d_rev_cnt; ?>)</span>
+                           </div>
                            <div class="aq-product-price">
                               <ins><span class="aq-product-new-price"><?= $curr . number_format($d_price, 2); ?></span></ins>
                               <?php if ($d_old > $d_price): ?>
@@ -438,44 +449,85 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
       </div>
       <!-- deals area end -->
 
-      <!-- banner area start -->
-      <div class="aqf-banner-2-area elt-banner-style-3 mb-100">
-         <div class="container">
-            <div class="row">
-               <div class="col-lg-6">
-                  <div class="aqf-banner-2-box p-relative mb-20">
-                     <div class="aqf-banner-2-thumb">
-                        <img src="<?= $bazaro; ?>img/fashion-2/banner/banner-3-2.jpg" alt="Portable Speaker">
-                     </div>
-                     <div class="aqf-banner-2-content text-center">
-                        <span class="aq-section-subtitle mb-15">Homepod mini</span>
-                        <h4 class="aq-section-title ff-onest-bold fs-36 mb-25">Max Portable Speaker</h4>
-                        <span class="elt-banner-price mb-30">From <?= $curr; ?>199</span>
-                        <a class="aq-btn-black radius-30" href="<?= site_url('shop'); ?>">Shop Now</a>
-                     </div>
-                  </div>
-               </div>
-               <div class="col-lg-6">
-                  <div class="aqf-banner-2-box p-relative mb-20">
-                     <div class="aqf-banner-2-thumb">
-                        <img src="<?= $bazaro; ?>img/fashion-2/banner/banner-3-1.jpg" alt="Smart Watch">
-                     </div>
-                     <div class="aqf-banner-2-content text-center">
-                        <span class="aq-section-subtitle mb-15">Smart Watch</span>
-                        <h4 class="aq-section-title ff-onest-bold fs-36 mb-25">Gift of Smart Technology</h4>
-                        <span class="elt-banner-price mb-30">From <?= $curr; ?>249</span>
-                        <a class="aq-btn-black radius-30" href="<?= site_url('shop'); ?>">Shop Now</a>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-      <!-- banner area end -->
+      <!-- Dynamic countdown script for Today's best Deals -->
+      <script>
+      (function() {
+         function initEltCountdown() {
+            var el = document.getElementById('eltCountdown');
+            if (!el) return;
+
+            var daysEl  = el.querySelector('#days') || el.querySelector('.elt-days');
+            var hoursEl = el.querySelector('#hours') || el.querySelector('.elt-hours');
+            var minsEl  = el.querySelector('#minutes') || el.querySelector('.elt-minutes');
+            var secsEl  = el.querySelector('#seconds') || el.querySelector('.elt-seconds');
+
+            var endTimeStr = el.getAttribute('data-end-time') || '';
+            var targetDate = NaN;
+
+            if (endTimeStr) {
+               var parts = endTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+               if (parts) {
+                  targetDate = new Date(
+                     parseInt(parts[1], 10),
+                     parseInt(parts[2], 10) - 1,
+                     parseInt(parts[3], 10),
+                     parseInt(parts[4], 10),
+                     parseInt(parts[5], 10),
+                     parseInt(parts[6] || '0', 10)
+                  ).getTime();
+               } else {
+                  targetDate = new Date(endTimeStr.replace(' ', 'T')).getTime();
+               }
+            }
+
+            if (isNaN(targetDate) || targetDate <= 0) {
+               targetDate = new Date().getTime() + (2 * 86400000);
+            }
+
+            function tick() {
+               var now = new Date().getTime();
+               var diff = targetDate - now;
+
+               if (isNaN(diff) || diff <= 0) {
+                  if (daysEl)  daysEl.innerText  = '00';
+                  if (hoursEl) hoursEl.innerText = '00';
+                  if (minsEl)  minsEl.innerText  = '00';
+                  if (secsEl)  secsEl.innerText  = '00';
+                  return;
+               }
+
+               var second = 1000, minute = second * 60, hour = minute * 60, day = hour * 24;
+               var d = Math.floor(diff / day);
+               var h = Math.floor((diff % day) / hour);
+               var m = Math.floor((diff % hour) / minute);
+               var s = Math.floor((diff % minute) / second);
+
+               if (daysEl)  daysEl.innerText  = isNaN(d) ? '00' : String(d).padStart(2, '0');
+               if (hoursEl) hoursEl.innerText = isNaN(h) ? '00' : String(h).padStart(2, '0');
+               if (minsEl)  minsEl.innerText  = isNaN(m) ? '00' : String(m).padStart(2, '0');
+               if (secsEl)  secsEl.innerText  = isNaN(s) ? '00' : String(s).padStart(2, '0');
+            }
+
+            tick();
+            if (window._eltCountdownInterval) {
+               clearInterval(window._eltCountdownInterval);
+            }
+            window._eltCountdownInterval = setInterval(tick, 1000);
+         }
+
+         if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEltCountdown);
+         } else {
+            initEltCountdown();
+         }
+      })();
+      </script>
+      <?php endif; ?>
 
       <!-- arrivals area start -->
       <div class="elt-arrival-area elt-arrival-style pb-120">
          <div class="container">
+            <?php if (!empty($arrivals_list)): ?>
             <div class="elt-arrival-top mb-35">
                <div class="row align-items-center">
                   <div class="col-md-6">
@@ -497,7 +549,13 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                   </div>
                </div>
             </div>
+            <?php endif; ?>
             <div class="row gx-15 row-cols-xl-4 row-cols-lg-3 row-cols-md-2 row-cols-sm-2 row-cols-1">
+               <?php if (empty($arrivals_list)): ?>
+               <div class="col-12 w-100 py-5 text-center text-muted">
+                  <p class="mb-0">No products available at the moment.</p>
+               </div>
+               <?php endif; ?>
                <?php
                $ai = 1;
                foreach ($arrivals_list as $ap):
@@ -509,6 +567,9 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                    $a_price = isset($ap['display_price']) ? (float)$ap['display_price'] : (float)(!empty($ap['sale_price']) && $ap['sale_price'] < $ap['price'] ? $ap['sale_price'] : $ap['price']);
                    $a_old   = isset($ap['original_price']) ? (float)$ap['original_price'] : (float)($ap['mrp'] ?? $ap['price'] ?? 0);
                    $a_disc  = ($a_old > $a_price && $a_old > 0) ? round((($a_old - $a_price) / $a_old) * 100) : 0;
+                   $a_rev_cnt = (isset($ap['reviews']) && is_array($ap['reviews'])) ? count($ap['reviews']) : (int)($ap['reviews_count'] ?? 0);
+                   $a_rating  = $a_rev_cnt > 0 ? (float)($ap['rating'] ?? 0) : 0.0;
+                   $a_stars   = (int)round($a_rating);
                    $qv_json = htmlspecialchars(json_encode([
                        'id'       => $a_id,
                        'title'    => $a_name,
@@ -574,7 +635,15 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                               </li>
                            </ul>
                         </div>
-                        <h4 class="aq-product-title mb-10"><a href="<?= $a_slug; ?>"><?= html_escape($a_name); ?></a></h4>
+                        <h4 class="aq-product-title mb-1"><a href="<?= $a_slug; ?>"><?= html_escape($a_name); ?></a></h4>
+                        <div class="aq-product-ratting text-warning small mb-1 d-flex align-items-center justify-content-center gap-1">
+                           <span>
+                              <?php for ($si = 1; $si <= 5; $si++): ?>
+                                 <i class="fa-<?= ($si <= $a_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                              <?php endfor; ?>
+                           </span>
+                           <span class="text-muted" style="font-size:12px;">(<?= $a_rev_cnt; ?>)</span>
+                        </div>
                         <div class="aq-product-price">
                            <ins><span class="aq-product-new-price"><?= $curr . number_format($a_price, 2); ?></span></ins>
                            <?php if ($a_old > $a_price): ?>
@@ -591,11 +660,14 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
       <!-- arrivals area end -->
 
       <!-- product buy area start -->
-      <?php
-      $sp_id    = !empty($spotlight_item['id']) ? (int)$spotlight_item['id'] : 1;
-      $sp_name  = !empty($spotlight_item['name']) ? $spotlight_item['name'] : 'Apple Watch Ultra 2 Titanium';
-      $sp_cat   = !empty($spotlight_item['category_name']) ? $spotlight_item['category_name'] : 'Smart Wearables';
-      $sp_price = isset($spotlight_item['display_price']) ? (float)$spotlight_item['display_price'] : (float)($spotlight_item['price'] ?? 799.00);
+      <?php if (!empty($spotlight_item) || empty($is_user_project)):
+      $sp_id      = !empty($spotlight_item['id']) ? (int)$spotlight_item['id'] : 1;
+      $sp_name    = !empty($spotlight_item['name']) ? $spotlight_item['name'] : 'Apple Watch Ultra 2 Titanium';
+      $sp_cat     = !empty($spotlight_item['category_name']) ? $spotlight_item['category_name'] : 'Smart Wearables';
+      $sp_price   = isset($spotlight_item['display_price']) ? (float)$spotlight_item['display_price'] : (float)($spotlight_item['price'] ?? 799.00);
+      $sp_rev_cnt = (isset($spotlight_item['reviews']) && is_array($spotlight_item['reviews'])) ? count($spotlight_item['reviews']) : (int)($spotlight_item['reviews_count'] ?? 0);
+      $sp_rating  = $sp_rev_cnt > 0 ? (float)($spotlight_item['rating'] ?? 0) : 0.0;
+      $sp_stars   = (int)round($sp_rating);
       ?>
       <div class="elt-product-watch-area mb-120">
          <div class="container">
@@ -617,21 +689,14 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
                         <div class="tp-product-details-inventory">
                            <div class="aq-product-details-rating-wrapper d-flex align-items-center">
                               <div class="aq-product-details-rating-box d-flex align-items-center mb-10">
-                                 <div class="aq-product-details-rating">
-                                    <?php for ($r = 0; $r < 5; $r++): ?>
-                                    <span>
-                                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                          <path d="M6.6574 0L8.50892 4.4516L13.3148 4.83688L9.65322 7.9734L10.7719 12.6631L6.6574 10.15L2.5429 12.6631L3.66157 7.9734L0 4.83688L4.80587 4.4516L6.6574 0Z" fill="currentcolor"/>
-                                       </svg>
-                                    </span>
+                                 <div class="aq-product-details-rating text-warning">
+                                    <?php for ($r = 1; $r <= 5; $r++): ?>
+                                       <i class="fa-<?= ($r <= $sp_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
                                     <?php endfor; ?>
                                  </div>
-                                 <div class="aq-product-details-reviews">
-                                    <span>( 18 reviews )</span>
+                                 <div class="aq-product-details-reviews ms-1">
+                                    <span>(<?= $sp_rev_cnt; ?>)</span>
                                  </div>
-                              </div>
-                              <div class="aq-product-details-fomo-mesg mb-10">
-                                 <span><i>🔥</i> 41 sold in last 16 hours</span>
                               </div>
                            </div>
                         </div>
@@ -702,6 +767,7 @@ $spotlight_item = !empty($featured_products[0]) ? $featured_products[0] : (!empt
             </div>
          </div>
       </div>
+      <?php endif; ?>
       <!-- product buy area end -->
 
       <!-- brand area start -->

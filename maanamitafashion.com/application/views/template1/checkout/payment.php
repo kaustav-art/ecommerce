@@ -461,6 +461,39 @@
                         display: none !important;
                     }
                 }
+
+                /* Toast Close Button Normalization (Overrides template global button / .btn-close styles) */
+                .fk-toast-close-btn,
+                #checkout-toast-notice .btn-close {
+                    position: static !important;
+                    top: auto !important;
+                    right: auto !important;
+                    inset-inline-end: auto !important;
+                    transform: none !important;
+                    width: 28px !important;
+                    height: 28px !important;
+                    min-width: 28px !important;
+                    min-height: 28px !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    border: none !important;
+                    border-radius: 6px !important;
+                    background: transparent !important;
+                    color: inherit !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    flex-shrink: 0 !important;
+                    opacity: 0.8 !important;
+                    box-shadow: none !important;
+                    cursor: pointer !important;
+                }
+                .fk-toast-close-btn:hover,
+                #checkout-toast-notice .btn-close:hover {
+                    opacity: 1 !important;
+                    transform: none !important;
+                    background: rgba(0, 0, 0, 0.12) !important;
+                }
                 </style>
 
                 <!-- Top Horizontal Stepper (Step 3: Payment active) -->
@@ -899,13 +932,15 @@
             toast.className = 'position-fixed bottom-0 end-0 p-3';
             toast.style.zIndex = '99999';
             toast.innerHTML = 
-                '<div class="toast show align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert">' +
-                    '<div class="d-flex">' +
-                        '<div class="toast-body d-flex align-items-center gap-2">' +
-                            '<i class="fa-solid ' + icon + ' fs-5"></i>' +
+                '<div class="toast show ' + bgClass + ' border-0 shadow-lg rounded-3" role="alert" style="max-width: 400px;">' +
+                    '<div class="d-flex align-items-center justify-content-between py-2 ps-3 pe-2 gap-2">' +
+                        '<div class="toast-body d-flex align-items-center gap-2 p-0 flex-grow-1" style="font-size: 13.5px; line-height: 1.45;">' +
+                            '<i class="fa-solid ' + icon + ' fs-5 flex-shrink-0"></i>' +
                             '<span>' + message + '</span>' +
                         '</div>' +
-                        '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest(\'#checkout-toast-notice\').remove()"></button>' +
+                        '<button type="button" class="fk-toast-close-btn" aria-label="Close" onclick="this.closest(\'#checkout-toast-notice\').remove()" style="position: static !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; border-radius: 6px !important; background: transparent !important; color: inherit !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; opacity: 0.85 !important; cursor: pointer !important; box-shadow: none !important; transform: none !important;">' +
+                            '<i class="fa-solid fa-xmark" style="font-size: 15px; line-height: 1;"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(toast);

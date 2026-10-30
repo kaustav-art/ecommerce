@@ -105,7 +105,7 @@ class account extends MY_Controller {
                                 ->where('status', 'approved')
                                 ->count_all_results('reviews');
 
-        $avg = isset($stats['avg_rating']) && $stats['avg_rating'] !== null ? round((float) $stats['avg_rating'], 1) : 5.0;
+        $avg = ($count > 0 && isset($stats['avg_rating']) && $stats['avg_rating'] !== null) ? round((float) $stats['avg_rating'], 1) : 0.0;
 
         $this->db->where('tenant_id', $tid)
                  ->where('id', $product_id)

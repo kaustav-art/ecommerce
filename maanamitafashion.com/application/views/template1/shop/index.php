@@ -1,4 +1,4 @@
-﻿        <!-- page-title -->
+        <!-- page-title -->
         <div class="page-title" style="background-image: url('<?= base_url('assets/images/section/page-title.jpg'); ?>');">
             <div class="container-full">
                 <div class="row">
@@ -94,7 +94,7 @@
 
                 <!-- Applied filters meta bar -->
                 <div class="wrapper-control-shop mb-4" id="metaFilterShop">
-                    <?php $this->load->view('template1/shop/partials/meta_bar'); ?>
+                    <?php $this->load->view('shop/partials/meta_bar'); ?>
                 </div>
 
                 <!-- 2-Column Row: Left Sidebar (.col-xl-3) + Products Grid (.col-xl-9) -->
@@ -252,7 +252,7 @@
                         <div class="shop-products-container position-relative">
                             <!-- Products Grid (2 columns on mobile, 4 columns on desktop like home page) -->
                             <div class="tf-grid-layout tf-col-2 lg-col-3 xl-col-4 wrapper-shop" id="productGridContainer">
-                                <?php $this->load->view('template1/shop/partials/product_grid'); ?>
+                                <?php $this->load->view('shop/partials/product_grid'); ?>
                             </div>
 
                             <!-- Infinite Scroll Sentinel & Bottom Loader (like home page) -->
@@ -442,6 +442,9 @@
         // Collect current filter parameters
         function getFilterParams() {
             const params = new URLSearchParams();
+<?php if (empty($is_user_project)): ?>
+            params.set('preview_tpl', 'fashion');
+<?php endif; ?>
 
             // Sort
             const sortInput = document.getElementById('filter-sort-input');
@@ -971,4 +974,3 @@
             });
         });
         </script>
-

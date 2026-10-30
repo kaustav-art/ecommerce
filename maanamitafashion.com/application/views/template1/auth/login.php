@@ -19,6 +19,7 @@
                             </div>
 
                             <form action="<?= site_url('auth/login'); ?>" method="POST">
+                                <input type="hidden" name="redirect_to" value="<?= html_escape($auth_redirect); ?>">
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Email Address</label>
                                     <input type="email" name="email" class="form-control" value="john@example.com" placeholder="name@example.com" required autofocus>
