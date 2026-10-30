@@ -15,19 +15,17 @@ class checkout extends MY_Controller {
     public function index()
     {
         $items = $this->cart_model->get_items();
-        if (empty($items) && !$this->is_user_project) {
-            $items = Static_template_data::get('cart_items');
-        }
-
         if (empty($items)) {
             redirect('cart');
         }
 
+        if (!$this->is_logged_in() || empty($this->current_user['id'])) {
+            $this->session->set_flashdata('error', 'Please sign in to proceed to checkout.');
+            redirect('cart?login=1');
+        }
+
         $shipping_method = $this->session->userdata('shipping_method') ?: 'standard';
         $summary = $this->cart_model->get_cart_summary($shipping_method);
-        if (empty($summary['item_count']) && !$this->is_user_project) {
-            $summary = Static_template_data::get('cart_summary');
-        }
 
         $gateways = $this->setting_model->get_active_gateways();
         if (empty($gateways) && !$this->is_user_project) {
@@ -57,7 +55,7 @@ class checkout extends MY_Controller {
                 $default_address = $this->user_model->get_default_address($this->current_user['id'], 'shipping');
             }
         }
-        if (!$default_address) {
+        if (!$default_address && !$this->is_user_project) {
             $demo_addresses = Static_template_data::get('addresses');
             $default_address = !empty($demo_addresses[0]) ? $demo_addresses[0] : NULL;
         }
@@ -81,19 +79,17 @@ class checkout extends MY_Controller {
     public function payment()
     {
         $items = $this->cart_model->get_items();
-        if (empty($items) && !$this->is_user_project) {
-            $items = Static_template_data::get('cart_items');
-        }
-
         if (empty($items)) {
             redirect('cart');
         }
 
+        if (!$this->is_logged_in() || empty($this->current_user['id'])) {
+            $this->session->set_flashdata('error', 'Please sign in to proceed to checkout.');
+            redirect('cart?login=1');
+        }
+
         $shipping_method = $this->session->userdata('shipping_method') ?: 'standard';
         $summary = $this->cart_model->get_cart_summary($shipping_method);
-        if (empty($summary['item_count']) && !$this->is_user_project) {
-            $summary = Static_template_data::get('cart_summary');
-        }
 
         $gateways = $this->setting_model->get_active_gateways();
         if (empty($gateways) && !$this->is_user_project) {
@@ -121,7 +117,7 @@ class checkout extends MY_Controller {
                 $default_address = $this->user_model->get_default_address($this->current_user['id'], 'shipping');
             }
         }
-        if (!$default_address) {
+        if (!$default_address && !$this->is_user_project) {
             $demo_addresses = Static_template_data::get('addresses');
             $default_address = !empty($demo_addresses[0]) ? $demo_addresses[0] : NULL;
         }
@@ -243,12 +239,30 @@ class checkout extends MY_Controller {
     public function create_order_ajax()
     {
         $items = $this->cart_model->get_items();
-        if (empty($items) && !$this->is_user_project) {
-            $items = Static_template_data::get('cart_items');
-        }
-
         if (empty($items)) {
             return $this->json_response(['success' => false, 'message' => 'Your shopping bag is empty.'], 400);
+        }
+
+        // Validate Max Purchase Quantity (Per Order)
+        foreach ($items as $c_item) {
+            $prod_id = (int)($c_item['id'] ?? $c_item['product_id'] ?? 0);
+            $qty     = (int)($c_item['quantity'] ?? 1);
+            if ($prod_id > 0) {
+                $p_row = $this->db->select('title, max_purchase_quantity')
+                                  ->where('tenant_id', $this->tenant_id)
+                                  ->where('id', $prod_id)
+                                  ->get('products')
+                                  ->row_array();
+                if ($p_row && isset($p_row['max_purchase_quantity']) && (int)$p_row['max_purchase_quantity'] > 0) {
+                    $max_limit = (int)$p_row['max_purchase_quantity'];
+                    if ($qty > $max_limit) {
+                        return $this->json_response([
+                            'success' => false,
+                            'message' => 'The quantity for "' . html_escape($p_row['title']) . '" exceeds the maximum purchase limit of ' . $max_limit . ' per order. Please update your bag before placing your order.'
+                        ], 400);
+                    }
+                }
+            }
         }
 
         if (!$this->is_logged_in() || empty($this->current_user['id'])) {

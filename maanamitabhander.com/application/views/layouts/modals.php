@@ -800,7 +800,7 @@
         var container = document.getElementById('side-cart-items-container');
         var bottomBar = document.getElementById('side-cart-bottom-bar');
         var subtotalEl = document.getElementById('side-cart-subtotal');
-        var countBadges = document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count');
+        var countBadges = document.querySelectorAll('#cart-counter, .cart-count, .count-box.cart-count, .count-cart, .side-cart-count');
         var currency = '<?= $currency_symbol; ?>';
 
         var items = Array.isArray(cartItems) ? cartItems : Object.values(cartItems || {});
@@ -949,7 +949,31 @@
     window.handleCheckoutClick = function(e, redirectUrl) {
         if (!window.IS_USER_LOGGED_IN) {
             if (e && e.preventDefault) e.preventDefault();
-            window.openLoginModal(redirectUrl || '<?= site_url("checkout"); ?>', 'Please sign in or enter your mobile/email to proceed to checkout.');
+            if (typeof window.closeGrcCartDrawer === 'function') {
+                window.closeGrcCartDrawer();
+            }
+            if (typeof window.jQuery !== 'undefined') {
+                jQuery('.aq-cartmini-active, #grcCartMiniDrawer, .cartmini__area, .cartmini-area').removeClass('opened cartmini-opened active show');
+                jQuery('.body-overlay, .cartmini-overlay').removeClass('opened active show');
+                if (jQuery('#side-cart').length && typeof jQuery('#side-cart').modal === 'function') {
+                    jQuery('#side-cart').modal('hide');
+                }
+            }
+            var drawers = document.querySelectorAll('.aq-cartmini-active, #grcCartMiniDrawer, .cartmini__area, .cartmini-area, .body-overlay, .cartmini-overlay');
+            drawers.forEach(function(d) {
+                d.classList.remove('opened', 'cartmini-opened', 'active', 'show');
+            });
+            var sideCartModal = document.getElementById('side-cart');
+            if (sideCartModal && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var inst = bootstrap.Modal.getInstance(sideCartModal);
+                if (inst) inst.hide();
+            }
+            var targetUrl = redirectUrl || '<?= site_url("checkout"); ?>';
+            if (typeof window.openLoginModal === 'function') {
+                window.openLoginModal(targetUrl, 'Please sign in to proceed to checkout.');
+            } else {
+                window.location.href = '<?= site_url("cart?login=1"); ?>';
+            }
             return false;
         }
         return true;

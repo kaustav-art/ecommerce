@@ -267,24 +267,50 @@ class account extends MY_Controller {
             return;
         }
 
-        // Wishlist is strictly for logged-in users
+        // Support guest wishlist when not logged in
         if (!$this->is_logged_in() || empty($this->current_user['id'])) {
-            $this->session->set_userdata('pending_wishlist', $product_id);
-            setcookie('pending_wishlist', (string)$product_id, time() + 3600, '/');
+            $sess_key = 'guest_wishlist_t_' . $this->tenant_id;
+            $guest_wl = $this->session->userdata($sess_key);
+            if (!is_array($guest_wl)) {
+                $guest_wl = [];
+                if (isset($_COOKIE['guest_wishlist'])) {
+                    $c_arr = json_decode($_COOKIE['guest_wishlist'], true);
+                    if (is_array($c_arr)) $guest_wl = $c_arr;
+                }
+            }
+            $guest_wl = array_values(array_map('intval', array_filter($guest_wl)));
+
+            if (in_array($product_id, $guest_wl, true)) {
+                $guest_wl = array_values(array_diff($guest_wl, [$product_id]));
+                $status = 'removed';
+                $is_wishlisted = false;
+                $msg = 'Removed from your wishlist.';
+            } else {
+                $guest_wl[] = $product_id;
+                $status = 'added';
+                $is_wishlisted = true;
+                $msg = 'Added to your wishlist!';
+            }
+
+            $this->session->set_userdata($sess_key, $guest_wl);
+            setcookie('guest_wishlist', json_encode($guest_wl), time() + (86400 * 30), '/');
+            $wishlist_count = count($guest_wl);
 
             if ($this->input->is_ajax_request()) {
                 $this->json_response([
-                    'success'       => false,
-                    'status'        => 'error',
-                    'require_login' => true,
-                    'message'       => 'Please login first to add items to your wishlist.',
-                    'redirect'      => site_url('auth/login')
+                    'success'        => true,
+                    'status'         => 'success',
+                    'action'         => $status,
+                    'is_wishlisted'  => $is_wishlisted,
+                    'wishlist_count' => $wishlist_count,
+                    'product_id'     => $product_id,
+                    'message'        => $msg
                 ]);
                 return;
             }
 
-            $this->session->set_flashdata('error', 'Please login first to add items to your wishlist.');
-            redirect('auth/login?redirect=' . urlencode($_SERVER['HTTP_REFERER'] ?? 'wishlist'));
+            $this->session->set_flashdata('success', $msg);
+            redirect($_SERVER['HTTP_REFERER'] ?? 'home');
             return;
         }
 

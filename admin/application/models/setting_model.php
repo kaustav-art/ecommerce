@@ -108,6 +108,11 @@ class setting_model extends CI_Model {
         return $row;
     }
 
+    public function get_gateway($code)
+    {
+        return $this->get_payment_gateway($code);
+    }
+
     public function update_payment_gateway($code, $is_active, $environment, array $credentials)
     {
         $this->get_payment_gateways();

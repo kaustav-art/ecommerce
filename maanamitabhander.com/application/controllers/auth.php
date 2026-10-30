@@ -9,10 +9,46 @@ class auth extends MY_Controller {
         $this->load->model('user_model');
     }
 
+    private function _resolve_login_redirect()
+    {
+        $redirect_to = trim((string) $this->input->post('redirect_to', TRUE));
+        if (empty($redirect_to)) {
+            $redirect_to = trim((string) $this->input->get('redirect', TRUE));
+        }
+        if (empty($redirect_to)) {
+            $redirect_to = trim((string) $this->session->userdata('redirect_url'));
+            if (!empty($redirect_to)) {
+                $this->session->unset_userdata('redirect_url');
+            }
+        }
+        if (empty($redirect_to)) {
+            $referer = $this->input->server('HTTP_REFERER');
+            if (!empty($referer) && strpos($referer, 'auth/login') === false && strpos($referer, 'auth/logout') === false && strpos($referer, 'auth/register') === false) {
+                $redirect_to = $referer;
+            }
+        }
+
+        if (!empty($redirect_to)) {
+            if (strpos($redirect_to, 'auth/login') !== false || strpos($redirect_to, 'auth/logout') !== false || strpos($redirect_to, 'auth/register') !== false) {
+                $redirect_to = '';
+            }
+        }
+
+        if (empty($redirect_to)) {
+            $redirect_to = site_url('home');
+        } elseif (strpos($redirect_to, 'http') !== 0) {
+            $redirect_to = site_url(ltrim($redirect_to, '/'));
+        }
+
+        return $redirect_to;
+    }
+
     public function login()
     {
+        $redirect_to = $this->_resolve_login_redirect();
+
         if ($this->is_logged_in()) {
-            redirect('home');
+            redirect($redirect_to);
         }
 
         if ($this->input->method() === 'post') {
@@ -26,7 +62,7 @@ class auth extends MY_Controller {
                         $this->json_response(['success' => false, 'message' => 'Your account has been deactivated.']);
                     }
                     $this->session->set_flashdata('error', 'Your account has been deactivated.');
-                    redirect('home');
+                    redirect($redirect_to);
                 }
 
                 $this->session->set_userdata([
@@ -54,7 +90,7 @@ class auth extends MY_Controller {
                         'success'         => true,
                         'status'          => 'logged_in',
                         'message'         => 'Welcome back, ' . $user['first_name'] . '!',
-                        'redirect'        => site_url('home'),
+                        'redirect'        => $redirect_to,
                         'user'            => $user,
                         'has_address'     => !empty($user_addresses),
                         'default_address' => $default_address,
@@ -63,17 +99,17 @@ class auth extends MY_Controller {
                 }
 
                 $this->session->set_flashdata('success', 'Welcome back, ' . $user['first_name'] . '!');
-                redirect('home');
+                redirect($redirect_to);
             } else {
                 if ($this->input->is_ajax_request()) {
                     $this->json_response(['success' => false, 'message' => 'Invalid email address or password.']);
                 }
                 $this->session->set_flashdata('error', 'Invalid email address or password.');
-                redirect('home');
+                redirect($redirect_to);
             }
         }
 
-        redirect('home');
+        redirect($redirect_to);
     }
 
     public function register()
@@ -83,7 +119,8 @@ class auth extends MY_Controller {
 
     public function logout()
     {
-        $this->session->unset_userdata([
+        $tid = (int)$this->tenant_id;
+        $keys_to_unset = [
             'user_id',
             'user_tenant_id',
             'user_first_name',
@@ -93,8 +130,32 @@ class auth extends MY_Controller {
             'user_avatar',
             'user_logged_in',
             'otp_auth',
-            'pending_reg'
-        ]);
+            'pending_reg',
+            'cart_t_' . $tid,
+            'cart',
+            'guest_wishlist_t_' . $tid,
+            'guest_wishlist',
+            'pending_wishlist',
+            'coupon_code',
+            'coupon_discount',
+            'coupon_data',
+            'applied_coupon',
+            'selected_address_id',
+            'shipping_method'
+        ];
+
+        foreach (array_keys($this->session->all_userdata()) as $sess_key) {
+            if (strpos($sess_key, 'cart_t_') === 0 || strpos($sess_key, 'guest_wishlist_t_') === 0) {
+                $keys_to_unset[] = $sess_key;
+            }
+        }
+        $this->session->unset_userdata(array_unique($keys_to_unset));
+
+        // Reset guest cookies
+        setcookie('guest_wishlist', '', time() - 3600, '/');
+        setcookie('pending_wishlist', '', time() - 3600, '/');
+        unset($_COOKIE['guest_wishlist'], $_COOKIE['pending_wishlist']);
+
         redirect('home');
     }
 
@@ -164,7 +225,7 @@ class auth extends MY_Controller {
     {
         $phone       = trim((string) $this->input->post('phone', TRUE)) ?: trim((string) $this->input->post('identifier', TRUE));
         $otp         = trim((string) $this->input->post('otp', TRUE));
-        $redirect_to = $this->input->post('redirect_to', TRUE) ?: site_url('home');
+        $redirect_to = $this->_resolve_login_redirect();
 
         if (empty($otp)) {
             $this->json_response(['success' => false, 'message' => 'Please enter the 6-digit verification code.']);
@@ -279,7 +340,7 @@ class auth extends MY_Controller {
         $first_name  = trim((string) $this->input->post('first_name', TRUE));
         $last_name   = trim((string) $this->input->post('last_name', TRUE));
         $post_email  = trim((string) $this->input->post('email', TRUE));
-        $redirect_to = $this->input->post('redirect_to', TRUE) ?: site_url('home');
+        $redirect_to = $this->_resolve_login_redirect();
 
         $final_email = !empty($pending['email']) ? strtolower(trim($pending['email'])) : strtolower($post_email);
         if (empty($final_email) || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
@@ -386,9 +447,30 @@ class auth extends MY_Controller {
             $this->session->unset_userdata('pending_wishlist');
         }
 
-        // 3. Clear any legacy guest_wishlist session data
+        // 3. Guest wishlist from session
+        $sess_wl = $this->session->userdata('guest_wishlist_t_' . $this->tenant_id);
+        if (!empty($sess_wl) && is_array($sess_wl)) {
+            foreach ($sess_wl as $wid) {
+                $items_to_add[] = (int) $wid;
+            }
+        }
         $this->session->unset_userdata('guest_wishlist');
         $this->session->unset_userdata('guest_wishlist_t_' . $this->tenant_id);
+
+        // 4. Guest wishlist from cookie
+        if (isset($_COOKIE['guest_wishlist'])) {
+            $cookie_raw = $_COOKIE['guest_wishlist'];
+            $decoded = json_decode($cookie_raw, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $wid) {
+                    $items_to_add[] = (int) $wid;
+                }
+            } elseif (is_numeric($cookie_raw)) {
+                $items_to_add[] = (int) $cookie_raw;
+            }
+            setcookie('guest_wishlist', '', time() - 3600, '/');
+            unset($_COOKIE['guest_wishlist']);
+        }
 
         $items_to_add = array_unique(array_filter($items_to_add));
 
@@ -396,17 +478,18 @@ class auth extends MY_Controller {
         foreach ($items_to_add as $pid) {
             $pid = (int) $pid;
             if ($pid > 0 && !$this->wishlist_model->is_wishlisted($user_id, $pid)) {
-                $this->db->insert('wishlists', [
-                    'tenant_id'  => $this->tenant_id,
-                    'user_id'    => $user_id,
-                    'product_id' => $pid
-                ]);
+                $this->db->query(
+                    "INSERT INTO wishlists (tenant_id, user_id, product_id, created_at) " .
+                    "VALUES (?, ?, ?, NOW()) " .
+                    "ON DUPLICATE KEY UPDATE product_id = VALUES(product_id)",
+                    [(int)$this->tenant_id, (int)$user_id, (int)$pid]
+                );
                 $added_any = true;
             }
         }
 
         if ($added_any) {
-            $this->session->set_flashdata('success', 'Product added to your wishlist!');
+            $this->session->set_flashdata('success', 'Wishlist items synchronized to your account!');
         }
     }
 }

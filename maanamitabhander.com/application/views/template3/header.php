@@ -474,6 +474,25 @@
          border-top: 1px solid rgba(255, 255, 255, 0.08);
       }
 
+      /* Strictly 1 line product titles with ellipsis (...) on overflow across all product cards */
+      .aq-product-title,
+      .aq-product-title a,
+      .grc-product-style .aq-product-title,
+      .grc-product-style .aq-product-title a,
+      .aq-product-item .aq-product-title,
+      .aq-product-item .aq-product-title a,
+      .aq-product-main .aq-product-title,
+      .aq-product-main .aq-product-title a,
+      .aq-cartmini-product-summary .aq-product-title,
+      .aq-cartmini-product-summary .aq-product-title a {
+         display: block !important;
+         white-space: nowrap !important;
+         overflow: hidden !important;
+         text-overflow: ellipsis !important;
+         max-width: 100% !important;
+         word-break: normal !important;
+      }
+
       /* =====================================================================
        * Modern Search Bar Design (Desktop & Mobile)
        * ===================================================================== */
@@ -690,6 +709,30 @@
       window.SITE_URL = '<?= site_url(); ?>';
       window.STORE_NAME = '<?= html_escape($site_name ?? 'Fresh Grocery Store'); ?>';
       window.CURRENCY_SYMBOL = '<?= html_escape($curr); ?>';
+      window.handleCheckoutClick = function(e, redirectUrl) {
+         if (!window.IS_USER_LOGGED_IN) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (typeof window.closeGrcCartDrawer === 'function') {
+               window.closeGrcCartDrawer();
+            }
+            if (typeof window.jQuery !== 'undefined') {
+               jQuery('.aq-cartmini-active, #grcCartMiniDrawer, .cartmini__area, .cartmini-area').removeClass('opened cartmini-opened active show');
+               jQuery('.body-overlay, .cartmini-overlay').removeClass('opened active show');
+            }
+            var drawers = document.querySelectorAll('.aq-cartmini-active, #grcCartMiniDrawer, .cartmini__area, .cartmini-area, .body-overlay, .cartmini-overlay');
+            drawers.forEach(function(d) {
+               d.classList.remove('opened', 'cartmini-opened', 'active', 'show');
+            });
+            var targetUrl = redirectUrl || '<?= site_url("checkout"); ?>';
+            if (typeof window.openLoginModal === 'function') {
+               window.openLoginModal(targetUrl, 'Please sign in to proceed to checkout.');
+            } else {
+               window.location.href = '<?= site_url("cart?login=1"); ?>';
+            }
+            return false;
+         }
+         return true;
+      };
    </script>
 </head>
 
@@ -711,20 +754,11 @@
 
    <!-- Cartmini area -->
    <div class="aq-cartmini-area aq-cartmini-active d-flex flex-column justify-content-between" id="grcCartMiniDrawer">
-      <div class="aq-cartmini-header">
-         <i class="aq-cartmini-close aq-cartmini-close-icon fa-regular fa-xmark" onclick="closeGrcCartDrawer()"></i>
-         <h4 class="aq-cartmini-title">Grocery Bag (<span class="cart-count"><?= (int)($cart_count ?? 0); ?></span>)</h4>
-         <div class="aq-cartmini-shiping">
-            <div class="aq-cartmini-shiping-message">
-               <p>Enjoy <b>Free Same-Day Delivery</b> on orders over <b><?= html_escape($curr); ?>50.00</b></p>
-            </div>
-            <?php $grc_ship_pct = min(100, round(((float)($cart_total ?? 0) / 50) * 100)); ?>
-            <div class="aq-progress-bar">
-               <div style="width: <?= $grc_ship_pct ?: 50; ?>%;"></div>
-            </div>
-         </div>
+      <div class="aq-cartmini-header" style="border-bottom: 1px solid #ebebeb; padding-bottom: 18px;">
+         <i class="aq-cartmini-close aq-cartmini-close-icon fa-solid fa-xmark" onclick="closeGrcCartDrawer()" role="button" aria-label="Close" title="Close" style="font-size: 18px; color: #111111;"></i>
+         <h4 class="aq-cartmini-title mb-0">Grocery Bag (<span class="cart-count"><?= (int)($cart_count ?? 0); ?></span>)</h4>
       </div>
-      <div class="aq-cartmini-body" id="grcCartMiniBody">
+      <div class="aq-cartmini-body" id="grcCartMiniBody" style="height: 100%; flex: 1 1 auto; overflow-y: auto;">
          <?php if (!empty($cart_items)): ?>
             <?php foreach ($cart_items as $c_key => $c_item):
                $c_name = $c_item['name'] ?? ($c_item['title'] ?? ($c_item['product_title'] ?? 'Fresh Grocery Item'));
@@ -749,6 +783,16 @@
                </div>
                <div class="aq-cartmini-product-summary">
                   <h4 class="aq-product-title"><a href="<?= site_url('product/' . ($c_item['slug'] ?? $c_item['product_id'])); ?>"><?= html_escape($c_name); ?></a></h4>
+                  <?php
+                     $v_lbl = !empty($c_item['size']) ? $c_item['size'] : (!empty($c_item['variant_title']) ? $c_item['variant_title'] : '');
+                     if (!empty($v_lbl) && strpos($v_lbl, '/') !== false) {
+                        $v_parts = explode('/', $v_lbl);
+                        $v_lbl = trim(end($v_parts));
+                     }
+                  ?>
+                  <?php if (!empty($v_lbl)): ?>
+                     <span class="aq-cartmini-product-variant text-muted" style="font-size: 12px; display: block; margin-bottom: 2px;"><?= html_escape($v_lbl); ?></span>
+                  <?php endif; ?>
                   <span class="aq-cartmini-product-price"><?= html_escape($curr) . number_format((float)$c_item['price'], 2); ?> &times; <?= (int)$c_item['quantity']; ?></span>
                   <div class="aq-product-details-quantity d-flex align-items-center mt-1">
                      <button type="button" onclick="grcRemoveCartItem('<?= html_escape($c_key); ?>')" class="aq-line-anim aq-cartmini-remove">Remove</button>
@@ -770,7 +814,7 @@
          </div>
          <div class="aq-cartmini-main-btn d-flex justify-content-between gap-2">
             <a href="<?= site_url('cart'); ?>" class="aq-btn-black btn-red-bg text-center w-100">View Bag</a>
-            <a href="<?= site_url('checkout'); ?>" class="aq-btn-black text-center border-btn w-100">Checkout</a>
+            <a href="<?= site_url('checkout'); ?>" onclick="return handleCheckoutClick(event, '<?= site_url('checkout'); ?>')" class="aq-btn-black text-center border-btn w-100">Checkout</a>
          </div>
       </div>
    </div>
@@ -1017,24 +1061,40 @@
    <nav class="grc-category-aisles-bar grc-header-ptb pt-10 pb-20" data-bg-color="#003D29" style="background-color:#003D29;">
       <div class="container container-1630">
          <div class="grc-categories-wrap d-lg-flex d-none justify-content-between align-items-center flex-wrap">
-            <div class="grc-categories-item text-center">
-               <a href="<?= site_url('shop?on_sale=1'); ?>">
-                  <div class="grc-categories-icon">
-                     <span><i class="fa-solid fa-tags text-warning fs-5"></i></span>
-                  </div>
-                  <span class="grc-categories-title">Deals &amp; Sale</span>
-               </a>
-            </div>
             <?php
-            $dept_icons = ['fa-apple-whole', 'fa-carrot', 'fa-cheese', 'fa-bread-slice', 'fa-mug-hot', 'fa-jar', 'fa-Seedling', 'fa-fish'];
-            if (!empty($nav_categories)):
-               foreach ($nav_categories as $c_i => $cat):
+            $dept_icons = ['fa-apple-whole', 'fa-carrot', 'fa-cheese', 'fa-bread-slice', 'fa-mug-hot', 'fa-jar', 'fa-Seedling', 'fa-fish', 'fa-cookie-bite', 'fa-bottle-water', 'fa-bowl-rice', 'fa-egg'];
+            // Strictly parent categories only (no sub categories)
+            $parent_nav_cats = array_values(array_filter($nav_categories ?? [], function($c) {
+               return empty($c['parent_id']) || (int)$c['parent_id'] === 0;
+            }));
+            $has_more_cats = count($parent_nav_cats) > 8;
+            $visible_cats = $has_more_cats ? array_slice($parent_nav_cats, 0, 8) : $parent_nav_cats;
+            $dropdown_cats = $has_more_cats ? array_slice($parent_nav_cats, 8) : [];
+
+            if (!empty($visible_cats)):
+               foreach ($visible_cats as $c_i => $cat):
                   $ic = $dept_icons[$c_i % count($dept_icons)];
+                  $raw_cat_img = !empty($cat['image']) ? $cat['image'] : (!empty($cat['raw_image']) ? $cat['raw_image'] : '');
+                  $cat_img_url = '';
+                  if (!empty($raw_cat_img)) {
+                     if (strpos($raw_cat_img, 'http://') === 0 || strpos($raw_cat_img, 'https://') === 0) {
+                        $cat_img_url = $raw_cat_img;
+                     } elseif (strpos($raw_cat_img, 'assets/') === 0) {
+                        $cat_img_url = base_url($raw_cat_img);
+                     } else {
+                        $cat_img_url = base_url('assets/images/' . ltrim($raw_cat_img, '/'));
+                     }
+                  }
             ?>
             <div class="grc-categories-item text-center">
                <a href="<?= site_url('shop/' . $cat['slug']); ?>">
-                  <div class="grc-categories-icon">
-                     <span><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
+                  <div class="grc-categories-icon d-flex align-items-center justify-content-center">
+                     <?php if (!empty($cat_img_url)): ?>
+                        <img src="<?= html_escape($cat_img_url); ?>" alt="<?= html_escape($cat['name']); ?>" style="max-height: 28px; max-width: 28px; width: auto; height: auto; object-fit: contain;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
+                        <span style="display:none;"><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
+                     <?php else: ?>
+                        <span><i class="fa-solid <?= $ic; ?> text-white fs-5"></i></span>
+                     <?php endif; ?>
                   </div>
                   <span class="grc-categories-title"><?= html_escape($cat['name']); ?></span>
                </a>
@@ -1043,14 +1103,44 @@
                endforeach;
             endif;
             ?>
-            <div class="grc-categories-item text-center">
-               <a href="<?= site_url('shop'); ?>">
-                  <div class="grc-categories-icon">
-                     <span><i class="fa-solid fa-basket-shopping text-white fs-5"></i></span>
+            <?php if (!empty($dropdown_cats)): ?>
+            <!-- Arrow Button with Dropdown for Rest of Categories (shown if more than 8 categories) -->
+            <div class="grc-categories-item text-center dropdown grc-more-cats-dropdown position-relative">
+               <a href="javascript:void(0);" class="text-decoration-none dropdown-toggle hide-arrow d-flex flex-column align-items-center justify-content-center" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" role="button" title="More Categories">
+                  <div class="grc-categories-icon d-flex align-items-center justify-content-center mb-0" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.18);">
+                     <span><i class="fa-solid fa-angles-right text-white" style="font-size: 14px;"></i></span>
                   </div>
-                  <span class="grc-categories-title">Shop All Aisles</span>
                </a>
+               <ul class="dropdown-menu dropdown-menu-end shadow-lg py-2" style="min-width: 220px; border-radius: 8px; max-height: 350px; overflow-y: auto; background: #ffffff; border: 1px solid rgba(0,0,0,0.1); z-index: 1050;">
+                  <?php foreach ($dropdown_cats as $d_i => $dcat): 
+                     $d_ic = $dept_icons[(8 + $d_i) % count($dept_icons)];
+                     $raw_dcat_img = !empty($dcat['image']) ? $dcat['image'] : (!empty($dcat['raw_image']) ? $dcat['raw_image'] : '');
+                     $dcat_img_url = '';
+                     if (!empty($raw_dcat_img)) {
+                        if (strpos($raw_dcat_img, 'http://') === 0 || strpos($raw_dcat_img, 'https://') === 0) {
+                           $dcat_img_url = $raw_dcat_img;
+                        } elseif (strpos($raw_dcat_img, 'assets/') === 0) {
+                           $dcat_img_url = base_url($raw_dcat_img);
+                        } else {
+                           $dcat_img_url = base_url('assets/images/' . ltrim($raw_dcat_img, '/'));
+                        }
+                     }
+                  ?>
+                  <li>
+                     <a class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 fw-semibold text-dark" href="<?= site_url('shop/' . $dcat['slug']); ?>">
+                        <?php if (!empty($dcat_img_url)): ?>
+                           <img src="<?= html_escape($dcat_img_url); ?>" alt="<?= html_escape($dcat['name']); ?>" style="width: 22px; height: 22px; object-fit: contain;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
+                           <i class="fa-solid <?= $d_ic; ?> text-success" style="width: 18px; display: none;"></i>
+                        <?php else: ?>
+                           <i class="fa-solid <?= $d_ic; ?> text-success" style="width: 18px;"></i>
+                        <?php endif; ?>
+                        <span><?= html_escape($dcat['name']); ?></span>
+                     </a>
+                  </li>
+                  <?php endforeach; ?>
+               </ul>
             </div>
+            <?php endif; ?>
          </div>
       </div>
    </nav>

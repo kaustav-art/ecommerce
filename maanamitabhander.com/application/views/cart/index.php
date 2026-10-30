@@ -1083,7 +1083,7 @@
             }
 
             // Badges
-            document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count').forEach(function(badge) {
+            document.querySelectorAll('#cart-counter, .cart-count, .count-box.cart-count, .count-cart, .side-cart-count').forEach(function(badge) {
                 badge.textContent = count !== undefined ? count : (summary.item_count || 0);
             });
         }
@@ -1094,9 +1094,9 @@
 
             if (!window.IS_USER_LOGGED_IN) {
                 if (typeof window.openLoginModal === 'function') {
-                    window.openLoginModal('<?= site_url("checkout"); ?>', 'Please sign in or enter your mobile/email to proceed to checkout.');
+                    window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in to proceed to buy.');
                 } else {
-                    window.location.href = '<?= site_url("login"); ?>';
+                    window.location.href = '<?= site_url("auth/login?redirect=" . urlencode("cart")); ?>';
                 }
                 return false;
             }
@@ -1110,7 +1110,7 @@
             window.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {
                     if (typeof window.openLoginModal === 'function') {
-                        window.openLoginModal('<?= site_url("checkout"); ?>', 'Please sign in to complete your order.');
+                        window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in to proceed to buy.');
                     }
                 }, 350);
             });

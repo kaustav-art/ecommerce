@@ -93,7 +93,9 @@ class category_model extends CI_Model {
         $categories = $this->db->where('tenant_id', $tid)
                                ->where('status', 'active')
                                ->where('is_featured', 1)
-                               ->order_by('sort_order', 'ASC')
+                               ->where('parent_id', 0)
+                               ->order_by('sort_order', 'DESC')
+                               ->order_by('id', 'DESC')
                                ->limit($limit)
                                ->get('categories')
                                ->result_array();
@@ -103,7 +105,8 @@ class category_model extends CI_Model {
             $categories = $this->db->where('tenant_id', $tid)
                                    ->where('status', 'active')
                                    ->where('parent_id', 0)
-                                   ->order_by('sort_order', 'ASC')
+                                   ->order_by('sort_order', 'DESC')
+                                   ->order_by('id', 'DESC')
                                    ->limit($limit)
                                    ->get('categories')
                                    ->result_array();

@@ -28,36 +28,94 @@ class home extends MY_Controller {
         $total_products = count($products);
         $brands         = Static_template_data::get('brands');
 
-        $deal_products = array_values(array_filter($products, function($p) {
-            return !empty($p['sale_price']);
+        // New Arrival products (limit 10, desc order)
+        $new_arrival_products = array_values(array_filter($products, function($p) {
+            return !empty($p['is_new']);
         }));
-        if (empty($deal_products)) {
-            $deal_products = array_slice($products, 0, 8);
+        if (empty($new_arrival_products)) {
+            $new_arrival_products = $products;
+        }
+        usort($new_arrival_products, function($a, $b) {
+            return (int)($b['id'] ?? 0) - (int)($a['id'] ?? 0);
+        });
+        $new_arrival_products = array_slice($new_arrival_products, 0, 10);
+
+        // Popular products (limit 10, desc order)
+        $popular_products = array_values(array_filter($products, function($p) {
+            return !empty($p['is_featured']) || !empty($p['is_trending']);
+        }));
+        if (empty($popular_products)) {
+            $popular_products = $products;
+        }
+        usort($popular_products, function($a, $b) {
+            return (int)($b['id'] ?? 0) - (int)($a['id'] ?? 0);
+        });
+        $popular_products = array_slice($popular_products, 0, 10);
+
+        // Flash Sale / Deal of the Week
+        $now_str = date('Y-m-d H:i:s');
+        $flash_sale = null;
+        if (isset($this->db) && $this->db->table_exists('flash_sales')) {
+            $flash_sale = $this->db->where('tenant_id', $this->tenant_id)
+                                   ->where('status !=', 'terminated')
+                                   ->where('start_time <=', $now_str)
+                                   ->where('end_time >=', $now_str)
+                                   ->order_by('start_time', 'ASC')
+                                   ->get('flash_sales')
+                                   ->row_array();
         }
 
-        $new_products        = array_slice($products, 0, 8);
-        $featured_products   = array_slice($products, 0, 8);
+        $flash_sale_products = [];
+        if ($flash_sale && isset($this->db) && $this->db->table_exists('flash_sale_products')) {
+            $fsp_pids = $this->db->select('product_id')
+                                 ->where('flash_sale_id', $flash_sale['id'])
+                                 ->order_by('id', 'ASC')
+                                 ->get('flash_sale_products')
+                                 ->result_array();
+            $fs_id_list = array_column($fsp_pids, 'product_id');
+            $prod_by_id = [];
+            foreach ($products as $pr) {
+                $prod_by_id[(int)$pr['id']] = $pr;
+            }
+            foreach ($fs_id_list as $fpid) {
+                if (isset($prod_by_id[(int)$fpid])) {
+                    $flash_sale_products[] = $prod_by_id[(int)$fpid];
+                }
+            }
+        }
+
+        $deal_products = (!empty($flash_sale) && !empty($flash_sale_products)) ? $flash_sale_products : [];
+        $sale_products = !empty($deal_products) ? $deal_products : array_values(array_filter($products, function($p) {
+            return !empty($p['sale_price']);
+        }));
+
+        $new_products        = $new_arrival_products;
+        $featured_products   = $popular_products;
         $sale_products       = $deal_products;
-        $bestseller_products = array_slice($products, 0, 8);
-        $featured_product    = !empty($products[0]) ? $products[0] : Static_template_data::get('common_product');
+        $bestseller_products = $popular_products;
+        $featured_product    = !empty($popular_products[0]) ? $popular_products[0] : (!empty($products[0]) ? $products[0] : Static_template_data::get('common_product'));
 
         $data = [
-            'title'               => $this->site_name . ' - Multipurpose eCommerce',
-            'active_page'         => 'home',
-            'tpl_settings'        => $tpl_settings,
-            'banners'             => $banners,
-            'products'            => $products,
-            'deal_products'       => $deal_products,
-            'new_products'        => $new_products,
-            'featured_products'   => $featured_products,
-            'sale_products'       => $sale_products,
-            'bestseller_products' => $bestseller_products,
-            'featured_product'    => $featured_product,
-            'categories'          => $categories,
-            'nav_categories'      => $categories,
-            'category_tree'       => $categories,
-            'total_products'      => $total_products,
-            'brands'              => $brands
+            'title'                => $this->site_name . ' - Multipurpose eCommerce',
+            'active_page'          => 'home',
+            'tpl_settings'         => $tpl_settings,
+            'banners'              => $banners,
+            'products'             => $products,
+            'new_arrival_products' => $new_arrival_products,
+            'popular_products'     => $popular_products,
+            'flash_sale'           => $flash_sale,
+            'flash_sale_products'  => $flash_sale_products,
+            'deal_products'        => $deal_products,
+            'new_products'         => $new_products,
+            'featured_products'    => $featured_products,
+            'sale_products'        => $sale_products,
+            'bestseller_products'  => $bestseller_products,
+            'featured_product'     => $featured_product,
+            'categories'           => $categories,
+            'nav_categories'       => $categories,
+            'category_tree'        => $categories,
+            'total_products'       => $total_products,
+            'brands'               => $brands
         ];
 
         $this->render('home/index', $data);

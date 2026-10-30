@@ -489,16 +489,12 @@
 
               <div class="border-top pt-3">
                 <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" />
-                  <label class="form-check-label" for="is_featured">Featured Product</label>
-                </div>
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="is_trending" name="is_trending" value="1" checked />
-                  <label class="form-check-label" for="is_trending">Trending Badge</label>
-                </div>
-                <div class="form-check mb-2">
                   <input class="form-check-input" type="checkbox" id="is_new" name="is_new" value="1" checked />
-                  <label class="form-check-label" for="is_new">New Arrival Badge</label>
+                  <label class="form-check-label" for="is_new">New Arrival</label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" />
+                  <label class="form-check-label" for="is_featured">Popular Products</label>
                 </div>
                 <div class="form-check mt-3 pt-2 border-top">
                   <input class="form-check-input" type="checkbox" id="is_cod_allowed" name="is_cod_allowed" value="1" checked />

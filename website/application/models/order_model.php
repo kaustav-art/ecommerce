@@ -17,6 +17,17 @@ class order_model extends CI_Model {
     public function create_order($order_data, $items)
     {
         $tid = $this->tid();
+
+        // Validate max purchase quantity
+        foreach ($items as $item) {
+            $p_check = $this->db->select('title, max_purchase_quantity')->where('tenant_id', $tid)->where('id', (int)$item['id'])->get('products')->row_array();
+            if ($p_check && isset($p_check['max_purchase_quantity']) && (int)$p_check['max_purchase_quantity'] > 0) {
+                if ((int)$item['quantity'] > (int)$p_check['max_purchase_quantity']) {
+                    return false;
+                }
+            }
+        }
+
         // Generate unique human-readable order number
         $order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
         $order_data['order_number'] = $order_number;

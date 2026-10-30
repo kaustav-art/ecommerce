@@ -36,6 +36,7 @@
     <script src="<?= base_url('assets/vendor/libs/node-waves/node-waves.js'); ?>"></script>
     <script src="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js'); ?>"></script>
     <script src="<?= base_url('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js'); ?>"></script>
+    <script src="<?= base_url('assets/vendor/libs/sweetalert2/sweetalert2.js'); ?>"></script>
     <script src="<?= base_url('assets/vendor/js/menu.js'); ?>"></script>
 
     <!-- Main JS -->

@@ -62,15 +62,9 @@ class MY_Controller extends CI_Controller {
 
         // 4. Load Cart Summary
         $this->load->model('cart_model');
-        $cart_summary = $this->cart_model->get_cart_summary();
-        if ((empty($cart_summary['item_count']) || (int)$cart_summary['item_count'] === 0) && !$this->is_user_project) {
-            $demo_summary     = Static_template_data::get('cart_summary');
-            $this->cart_count = (int) ($demo_summary['item_count'] ?? 0);
-            $this->cart_total = (float) ($demo_summary['subtotal'] ?? 0.00);
-        } else {
-            $this->cart_count = (int) ($cart_summary['item_count'] ?? 0);
-            $this->cart_total = (float) ($cart_summary['subtotal'] ?? 0.00);
-        }
+        $cart_summary = $this->cart_model ? $this->cart_model->get_cart_summary() : ['item_count' => 0, 'subtotal' => 0.00];
+        $this->cart_count = (int) ($cart_summary['item_count'] ?? 0);
+        $this->cart_total = (float) ($cart_summary['subtotal'] ?? 0.00);
     }
 
     protected function _resolve_tenant_and_template()
@@ -308,7 +302,7 @@ class MY_Controller extends CI_Controller {
                     'subtitle'    => $hb['subtitle'] ?? '',
                     'badge'       => $hb['subtitle'] ?? '',
                     'title'       => $hb['title'],
-                    'description' => $hb['subtitle'] ?? '',
+                    'description' => $hb['description'] ?? '',
                     'button_text' => $hb['button_text'] ?: 'Explore Collection',
                     'button_link' => $hb['button_link'] ?: 'shop',
                     'button_url'  => $hb['button_link'] ?: 'shop',
@@ -454,14 +448,7 @@ class MY_Controller extends CI_Controller {
         $all_products = Static_template_data::get('products');
         $addresses    = Static_template_data::get('addresses');
 
-        $model_items = ($this->cart_model) ? $this->cart_model->get_items() : [];
-        if (!empty($model_items)) {
-            $active_cart_items = $model_items;
-        } elseif (!$this->is_user_project) {
-            $active_cart_items = Static_template_data::get('cart_items');
-        } else {
-            $active_cart_items = [];
-        }
+        $active_cart_items = ($this->cart_model) ? $this->cart_model->get_items() : [];
 
         $data['nav_categories']       = isset($data['nav_categories']) ? $data['nav_categories'] : $dynamic_cats;
         $data['category_tree']        = isset($data['category_tree']) ? $data['category_tree'] : $dynamic_cats;
@@ -469,18 +456,9 @@ class MY_Controller extends CI_Controller {
         $data['cart_count']           = $this->cart_count;
         $data['cart_total']           = $this->cart_total;
         $data['cart_items']           = isset($data['cart_items']) ? $data['cart_items'] : $active_cart_items;
-        // Resolve user wishlist IDs & count for all views (strictly authenticated)
+        // Resolve user wishlist IDs & count for all views (authenticated or guest)
         if (!isset($data['user_wishlist_ids'])) {
-            if ($this->is_logged_in() && !empty($this->current_user['id'])) {
-                $rows = $this->db->select('product_id')
-                                 ->where('tenant_id', $this->tenant_id)
-                                 ->where('user_id', (int) $this->current_user['id'])
-                                 ->get('wishlists')
-                                 ->result_array();
-                $data['user_wishlist_ids'] = !empty($rows) ? array_map('intval', array_column($rows, 'product_id')) : [];
-            } else {
-                $data['user_wishlist_ids'] = [];
-            }
+            $data['user_wishlist_ids'] = $this->get_user_wishlist_ids();
         }
         if (!isset($data['wishlist_count'])) {
             $data['wishlist_count'] = count($data['user_wishlist_ids'] ?? []);
@@ -531,4 +509,24 @@ class MY_Controller extends CI_Controller {
              ->_display();
         exit;
     }
+
+    public function get_user_wishlist_ids()
+    {
+        if ($this->is_logged_in() && !empty($this->current_user['id'])) {
+            $rows = $this->db->select('product_id')
+                             ->where('tenant_id', $this->tenant_id)
+                             ->where('user_id', (int) $this->current_user['id'])
+                             ->get('wishlists')
+                             ->result_array();
+            return !empty($rows) ? array_map('intval', array_column($rows, 'product_id')) : [];
+        } else {
+            $guest_wl = $this->session->userdata('guest_wishlist_t_' . $this->tenant_id);
+            if (!is_array($guest_wl) && isset($_COOKIE['guest_wishlist'])) {
+                $c_arr = json_decode($_COOKIE['guest_wishlist'], true);
+                if (is_array($c_arr)) $guest_wl = $c_arr;
+            }
+            return !empty($guest_wl) ? array_values(array_map('intval', array_filter($guest_wl))) : [];
+        }
+    }
+
 }

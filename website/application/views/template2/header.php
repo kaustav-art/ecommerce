@@ -640,7 +640,7 @@ if (!function_exists('elt_resolve_img')) {
          </div>
          <div class="aq-cartmini-btn d-flex justify-content-between">
             <a class="aq-btn-border" href="<?= site_url('cart'); ?>">View Cart</a>
-            <a class="aq-btn-black" href="<?= site_url('checkout'); ?>">Checkout</a>
+            <a class="aq-btn-black" href="<?= site_url('checkout'); ?>" onclick="return handleCheckoutClick(event, '<?= site_url('checkout'); ?>')">Checkout</a>
          </div>
       </div>
    </div>

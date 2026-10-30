@@ -40,6 +40,27 @@ class marketing_model extends CI_Model {
     }
 
     // Flash Sales
+    public function compute_status($fs)
+    {
+        if (empty($fs) || !is_array($fs)) {
+            return 'ended';
+        }
+        if (!empty($fs['status']) && $fs['status'] === 'terminated') {
+            return 'terminated';
+        }
+        $now = time();
+        $start = !empty($fs['start_time']) ? strtotime($fs['start_time']) : 0;
+        $end   = !empty($fs['end_time']) ? strtotime($fs['end_time']) : 0;
+
+        if ($now < $start) {
+            return 'scheduled';
+        } elseif ($now >= $start && $now <= $end) {
+            return 'running';
+        } else {
+            return 'ended';
+        }
+    }
+
     public function get_flash_sales()
     {
         $sales = $this->db->where('tenant_id', $this->tid())->order_by('id', 'DESC')->get('flash_sales')->result_array();
@@ -53,6 +74,14 @@ class marketing_model extends CI_Model {
     {
         $sale = $this->db->where('tenant_id', $this->tid())->where('id', (int) $id)->get('flash_sales')->row_array();
         if ($sale) {
+            $computed = $this->compute_status($sale);
+            if ($sale['status'] !== 'terminated' && $sale['status'] !== $computed) {
+                $this->db->where('tenant_id', $this->tid())->where('id', (int)$sale['id'])->update('flash_sales', ['status' => $computed]);
+                $sale['status'] = $computed;
+            }
+            $sale['computed_status'] = $computed;
+            $p_rows = $this->db->select('product_id')->where('flash_sale_id', $sale['id'])->get('flash_sale_products')->result_array();
+            $sale['product_ids'] = array_map('intval', array_column($p_rows, 'product_id'));
             $sale['products'] = $this->db->select('fsp.*, p.title, p.price, p.main_image, p.sku')
                                          ->from('flash_sale_products fsp')
                                          ->join('products p', 'p.id = fsp.product_id')
@@ -61,6 +90,53 @@ class marketing_model extends CI_Model {
                                          ->result_array();
         }
         return $sale;
+    }
+
+    public function generate_unique_flash_sale_slug($title, $exclude_id = null)
+    {
+        $base_slug = url_title($title, 'dash', TRUE);
+        if (empty($base_slug)) {
+            $base_slug = 'flash-sale';
+        }
+        $slug = $base_slug;
+        $i = 2;
+        while (true) {
+            $this->db->where('tenant_id', $this->tid())
+                     ->where('slug', $slug);
+            if (!empty($exclude_id)) {
+                $this->db->where('id !=', (int)$exclude_id);
+            }
+            if ($this->db->count_all_results('flash_sales') === 0) {
+                break;
+            }
+            $slug = $base_slug . '-' . $i++;
+        }
+        return $slug;
+    }
+
+    public function get_active_or_scheduled_campaign_by_title($title, $exclude_id = null)
+    {
+        $clean_title = strtolower(trim((string)$title));
+        if ($clean_title === '') {
+            return null;
+        }
+
+        $this->db->where('tenant_id', $this->tid())
+                 ->where('status !=', 'terminated');
+        if (!empty($exclude_id)) {
+            $this->db->where('id !=', (int)$exclude_id);
+        }
+        $rows = $this->db->get('flash_sales')->result_array();
+        foreach ($rows as $r) {
+            if (strtolower(trim((string)$r['title'])) === $clean_title) {
+                $st = $this->compute_status($r);
+                if ($st === 'running' || $st === 'scheduled') {
+                    $r['computed_status'] = $st;
+                    return $r;
+                }
+            }
+        }
+        return null;
     }
 
     public function save_flash_sale($data, $id = null, $product_ids = [], $sale_prices = [])
@@ -88,6 +164,16 @@ class marketing_model extends CI_Model {
             }
         }
         return $fs_id;
+    }
+
+    public function terminate_flash_sale($id)
+    {
+        return $this->db->where('tenant_id', $this->tid())
+                        ->where('id', (int) $id)
+                        ->update('flash_sales', [
+                            'status' => 'terminated',
+                            'end_time' => date('Y-m-d H:i:s')
+                        ]);
     }
 
     public function delete_flash_sale($id)

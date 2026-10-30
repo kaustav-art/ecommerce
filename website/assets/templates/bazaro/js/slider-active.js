@@ -35,6 +35,22 @@
 		},
 	});
 
+	//grocery-hero-slider
+	let grc_hero_slider = new Swiper('.grc-hero-slider-active', {
+		slidesPerView: 1,
+		loop: true,
+		autoplay: {
+			delay: 4000,
+			disableOnInteraction: false,
+		},
+		speed: 1000,
+		spaceBetween: 0,
+		navigation: {
+			prevEl: '.aqf-slider-prev',
+			nextEl: '.aqf-slider-next',
+		},
+	});
+
 	//collection-slider
 	let product_active = new Swiper('.aq-product-active', {
 		slidesPerView: 4,

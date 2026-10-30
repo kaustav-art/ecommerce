@@ -45,6 +45,8 @@
     <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css'); ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css'); ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css'); ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/animate-css/animate.css'); ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/sweetalert2/sweetalert2.css'); ?>" />
     <style>
       .dataTables_wrapper .row:first-child {
         padding: 1rem 1.25rem 0.75rem;

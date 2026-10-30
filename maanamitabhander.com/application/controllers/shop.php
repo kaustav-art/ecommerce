@@ -127,8 +127,9 @@ class shop extends MY_Controller {
         $search_q  = trim((string)$this->input->get('q'));
         $min_price = $this->input->get('min_price') !== NULL && $this->input->get('min_price') !== '' ? (float)$this->input->get('min_price') : NULL;
         $max_price = $this->input->get('max_price') !== NULL && $this->input->get('max_price') !== '' ? (float)$this->input->get('max_price') : NULL;
-        $on_sale   = $this->input->get('on_sale') ? TRUE : FALSE;
-        $in_stock  = $this->input->get('in_stock') ? TRUE : FALSE;
+        $on_sale        = $this->input->get('on_sale') ? TRUE : FALSE;
+        $in_stock       = $this->input->get('in_stock') ? TRUE : FALSE;
+        $filter_popular = ($this->input->get('filter') === 'popular' || $this->input->get('popular') == '1');
 
         // Build allowed category IDs/slugs/names (including all descendant subcategories)
         $allowed_cat_ids   = [];
@@ -157,7 +158,7 @@ class shop extends MY_Controller {
         // Filter products dynamically
         $products = array_values(array_filter($all_products, function($p) use (
             $selected_category, $allowed_cat_ids, $allowed_cat_slugs, $allowed_cat_names,
-            $selected_brands_lower, $search_q, $min_price, $max_price, $on_sale, $in_stock, $attr_value_ids
+            $selected_brands_lower, $search_q, $min_price, $max_price, $on_sale, $in_stock, $filter_popular, $attr_value_ids
         ) {
             // 1. Category Filter
             if ($selected_category) {
@@ -209,6 +210,13 @@ class shop extends MY_Controller {
             }
             if ($max_price !== NULL && $eff_price > $max_price) {
                 return FALSE;
+            }
+
+            // Popular Filter
+            if ($filter_popular) {
+                if (empty($p['is_featured']) && empty($p['is_trending'])) {
+                    return FALSE;
+                }
             }
 
             // 5. On Sale Filter
@@ -289,18 +297,24 @@ class shop extends MY_Controller {
             'attr_value_ids' => $attr_value_ids
         ];
 
-        $limit          = 24;
-        $page           = 1;
-        $offset         = 0;
-        $per_page       = 24;
+        // Dynamic Pagination & Infinite Scrolling (default limit: 9 for 3-column grocery grid)
+        $limit          = $this->input->get('limit') ? max(1, (int)$this->input->get('limit')) : 9;
+        $page           = $this->input->get('page') ? max(1, (int)$this->input->get('page')) : 1;
+        $offset         = $this->input->get('offset') !== NULL && $this->input->get('offset') !== '' ? max(0, (int)$this->input->get('offset')) : (($page - 1) * $limit);
+        $per_page       = $limit;
         $total_products = count($products);
-        $total_pages    = 1;
-        $has_more       = FALSE;
-        $is_append      = FALSE;
+        $paged_products = array_slice($products, $offset, $limit);
+        $has_more       = ($offset + count($paged_products)) < $total_products;
+        $next_offset    = $offset + count($paged_products);
+        $total_pages    = max(1, (int) ceil($total_products / $limit));
+        $is_append      = ($offset > 0);
 
         if ($is_brand_store && $brand_info) {
             $page_heading  = $brand_info['name'] . ' Store';
             $breadcrumbs[] = ['name' => $brand_info['name'] . ' Store', 'slug' => ''];
+        } elseif ($filter_popular) {
+            $page_heading  = 'Popular Products';
+            $breadcrumbs[] = ['name' => 'Popular Products', 'slug' => ''];
         } else {
             $page_heading = $selected_category ? $selected_category['name'] : 'Shop All Products';
         }
@@ -309,13 +323,16 @@ class shop extends MY_Controller {
             'title'              => $page_heading . ' - ' . $this->site_name,
             'active_page'        => 'shop',
             'currency_symbol'    => $this->store_settings['currency_symbol'] ?? '$',
-            'products'           => $products,
+            'products'           => $paged_products,
+            'all_products'       => $products,
+            'all_filtered_count' => $total_products,
             'total_all_products' => count($all_products),
             'all_categories'     => $all_categories,
             'db_all_categories'  => $db_all_categories,
             'total_products'     => $total_products,
             'has_more'           => $has_more,
             'offset'             => $offset,
+            'next_offset'        => $next_offset,
             'limit'              => $limit,
             'is_append'          => $is_append,
             'brands'             => $brands,
@@ -338,16 +355,33 @@ class shop extends MY_Controller {
         ];
 
         if ($this->input->is_ajax_request() || $this->input->get('ajax') == '1') {
-            $products_html = $this->load->view('template1/shop/partials/product_grid', $data, TRUE);
-            $meta_html     = $is_append ? '' : $this->load->view('template1/shop/partials/meta_bar', $data, TRUE);
+            $tpl_key = $this->template_registry->get_tpl_key($this->active_template);
+            if ($tpl_key === 'template3' || $this->active_template === 'grocery') {
+                $products_html = $this->load->view('template3/shop/partials/_product_items', [
+                    'shop_products'     => $paged_products,
+                    'user_wishlist_ids' => $this->get_user_wishlist_ids(),
+                    'curr'              => $this->store_settings['currency_symbol'] ?? '$',
+                    'bazaro'            => base_url('assets/templates/bazaro/'),
+                    'grc_qs'            => empty($this->is_user_project) ? '?preview_tpl=grocery' : '',
+                    'grc_brands'        => ['NatureFresh Organic', 'GreenValley Farms', 'HarvestGold Dairy', 'Artisan Bakehouse', 'EarthBounty Organics', 'PureOrchard Juices'],
+                    'selected_category' => $selected_category,
+                    'offset'            => $offset
+                ], TRUE);
+                $meta_html = '';
+            } else {
+                $products_html = $this->load->view('template1/shop/partials/product_grid', $data, TRUE);
+                $meta_html     = $is_append ? '' : $this->load->view('template1/shop/partials/meta_bar', $data, TRUE);
+            }
 
             $this->json_response([
                 'status'         => 'success',
                 'total_products' => $total_products,
-                'count'          => count($products),
-                'offset'         => count($products),
-                'has_more'       => FALSE,
+                'count'          => count($paged_products),
+                'offset'         => $offset,
+                'next_offset'    => $next_offset,
+                'has_more'       => $has_more,
                 'products_html'  => $products_html,
+                'html'           => $products_html,
                 'meta_html'      => $meta_html
             ]);
             return;

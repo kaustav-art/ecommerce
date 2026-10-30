@@ -3141,7 +3141,7 @@ if (!empty($initial_variant)) {
                     : (data.cart_summary && typeof data.cart_summary.item_count !== 'undefined' ? data.cart_summary.item_count : null);
 
                 if (newCount !== null) {
-                    var countBadges = document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count');
+                    var countBadges = document.querySelectorAll('#cart-counter, .cart-count, .count-box.cart-count, .count-cart, .side-cart-count');
                     countBadges.forEach(function(b) {
                         b.textContent = newCount;
                     });

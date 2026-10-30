@@ -83,7 +83,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
                               <li><a href="<?= !empty($is_logged_in) ? site_url('account') : site_url('auth/login'); ?>">My Account</a></li>
                               <li><a href="<?= !empty($is_logged_in) ? site_url('account/orders') : site_url('order/track'); ?>">My Orders</a></li>
                               <li><a href="<?= site_url('wishlist'); ?>">Saved Items</a></li>
-                              <li><a href="<?= site_url('checkout'); ?>">Express Checkout</a></li>
+                              <li><a href="<?= site_url('checkout'); ?>" onclick="return handleCheckoutClick(event, '<?= site_url('checkout'); ?>')">Express Checkout</a></li>
                            </ul>
                         </div>
                      </div>
@@ -233,10 +233,17 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
                    var itemName = item.name || item.title || 'Fresh Grocery Item';
                    var pUrl = window.SITE_URL + '/product/' + (item.slug || item.product_id) + (<?= empty($is_user_project) ? "'?preview_tpl=grocery'" : "''"; ?>);
                    var key = item.cart_key || item.product_id;
+                   var varLabel = item.size || item.variant_title || '';
+                   if (varLabel && varLabel.indexOf('/') !== -1) {
+                       var parts = varLabel.split('/');
+                       varLabel = parts[parts.length - 1].trim();
+                   }
+                   var varHtml = varLabel ? '<span class="aq-cartmini-product-variant text-muted" style="font-size: 12px; display: block; margin-bottom: 2px;">' + varLabel + '</span>' : '';
                    html += '<div class="aq-cartmini-product-item mb-15 item-delete d-flex align-items-center">' +
                        '<div class="aq-cartmini-product-thumbnail"><a href="' + pUrl + '"><img src="' + img + '" alt=""></a></div>' +
                        '<div class="aq-cartmini-product-summary">' +
                        '<h4 class="aq-product-title"><a href="' + pUrl + '">' + itemName + '</a></h4>' +
+                       varHtml +
                        '<span class="aq-cartmini-product-price">' + window.CURRENCY_SYMBOL + parseFloat(item.price).toFixed(2) + ' &times; ' + item.quantity + '</span>' +
                        '<div class="aq-product-details-quantity d-flex align-items-center mt-1">' +
                        '<button type="button" onclick="grcRemoveCartItem(\'' + key + '\')" class="aq-line-anim aq-cartmini-remove">Remove</button>' +
@@ -307,18 +314,6 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
 
        if (!btnEl && typeof event !== 'undefined' && event) {
            btnEl = event.currentTarget || (event.target ? event.target.closest('button') : null);
-       }
-
-       // Product cannot be added to wishlist without login
-       if (!window.IS_USER_LOGGED_IN) {
-           document.cookie = "pending_wishlist=" + productId + "; path=/; max-age=3600; SameSite=Lax";
-           showGrcToast('Please login first to add items to your wishlist.', true);
-           if (typeof window.openLoginModal === 'function') {
-               setTimeout(function() {
-                   window.openLoginModal(window.location.href, 'Please login first to add items to your wishlist.');
-               }, 350);
-           }
-           return;
        }
 
        var fd = new FormData();
@@ -471,26 +466,7 @@ $curr   = isset($currency_symbol) ? $currency_symbol : '$';
        syncGrcWishlistStates();
    }
 
-   // Countdown timer for Deal of the Week
-   (function() {
-       var dEl = document.getElementById('days');
-       var hEl = document.getElementById('hours');
-       var mEl = document.getElementById('minutes');
-       var sEl = document.getElementById('seconds');
-       if (!dEl || !sEl) return;
-       var target = new Date().getTime() + (6 * 86400000) + (14 * 3600000) + (38 * 60000);
-       setInterval(function() {
-           var diff = Math.max(0, target - new Date().getTime());
-           var d = Math.floor(diff / 86400000);
-           var h = Math.floor((diff % 86400000) / 3600000);
-           var m = Math.floor((diff % 3600000) / 60000);
-           var s = Math.floor((diff % 60000) / 1000);
-           dEl.textContent = d < 10 ? '0' + d : d;
-           hEl.textContent = h < 10 ? '0' + h : h;
-           mEl.textContent = m < 10 ? '0' + m : m;
-           sEl.textContent = s < 10 ? '0' + s : s;
-       }, 1000);
-   })();
+   // Countdown handled dynamically by active flash sale
 
    // Normalize Grocery theme accents on Template 3
    document.addEventListener('DOMContentLoaded', function() {

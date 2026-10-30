@@ -590,71 +590,29 @@ if (!function_exists('grc_shop_unit_calc')) {
                <!-- Products Grid (Exact Home Page Product Card Structure) -->
                <div class="grc-product-style">
                   <div class="row g-3 row-cols-xl-3 row-cols-md-2 row-cols-sm-2 row-cols-1" id="grcShopProductsGrid">
-                     <?php foreach ($shop_products as $p_idx => $p):
-                        $u_calc  = grc_shop_unit_calc($p, $p_idx);
-                        $p_id    = (int)($p['id'] ?? ($p_idx + 1));
-                        $p_name  = $p['name'] ?? ($p['title'] ?? 'Organic Grocery Item');
-                        $p_slug  = $p['slug'] ?? 'sweet-red-strawberries-box';
-                        $p_img   = grc_product_img($p['primary_image'] ?? ($p['main_image'] ?? ($p['image'] ?? '')), $bazaro, $p_idx + 1);
-                        $p_reg   = (float)($p['regular_price'] ?? $p['price'] ?? 0);
-                        $p_sal   = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0 && (float)$p['sale_price'] < $p_reg) ? (float)$p['sale_price'] : $p_reg;
-                        $p_pct   = ($p_sal < $p_reg && $p_reg > 0) ? round((($p_reg - $p_sal) / $p_reg) * 100) : 0;
-                        $p_url   = site_url('product/' . $p_slug . $grc_qs);
-                        $p_unit  = !empty($p['unit_label']) ? $p['unit_label'] : $u_calc['pack_label'];
-                        $p_cat   = !empty($p['category_name']) ? $p['category_name'] : (!empty($selected_category['name']) ? $selected_category['name'] : 'Organic Food');
-                        $p_brand = !empty($p['brand_name']) ? $p['brand_name'] : $grc_brands[$p_idx % count($grc_brands)];
-                     ?>
-                     <div class="col grc-aisle-col"
-                          data-title="<?= html_escape(strtolower($p_name)); ?>"
-                          data-brand="<?= html_escape(strtolower($p_brand)); ?>"
-                          data-unit="<?= html_escape($u_calc['unit_type']); ?>"
-                          data-price="<?= $p_sal; ?>"
-                          data-unitrate="<?= $u_calc['unit_rate']; ?>"
-                          data-index="<?= $p_idx; ?>">
-                        <div class="aq-product-item aq-product-main mb-40">
-                           <div class="aq-product-thumb p-relative mb-10">
-                              <?php if ($p_pct > 0): ?>
-                              <div class="aq-product-badge">
-                                 <span class="clr-sale">-<?= $p_pct; ?>%</span>
-                              </div>
-                              <?php endif; ?>
-                              <a href="<?= $p_url; ?>">
-                                 <img class="aq-product-img-hover" src="<?= $p_img; ?>" alt="<?= html_escape($p_name); ?>" onerror="this.src='<?= $bazaro; ?>img/product/grocery-p-<?= (($p_idx % 12) + 1); ?>.jpg'">
-                              </a>
-                              <div class="aq-product-action-2 d-flex flex-column">
-                                 <?php $p_is_wish = in_array((int)$p_id, $user_wishlist_ids ?? []); ?>
-                                 <button type="button" onclick="grcToggleWishlist(<?= $p_id; ?>, this)" class="aq-product-action-btn-2 aq-wishlist-btn aq-tooltip <?= $p_is_wish ? 'active in-wishlist' : ''; ?>" data-product-id="<?= $p_id; ?>" title="<?= $p_is_wish ? 'Remove from Wishlist' : 'Add to Wishlist'; ?>">
-                                    <i class="<?= $p_is_wish ? 'fa-solid fa-heart text-danger' : 'fa-regular fa-heart'; ?>" style="font-size: 16px; <?= $p_is_wish ? 'color: #ef4444 !important;' : ''; ?>"></i>
-                                    <span class="aq-tooltip-item"><?= $p_is_wish ? 'Remove' : 'Wishlist'; ?></span>
-                                 </button>
-                              </div>
-                           </div>
-                           <div class="aq-product-content">
-                              <div class="d-flex align-items-center justify-content-between mb-1">
-                                 <span class="aqf-product-3-category"><?= html_escape($p_cat); ?></span>
-                                 <span class="grc-unit-pill"><?= html_escape($p_unit); ?></span>
-                              </div>
-                              <h4 class="aq-product-title"><a href="<?= $p_url; ?>"><?= html_escape($p_name); ?></a></h4>
-                              <div class="aq-product-ratting text-warning small mb-1">
-                                 <i class="fa-solid fa-star"></i>
-                                 <i class="fa-solid fa-star"></i>
-                                 <i class="fa-solid fa-star"></i>
-                                 <i class="fa-solid fa-star"></i>
-                                 <i class="fa-solid fa-star"></i>
-                              </div>
-                              <div class="aq-product-price">
-                                 <ins><span class="aq-product-new-price"><?= html_escape($curr) . number_format($p_sal, 2); ?></span></ins>
-                                 <?php if ($p_sal < $p_reg): ?>
-                                    <del><span class="aq-product-old-price"><?= html_escape($curr) . number_format($p_reg, 2); ?></span></del>
-                                 <?php endif; ?>
-                              </div>
-                           </div>
-                           <div class="grc-product-btn">
-                              <button type="button" onclick="grcAddToCart(<?= $p_id; ?>, 1)" class="product-btn-green w-100">Add to bag</button>
-                           </div>
-                        </div>
+                     <?php $this->load->view('template3/shop/partials/_product_items', [
+                        'shop_products'     => $shop_products,
+                        'user_wishlist_ids' => $user_wishlist_ids ?? [],
+                        'curr'              => $curr,
+                        'bazaro'            => $bazaro,
+                        'grc_qs'            => $grc_qs,
+                        'grc_brands'        => $grc_brands,
+                        'selected_category' => $selected_category ?? [],
+                        'offset'            => $offset ?? 0
+                     ]); ?>
+                  </div>
+               </div>
+
+               <!-- Infinite Scroll Sentinel & Loading Indicator -->
+               <div id="grcInfiniteScrollSentinel" class="text-center py-4 my-2" data-has-more="<?= !empty($has_more) ? '1' : '0'; ?>" data-next-offset="<?= !empty($next_offset) ? (int)$next_offset : count($shop_products); ?>" data-limit="<?= !empty($limit) ? (int)$limit : 9; ?>">
+                  <div id="grcInfiniteLoading" style="display: none;">
+                     <div class="spinner-border spinner-border-sm text-success me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
                      </div>
-                     <?php endforeach; ?>
+                     <span class="text-muted fw-semibold small">Loading next products...</span>
+                  </div>
+                  <div id="grcInfiniteEnd" style="<?= (empty($has_more) && !empty($shop_products)) ? 'display: block;' : 'display: none;'; ?>" class="text-muted small">
+                     <i class="fa-solid fa-check-double text-success me-1"></i> You've viewed all <?= !empty($total_products) ? (int)$total_products : count($shop_products); ?> products.
                   </div>
                </div>
 
@@ -777,5 +735,95 @@ if (!function_exists('grc_shop_unit_calc')) {
         sortGrcAisleCards();
         filterGrcAisleCards();
     };
+
+    // Infinite Scroll Implementation
+    (function() {
+        var sentinel = document.getElementById('grcInfiniteScrollSentinel');
+        var grid = document.getElementById('grcShopProductsGrid');
+        if (!sentinel || !grid) return;
+
+        var isLoading = false;
+
+        function loadNextBatch() {
+            var hasMore = sentinel.getAttribute('data-has-more');
+            if (isLoading || hasMore !== '1') return;
+
+            var nextOffset = parseInt(sentinel.getAttribute('data-next-offset') || '9', 10);
+            var limit = parseInt(sentinel.getAttribute('data-limit') || '9', 10);
+
+            isLoading = true;
+            var loadingEl = document.getElementById('grcInfiniteLoading');
+            var endEl = document.getElementById('grcInfiniteEnd');
+            if (loadingEl) loadingEl.style.display = 'inline-block';
+            if (endEl) endEl.style.display = 'none';
+
+            var currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('ajax', '1');
+            currentUrl.searchParams.set('offset', nextOffset);
+            currentUrl.searchParams.set('limit', limit);
+
+            fetch(currentUrl.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Network error');
+                return res.json();
+            })
+            .then(function(data) {
+                if (data.status === 'success' && data.html) {
+                    var temp = document.createElement('div');
+                    temp.innerHTML = data.html;
+                    while (temp.firstChild) {
+                        grid.appendChild(temp.firstChild);
+                    }
+
+                    sentinel.setAttribute('data-next-offset', data.next_offset);
+                    sentinel.setAttribute('data-has-more', data.has_more ? '1' : '0');
+
+                    if (!data.has_more) {
+                        if (endEl) {
+                            endEl.innerHTML = '<i class="fa-solid fa-check-double text-success me-1"></i> You\'ve viewed all ' + data.total_products + ' products.';
+                            endEl.style.display = 'block';
+                        }
+                    }
+
+                    if (typeof window.filterGrcAisleCards === 'function') {
+                        window.filterGrcAisleCards();
+                    }
+                }
+            })
+            .catch(function(err) {
+                console.error('Infinite scroll error:', err);
+            })
+            .finally(function() {
+                isLoading = false;
+                if (loadingEl) loadingEl.style.display = 'none';
+            });
+        }
+
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        loadNextBatch();
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '300px',
+                threshold: 0.05
+            });
+            observer.observe(sentinel);
+        } else {
+            window.addEventListener('scroll', function() {
+                var rect = sentinel.getBoundingClientRect();
+                if (rect.top <= window.innerHeight + 300) {
+                    loadNextBatch();
+                }
+            }, { passive: true });
+        }
+    })();
 })();
 </script>

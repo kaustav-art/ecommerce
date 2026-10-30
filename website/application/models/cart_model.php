@@ -92,13 +92,32 @@ class cart_model extends CI_Model {
                 $cart_changed = true;
             }
 
-            // Dynamically compute current price and regular price based on active tax mode
-            if ($tax_mult > 1.0) {
-                $new_price = round($item['base_price'] * $tax_mult, 2);
-                $new_reg   = round($item['base_regular_price'] * $tax_mult, 2);
+            // Dynamically compute current price and regular price based on active flash sale & tax mode
+            $fs = $this->product_model->get_active_flash_sale_info();
+            $in_fs = ($fs && !empty($fs['product_ids']) && in_array((int)$item['id'], $fs['product_ids'], true));
+
+            $cur_selling = (isset($item['original_selling_price']) && is_numeric($item['original_selling_price']) && (float)$item['original_selling_price'] > 0)
+                ? (float)$item['original_selling_price']
+                : ((isset($item['base_price']) && is_numeric($item['base_price'])) ? (float)$item['base_price'] : (float)$item['price']);
+
+            $cur_reg = (isset($item['base_regular_price']) && is_numeric($item['base_regular_price']) && (float)$item['base_regular_price'] > 0)
+                ? (float)$item['base_regular_price']
+                : (!empty($item['regular_price']) ? (float)$item['regular_price'] : round($cur_selling * 1.30, 2));
+
+            if ($in_fs && !empty($fs['discount_percent'])) {
+                $disc_pct = (float)$fs['discount_percent'];
+                $item['is_flash_sale'] = 1;
+                $new_price = round($cur_selling * (1 - ($disc_pct / 100)), 2);
+                $new_reg   = $cur_reg;
             } else {
-                $new_price = (float) $item['base_price'];
-                $new_reg   = (float) $item['base_regular_price'];
+                $item['is_flash_sale'] = 0;
+                if ($tax_mult > 1.0) {
+                    $new_price = round($cur_selling * $tax_mult, 2);
+                    $new_reg   = round($cur_reg * $tax_mult, 2);
+                } else {
+                    $new_price = (float) $cur_selling;
+                    $new_reg   = (float) $cur_reg;
+                }
             }
 
             if ($new_reg <= $new_price) {
@@ -224,6 +243,18 @@ class cart_model extends CI_Model {
             if (!$variant || $variant['product_id'] != $product_id) {
                 return ['success' => false, 'message' => 'Selected product variant was not found.'];
             }
+        } elseif (!empty($product['variants']) && is_array($product['variants'])) {
+            // Auto-select primary/default variant (prefer 1 kg or first variant)
+            $default_var = $product['variants'][0];
+            foreach ($product['variants'] as $v_cand) {
+                $v_title = strtolower($v_cand['title'] ?? '');
+                if (strpos($v_title, '1 kg') !== false || strpos($v_title, '1kg') !== false) {
+                    $default_var = $v_cand;
+                    break;
+                }
+            }
+            $variant = $default_var;
+            $variant_id = (int)$default_var['id'];
         }
 
         // Cart item unique key
@@ -249,26 +280,55 @@ class cart_model extends CI_Model {
         }
 
         // Price calculation
+        $is_fs = (!empty($variant['is_flash_sale']) || !empty($product['is_flash_sale'])) ? 1 : 0;
         if ($variant) {
-            $base_p = (!empty($variant['base_sale_price']) && (float)$variant['base_sale_price'] > 0) ? (float)$variant['base_sale_price'] : ((isset($variant['base_price']) && is_numeric($variant['base_price'])) ? (float)$variant['base_price'] : (!empty($variant['sale_price']) ? (float)$variant['sale_price'] : (float)$variant['price']));
-            $base_reg = (isset($variant['base_price']) && is_numeric($variant['base_price'])) ? (float)$variant['base_price'] : (!empty($variant['price']) ? (float)$variant['price'] : round($base_p * 1.30, 2));
-            $price = !empty($variant['sale_price']) ? (float) $variant['sale_price'] : (float) $variant['price'];
-            $regular_price = !empty($variant['price']) ? (float) $variant['price'] : round($price * 1.30, 2);
+            $base_reg = (isset($variant['base_price']) && is_numeric($variant['base_price']) && (float)$variant['base_price'] > 0)
+                ? (float)$variant['base_price']
+                : (!empty($variant['price']) ? (float)$variant['price'] : 0);
+            $orig_selling = (isset($variant['original_selling_price']) && is_numeric($variant['original_selling_price']) && (float)$variant['original_selling_price'] > 0)
+                ? (float)$variant['original_selling_price']
+                : ((!empty($variant['sale_price']) && (float)$variant['sale_price'] > 0) ? (float)$variant['sale_price'] : $base_reg);
+
+            if ($is_fs) {
+                $price = (float)$variant['sale_price'];
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            } else {
+                $price = $orig_selling;
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            }
             $image = !empty($variant['image']) ? $variant['image'] : $product['main_image'];
             $sku   = !empty($variant['sku']) ? $variant['sku'] : $product['sku'];
         } else {
-            $base_p = (!empty($product['base_sale_price']) && (float)$product['base_sale_price'] > 0) ? (float)$product['base_sale_price'] : ((isset($product['base_price']) && is_numeric($product['base_price'])) ? (float)$product['base_price'] : (!empty($product['sale_price']) ? (float)$product['sale_price'] : (float)$product['price']));
-            $base_reg = (isset($product['base_price']) && is_numeric($product['base_price'])) ? (float)$product['base_price'] : (!empty($product['price']) ? (float)$product['price'] : round($base_p * 1.30, 2));
-            $price = !empty($product['sale_price']) ? (float) $product['sale_price'] : (float) $product['price'];
-            $regular_price = !empty($product['price']) ? (float) $product['price'] : round($price * 1.30, 2);
+            $base_reg = (isset($product['base_price']) && is_numeric($product['base_price']) && (float)$product['base_price'] > 0)
+                ? (float)$product['base_price']
+                : (!empty($product['price']) ? (float)$product['price'] : 0);
+            $orig_selling = (isset($product['original_selling_price']) && is_numeric($product['original_selling_price']) && (float)$product['original_selling_price'] > 0)
+                ? (float)$product['original_selling_price']
+                : ((!empty($product['sale_price']) && (float)$product['sale_price'] > 0) ? (float)$product['sale_price'] : $base_reg);
+
+            if ($is_fs) {
+                $price = (float)$product['sale_price'];
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            } else {
+                $price = $orig_selling;
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            }
             $image = $product['main_image'];
             $sku   = $product['sku'];
         }
-        if ($regular_price <= $price) {
+
+        if ($regular_price <= $price && $base_reg <= 0) {
             $regular_price = round($price * 1.30, 2);
         }
-        if ($base_reg <= $base_p) {
+        if ($base_reg <= $base_p && $base_reg <= 0) {
             $base_reg = round($base_p * 1.30, 2);
+        }
+        if ($regular_price <= $price) {
+            $regular_price = $price;
         }
         $disc_pct = ($regular_price > $price) ? round((($regular_price - $price) / $regular_price) * 100) : 0;
 
@@ -302,6 +362,8 @@ class cart_model extends CI_Model {
             'price'              => (float) $price,
             'regular_price'      => (float) $regular_price,
             'discount_percent'   => $disc_pct,
+            'is_flash_sale'      => $is_fs,
+            'original_selling_price' => $orig_selling ?? $base_p,
             'quantity'           => $target_qty,
             'total'              => (float) ($price * $target_qty),
             'stock_max'          => $available_stock,
@@ -314,7 +376,7 @@ class cart_model extends CI_Model {
         // Synchronize with database for logged-in user
         $user_id = $this->session->userdata('user_id');
         if ($user_id) {
-            $vid = !empty($variant_id) ? (int)$variant_id : 0;
+            $vid = $variant ? (int)$variant['id'] : (!empty($variant_id) ? (int)$variant_id : 0);
             $existing = $this->db->where('tenant_id', $tid)
                                  ->where('user_id', (int)$user_id)
                                  ->where('product_id', (int)$product_id)
@@ -327,15 +389,12 @@ class cart_model extends CI_Model {
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
             } else {
-                $this->db->insert('cart_items', [
-                    'tenant_id'  => $tid,
-                    'user_id'    => (int)$user_id,
-                    'product_id' => (int)$product_id,
-                    'variant_id' => $vid,
-                    'quantity'   => $target_qty,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                $this->db->query(
+                    "INSERT INTO cart_items (tenant_id, user_id, product_id, variant_id, quantity, created_at, updated_at) " .
+                    "VALUES (?, ?, ?, ?, ?, NOW(), NOW()) " .
+                    "ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), updated_at = NOW()",
+                    [(int)$tid, (int)$user_id, (int)$product_id, (int)$vid, (int)$target_qty]
+                );
             }
         }
 
@@ -786,23 +845,39 @@ class cart_model extends CI_Model {
                     }
                 }
             }
-            // Also preserve and save any items that were in guest session cart into cart_items DB
+            // Also preserve and safely merge any items that were in guest session cart into cart_items DB
             if (!empty($cart) && is_array($cart)) {
                 foreach ($cart as $ckey => $citem) {
-                    if (!isset($new_cart[$ckey])) {
-                        $pid = (int) $citem['id'];
-                        $vid = !empty($citem['variant_id']) ? (int) $citem['variant_id'] : 0;
-                        $qty = max(1, (int) $citem['quantity']);
-                        $this->db->insert('cart_items', [
-                            'tenant_id'  => $tid,
-                            'user_id'    => (int) $user_id,
-                            'product_id' => $pid,
-                            'variant_id' => $vid,
-                            'quantity'   => $qty,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-                        $new_cart[$ckey] = $citem;
+                    $pid = (int) ($citem['id'] ?? 0);
+                    if ($pid <= 0) continue;
+                    $vid = !empty($citem['variant_id']) ? (int) $citem['variant_id'] : 0;
+                    $actual_key = (string) $pid . ($vid ? '_' . $vid : '');
+
+                    if (!isset($new_cart[$actual_key])) {
+                        $existing_db = $this->db->where('tenant_id', $tid)
+                                                ->where('user_id', (int) $user_id)
+                                                ->where('product_id', $pid)
+                                                ->where('variant_id', $vid)
+                                                ->get('cart_items')
+                                                ->row_array();
+                        if ($existing_db) {
+                            $built = $this->build_item_data($pid, (int)$existing_db['quantity'], $vid ?: null);
+                            if ($built) {
+                                $new_cart[$actual_key] = $built;
+                            }
+                        } else {
+                            $qty = max(1, (int) ($citem['quantity'] ?? 1));
+                            $this->db->insert('cart_items', [
+                                'tenant_id'  => $tid,
+                                'user_id'    => (int) $user_id,
+                                'product_id' => $pid,
+                                'variant_id' => $vid,
+                                'quantity'   => $qty,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]);
+                            $new_cart[$actual_key] = $citem;
+                        }
                     }
                 }
             }
@@ -825,11 +900,37 @@ class cart_model extends CI_Model {
 
         $tid = $this->tid();
         $session_cart = $this->get_session_cart();
+
+        // 1. Group & aggregate guest cart by (product_id, variant_id) to avoid duplicate iterations
+        $normalized_guest_items = [];
         if (!empty($session_cart) && is_array($session_cart)) {
             foreach ($session_cart as $ckey => $item) {
-                $pid = (int) $item['id'];
+                $pid = (int) ($item['id'] ?? $item['product_id'] ?? 0);
+                if ($pid <= 0) continue;
                 $vid = !empty($item['variant_id']) ? (int) $item['variant_id'] : 0;
-                $qty = max(1, (int) $item['quantity']);
+                $ukey = $pid . '_' . $vid;
+                $qty = max(1, (int) ($item['quantity'] ?? 1));
+                $stock_max = !empty($item['stock_max']) ? (int)$item['stock_max'] : 999;
+
+                if (isset($normalized_guest_items[$ukey])) {
+                    $normalized_guest_items[$ukey]['quantity'] += $qty;
+                } else {
+                    $normalized_guest_items[$ukey] = [
+                        'product_id' => $pid,
+                        'variant_id' => $vid,
+                        'quantity'   => $qty,
+                        'stock_max'  => $stock_max
+                    ];
+                }
+            }
+        }
+
+        // 2. Merge guest items into database cart_items table
+        if (!empty($normalized_guest_items)) {
+            foreach ($normalized_guest_items as $item) {
+                $pid = $item['product_id'];
+                $vid = $item['variant_id'];
+                $qty = $item['quantity'];
 
                 $existing = $this->db->where('tenant_id', $tid)
                                      ->where('user_id', (int) $user_id)
@@ -845,20 +946,17 @@ class cart_model extends CI_Model {
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 } else {
-                    $this->db->insert('cart_items', [
-                        'tenant_id'  => $tid,
-                        'user_id'    => (int) $user_id,
-                        'product_id' => $pid,
-                        'variant_id' => $vid,
-                        'quantity'   => $qty,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                    $this->db->query(
+                        "INSERT INTO cart_items (tenant_id, user_id, product_id, variant_id, quantity, created_at, updated_at) " .
+                        "VALUES (?, ?, ?, ?, ?, NOW(), NOW()) " .
+                        "ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), updated_at = NOW()",
+                        [(int)$tid, (int)$user_id, (int)$pid, (int)$vid, (int)$qty]
+                    );
                 }
             }
         }
 
-        // Also associate any saved_for_later items from session_id to user_id
+        // 3. Also associate any saved_for_later items from session_id to user_id
         $sess_id = $this->session->session_id ?: session_id();
         if ($sess_id) {
             $this->db->where('tenant_id', $tid)
@@ -867,8 +965,18 @@ class cart_model extends CI_Model {
                      ->update('cart_saved_items', ['user_id' => (int) $user_id]);
         }
 
-        // Refresh session from database
-        $this->get_items();
+        // 4. Rebuild session cart fresh with all merged items from database
+        $new_cart = [];
+        $db_rows = $this->db->where('tenant_id', $tid)->where('user_id', (int) $user_id)->get('cart_items')->result_array();
+        foreach ($db_rows as $row) {
+            $vid = !empty($row['variant_id']) ? (int)$row['variant_id'] : null;
+            $ckey = (string) $row['product_id'] . ($vid ? '_' . $vid : '');
+            $built = $this->build_item_data($row['product_id'], (int)$row['quantity'], $vid);
+            if ($built) {
+                $new_cart[$ckey] = $built;
+            }
+        }
+        $this->set_session_cart($new_cart);
     }
 
     /**
@@ -888,6 +996,18 @@ class cart_model extends CI_Model {
                 $variant = NULL;
                 $variant_id = NULL;
             }
+        } elseif (!empty($product['variants']) && is_array($product['variants'])) {
+            // Auto-select primary/default variant (prefer 1 kg or first variant)
+            $default_var = $product['variants'][0];
+            foreach ($product['variants'] as $v_cand) {
+                $v_title = strtolower($v_cand['title'] ?? '');
+                if (strpos($v_title, '1 kg') !== false || strpos($v_title, '1kg') !== false) {
+                    $default_var = $v_cand;
+                    break;
+                }
+            }
+            $variant = $default_var;
+            $variant_id = (int)$default_var['id'];
         }
 
         $cart_key = $product_id . ($variant ? '_' . $variant['id'] : '');
@@ -899,26 +1019,55 @@ class cart_model extends CI_Model {
         }
         $target_qty = min($quantity, max(1, $available_stock));
 
+        $is_fs = (!empty($variant['is_flash_sale']) || !empty($product['is_flash_sale'])) ? 1 : 0;
         if ($variant) {
-            $base_p = (!empty($variant['base_sale_price']) && (float)$variant['base_sale_price'] > 0) ? (float)$variant['base_sale_price'] : ((isset($variant['base_price']) && is_numeric($variant['base_price'])) ? (float)$variant['base_price'] : (!empty($variant['sale_price']) ? (float)$variant['sale_price'] : (float)$variant['price']));
-            $base_reg = (isset($variant['base_price']) && is_numeric($variant['base_price'])) ? (float)$variant['base_price'] : (!empty($variant['price']) ? (float)$variant['price'] : round($base_p * 1.30, 2));
-            $price = !empty($variant['sale_price']) ? (float) $variant['sale_price'] : (float) $variant['price'];
-            $regular_price = !empty($variant['price']) ? (float) $variant['price'] : round($price * 1.30, 2);
+            $base_reg = (isset($variant['base_price']) && is_numeric($variant['base_price']) && (float)$variant['base_price'] > 0)
+                ? (float)$variant['base_price']
+                : (!empty($variant['price']) ? (float)$variant['price'] : 0);
+            $orig_selling = (isset($variant['original_selling_price']) && is_numeric($variant['original_selling_price']) && (float)$variant['original_selling_price'] > 0)
+                ? (float)$variant['original_selling_price']
+                : ((!empty($variant['sale_price']) && (float)$variant['sale_price'] > 0) ? (float)$variant['sale_price'] : $base_reg);
+
+            if ($is_fs) {
+                $price = (float)$variant['sale_price'];
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            } else {
+                $price = $orig_selling;
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            }
             $image = !empty($variant['image']) ? $variant['image'] : $product['main_image'];
             $sku   = !empty($variant['sku']) ? $variant['sku'] : $product['sku'];
         } else {
-            $base_p = (!empty($product['base_sale_price']) && (float)$product['base_sale_price'] > 0) ? (float)$product['base_sale_price'] : ((isset($product['base_price']) && is_numeric($product['base_price'])) ? (float)$product['base_price'] : (!empty($product['sale_price']) ? (float)$product['sale_price'] : (float)$product['price']));
-            $base_reg = (isset($product['base_price']) && is_numeric($product['base_price'])) ? (float)$product['base_price'] : (!empty($product['price']) ? (float)$product['price'] : round($base_p * 1.30, 2));
-            $price = !empty($product['sale_price']) ? (float) $product['sale_price'] : (float) $product['price'];
-            $regular_price = !empty($product['price']) ? (float) $product['price'] : round($price * 1.30, 2);
+            $base_reg = (isset($product['base_price']) && is_numeric($product['base_price']) && (float)$product['base_price'] > 0)
+                ? (float)$product['base_price']
+                : (!empty($product['price']) ? (float)$product['price'] : 0);
+            $orig_selling = (isset($product['original_selling_price']) && is_numeric($product['original_selling_price']) && (float)$product['original_selling_price'] > 0)
+                ? (float)$product['original_selling_price']
+                : ((!empty($product['sale_price']) && (float)$product['sale_price'] > 0) ? (float)$product['sale_price'] : $base_reg);
+
+            if ($is_fs) {
+                $price = (float)$product['sale_price'];
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            } else {
+                $price = $orig_selling;
+                $regular_price = $base_reg;
+                $base_p = $orig_selling;
+            }
             $image = $product['main_image'];
             $sku   = $product['sku'];
         }
-        if ($regular_price <= $price) {
+
+        if ($regular_price <= $price && $base_reg <= 0) {
             $regular_price = round($price * 1.30, 2);
         }
-        if ($base_reg <= $base_p) {
+        if ($base_reg <= $base_p && $base_reg <= 0) {
             $base_reg = round($base_p * 1.30, 2);
+        }
+        if ($regular_price <= $price) {
+            $regular_price = $price;
         }
         $disc_pct = ($regular_price > $price) ? round((($regular_price - $price) / $regular_price) * 100) : 0;
 
@@ -1000,7 +1149,9 @@ class cart_model extends CI_Model {
             'is_cod_allowed'     => isset($p_info['is_cod_allowed']) ? (int) $p_info['is_cod_allowed'] : 1,
             'rating'             => $prod_rating,
             'reviews_count'      => $prod_reviews,
-            'short_description'  => !empty($p_info['short_description']) ? $p_info['short_description'] : ''
+            'short_description'  => !empty($p_info['short_description']) ? $p_info['short_description'] : '',
+            'is_flash_sale'      => $is_fs,
+            'original_selling_price' => $orig_selling ?? $base_p
         ];
     }
 }

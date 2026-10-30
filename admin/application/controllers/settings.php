@@ -219,8 +219,10 @@ class settings extends MY_Controller {
                 $allowed = ['razorpay', 'stripe', 'payu', 'none'];
                 if (in_array($chosen_online, $allowed)) {
                     if ($chosen_online !== 'none') {
-                        $gw_check = $this->setting_model->get_gateway($chosen_online);
-                        $gw_creds = !empty($gw_check['credentials']) ? (is_array($gw_check['credentials']) ? $gw_check['credentials'] : json_decode($gw_check['credentials'], true)) : [];
+                        $gw_check = $this->setting_model->get_payment_gateway($chosen_online);
+                        $gw_creds = !empty($gw_check['credentials_decoded']) 
+                            ? $gw_check['credentials_decoded'] 
+                            : (!empty($gw_check['credentials']) ? (is_array($gw_check['credentials']) ? $gw_check['credentials'] : json_decode($gw_check['credentials'], true)) : []);
                         $has_creds = false;
                         if ($chosen_online === 'razorpay' && !empty(trim($gw_creds['key_id'] ?? '')) && !empty(trim($gw_creds['key_secret'] ?? ''))) {
                             $has_creds = true;

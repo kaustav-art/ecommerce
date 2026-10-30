@@ -57,6 +57,7 @@ $route['products'] = 'shop/index';
 $route['products/(:any)'] = 'shop/index/$1';
 $route['product'] = 'product/detail';
 $route['product/detail'] = 'product/detail';
+$route['product/get_variant_ajax'] = 'product/get_variant_ajax';
 $route['product/(:any)'] = 'product/detail/$1';
 $route['cart'] = 'cart/index';
 $route['checkout'] = 'checkout/index';

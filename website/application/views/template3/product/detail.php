@@ -1278,6 +1278,9 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
 
                      <!-- Product Title -->
                      <h2 class="grc-pd-title">
+                        <?php if (!empty($product['is_flash_sale'])): ?>
+                           <span class="badge bg-danger me-2" style="font-size:13px; font-weight:700; padding:5px 12px; letter-spacing:0.5px; vertical-align:middle;">SALE</span>
+                        <?php endif; ?>
                         <?= html_escape($prod_title); ?>
                      </h2>
 

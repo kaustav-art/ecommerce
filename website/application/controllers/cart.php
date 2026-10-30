@@ -24,11 +24,6 @@ class cart extends MY_Controller {
         $items = $this->cart_model->get_items();
         $summary = $this->cart_model->get_cart_summary($shipping_method);
 
-        if (empty($items) && !$this->is_user_project) {
-            $items = Static_template_data::get('cart_items');
-            $summary = Static_template_data::get('cart_summary');
-        }
-
         $recently_viewed_ids = $this->session->userdata('recently_viewed') ?: [];
         $recently_viewed_products = [];
         if (!empty($recently_viewed_ids) && is_array($recently_viewed_ids)) {
@@ -48,7 +43,7 @@ class cart extends MY_Controller {
             'cart_summary'             => $summary,
             'cart_recommendations'     => !empty($all_products) ? array_slice($all_products, 0, 8) : $this->product_model->get_products([], 8),
             'recently_viewed_products' => $recently_viewed_products,
-            'wishlist_items'           => !empty($wishlist_items) ? $wishlist_items : array_slice($all_products, 2, 4)
+            'wishlist_items'           => $wishlist_items
         ];
 
         $this->render('cart/index', $data);

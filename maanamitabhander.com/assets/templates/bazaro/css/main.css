@@ -3154,7 +3154,8 @@ textarea {
   padding: 30px;
 }
 .aq-cartmini-body {
-  height: 560px;
+  height: 100%;
+  flex: 1 1 auto;
   overflow: hidden;
   overflow-y: scroll;
   scrollbar-width: none;
@@ -15309,6 +15310,18 @@ body .ui-tooltip {
 }
 .grc-product-style .aq-product-title {
   margin-bottom: 0;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+}
+.grc-product-style .aq-product-title a {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
 }
 .grc-product-style .aq-product-title a:hover {
   color: var(--aq-common-green);
