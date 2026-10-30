@@ -61,7 +61,7 @@ if (!empty($brands) && is_array($brands)) {
     }
 }
 $grc_brands = ['NatureFresh Organic', 'GreenValley Farms', 'HarvestGold Dairy', 'Artisan Bakehouse', 'EarthBounty Organics', 'PureOrchard Juices'];
-if (empty($dynamic_brands_list)) {
+if (empty($dynamic_brands_list) && empty($is_user_project)) {
     foreach ($grc_brands as $gb_idx => $gb_name) {
         $dynamic_brands_list[] = [
             'name'  => $gb_name,
@@ -542,6 +542,7 @@ if (!function_exists('grc_shop_unit_calc')) {
                   </div>
 
                   <!-- Organic Farm Brands -->
+                  <?php if (!empty($dynamic_brands_list)): ?>
                   <div class="grc-filter-block">
                      <h6 class="grc-filter-heading">Brands &amp; Farms</h6>
                      <?php foreach ($dynamic_brands_list as $b_item): ?>
@@ -554,6 +555,7 @@ if (!function_exists('grc_shop_unit_calc')) {
                         </label>
                      <?php endforeach; ?>
                   </div>
+                  <?php endif; ?>
                </div>
             </div>
 

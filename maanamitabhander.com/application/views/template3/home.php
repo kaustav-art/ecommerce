@@ -263,6 +263,7 @@ if (!function_exists('grc_product_img')) {
                <div class="row">
                   <?php 
                   $display_new = !empty($new_arrival_products) ? $new_arrival_products : array_slice($all_prods, 0, 10);
+                  if (!empty($display_new)):
                   foreach ($display_new as $n_idx => $p):
                      $p_img  = grc_product_img($p['primary_image'] ?? ($p['image'] ?? ''), $bazaro, $n_idx + 1);
                      $p_reg  = (float)($p['regular_price'] ?? $p['price'] ?? 0);
@@ -329,6 +330,11 @@ if (!function_exists('grc_product_img')) {
                      </div>
                   </div>
                   <?php endforeach; ?>
+                  <?php else: ?>
+                  <div class="col-12 text-center py-5">
+                     <p class="text-muted mb-0">No products available at the moment.</p>
+                  </div>
+                  <?php endif; ?>
                </div>
             </div>
          </div>
@@ -565,6 +571,7 @@ if (!function_exists('grc_product_img')) {
                         <div class="swiper-wrapper">
                            <?php
                            $display_pop = !empty($popular_products) ? $popular_products : array_slice($all_prods, 0, 10);
+                           if (!empty($display_pop)):
                            foreach ($display_pop as $c_idx => $cp):
                               $c_img  = grc_product_img($cp['primary_image'] ?? ($cp['image'] ?? ''), $bazaro, $c_idx + 1);
                               $c_reg  = (float)($cp['regular_price'] ?? $cp['price'] ?? 0);
@@ -629,6 +636,11 @@ if (!function_exists('grc_product_img')) {
                               </div>
                            </div>
                            <?php endforeach; ?>
+                           <?php else: ?>
+                           <div class="col-12 text-center py-5 w-100">
+                              <p class="text-muted mb-0">No products available at the moment.</p>
+                           </div>
+                           <?php endif; ?>
                         </div>
                      </div>
                   </div>

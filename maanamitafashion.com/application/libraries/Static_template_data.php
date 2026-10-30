@@ -506,16 +506,25 @@ class Static_template_data {
         // 7. Customer Profile & Addresses
         $uStmt = $pdo->prepare("SELECT * FROM `users` WHERE `tenant_id` = ? ORDER BY `id` ASC LIMIT 1");
         $uStmt->execute([$tenantId]);
-        $user = $uStmt->fetch() ?: [
-            'id'         => 1,
-            'first_name' => 'Alex',
-            'last_name'  => 'Morgan',
-            'email'      => 'alex.morgan@example.com',
-            'phone'      => '9876543210',
-            'avatar'     => 'default-user.png',
-            'status'     => 'active',
-        ];
-        $user['name'] = trim(($user['first_name'] ?? 'Alex') . ' ' . ($user['last_name'] ?? 'Morgan'));
+        $user = $uStmt->fetch();
+        if (!$user) {
+            if ($tenantId <= 3) {
+                $user = [
+                    'id'         => 1,
+                    'first_name' => 'Alex',
+                    'last_name'  => 'Morgan',
+                    'email'      => 'alex.morgan@example.com',
+                    'phone'      => '9876543210',
+                    'avatar'     => 'default-user.png',
+                    'status'     => 'active',
+                ];
+            } else {
+                $user = [];
+            }
+        }
+        if (!empty($user)) {
+            $user['name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        }
 
         $addrStmt = $pdo->prepare("SELECT * FROM `user_addresses` WHERE `tenant_id` = ? ORDER BY `is_default` DESC, `id` ASC");
         $addrStmt->execute([$tenantId]);

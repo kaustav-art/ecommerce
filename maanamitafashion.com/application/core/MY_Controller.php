@@ -366,6 +366,7 @@ class MY_Controller extends CI_Controller {
                 unset($dp);
                 return $db_prods;
             }
+            return [];
         }
 
         if (isset($this->db) && $this->db->table_exists('template_products')) {

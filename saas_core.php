@@ -586,34 +586,13 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
 
         $sourceTenantId = ($chosenTemplate === 'grocery') ? 2 : (($chosenTemplate === 'electronics') ? 3 : 1);
 
-        // Seed Attributes & Attribute Values from source tenant if this tenant has 0 attributes
-        $chkAttr = $pdo->prepare("SELECT COUNT(*) FROM `attributes` WHERE `tenant_id` = ?");
-        $chkAttr->execute([$tenantId]);
-        if ((int)$chkAttr->fetchColumn() === 0) {
-            $srcAttrs = $pdo->prepare("SELECT * FROM `attributes` WHERE `tenant_id` = ?");
-            $srcAttrs->execute([$sourceTenantId]);
-            $insAttr = $pdo->prepare("INSERT INTO `attributes` (`tenant_id`, `name`, `slug`, `type`) VALUES (?, ?, ?, ?)");
-            $insVal  = $pdo->prepare("INSERT INTO `attribute_values` (`attribute_id`, `tenant_id`, `value`, `color_code`, `sort_order`) VALUES (?, ?, ?, ?, ?)");
-            foreach ($srcAttrs->fetchAll() as $sa) {
-                $insAttr->execute([$tenantId, $sa['name'], $sa['slug'], $sa['type'] ?? 'select']);
-                $newAttrId = (int)$pdo->lastInsertId();
-                $srcVals = $pdo->prepare("SELECT * FROM `attribute_values` WHERE `attribute_id` = ?");
-                $srcVals->execute([$sa['id']]);
-                foreach ($srcVals->fetchAll() as $sv) {
-                    $insVal->execute([$newAttrId, $tenantId, $sv['value'], $sv['color_code'] ?? null, (int)($sv['sort_order'] ?? 0)]);
-                }
-            }
-        }
+        // Seed ONLY dummy Categories and Hero Banners for a newly registered project.
+        // Do NOT seed products, attributes & values, brands, product reviews, orders, customers, customer groups, coupons, or flash sales.
 
-        // Seed Starter Catalog for New Tenant if they have 0 products
-        // Pulls directly from Superadmin-customized template_categories, template_hero_banners, and template_products!
-        $prodCountStmt = $pdo->prepare("SELECT COUNT(*) FROM `products` WHERE `tenant_id` = ?");
-        $prodCountStmt->execute([$tenantId]);
-        if ((int)$prodCountStmt->fetchColumn() === 0) {
-            $catNameMap = [];
-            $defaultCatId = 1;
-
-            // 1. Seed Categories from Superadmin template_categories
+        // 1. Seed Categories from Superadmin template_categories (or source tenant fallback) if this tenant has 0 categories
+        $catCountStmt = $pdo->prepare("SELECT COUNT(*) FROM `categories` WHERE `tenant_id` = ?");
+        $catCountStmt->execute([$tenantId]);
+        if ((int)$catCountStmt->fetchColumn() === 0) {
             $tplCatsStmt = $pdo->prepare("SELECT * FROM `template_categories` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
             $tplCatsStmt->execute([$tplFolderKey]);
             $tplCats = $tplCatsStmt->fetchAll();
@@ -622,32 +601,31 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
                 VALUES (?, 0, ?, ?, ?, ?, 1, ?, 'active')");
 
             if (!empty($tplCats)) {
-                foreach ($tplCats as $idx => $tc) {
+                foreach ($tplCats as $tc) {
                     $cSlug = ($tc['slug'] ?: sanitize_store_slug($tc['name'])) . '-t' . $tenantId;
                     $insCat->execute([$tenantId, $tc['name'], $cSlug, $tc['subtitle'] ?? '', $tc['image'], (int)$tc['sort_order']]);
-                    $cid = (int)$pdo->lastInsertId();
-                    $catNameMap[strtolower(trim($tc['name']))] = $cid;
-                    if ($idx === 0) $defaultCatId = $cid;
                 }
             } else {
                 $srcCats = $pdo->prepare("SELECT * FROM `categories` WHERE `tenant_id` = ? AND `parent_id` = 0 ORDER BY `sort_order` ASC LIMIT 8");
                 $srcCats->execute([$sourceTenantId]);
-                foreach ($srcCats->fetchAll() as $idx => $sc) {
+                foreach ($srcCats->fetchAll() as $sc) {
                     $cSlug = $sc['slug'] . '-t' . $tenantId;
                     $insCat->execute([$tenantId, $sc['name'], $cSlug, $sc['description'], $sc['image'], $sc['sort_order']]);
-                    $cid = (int)$pdo->lastInsertId();
-                    $catNameMap[strtolower(trim($sc['name']))] = $cid;
-                    if ($idx === 0) $defaultCatId = $cid;
                 }
             }
+        }
 
-            // 2. Seed Hero Banners from Superadmin template_hero_banners
+        // 2. Seed Hero Banners from Superadmin template_hero_banners (or source tenant fallback) if this tenant has 0 banners
+        $banCountStmt = $pdo->prepare("SELECT COUNT(*) FROM `banners` WHERE `tenant_id` = ?");
+        $banCountStmt->execute([$tenantId]);
+        if ((int)$banCountStmt->fetchColumn() === 0) {
             $tplBanStmt = $pdo->prepare("SELECT * FROM `template_hero_banners` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
             $tplBanStmt->execute([$tplFolderKey]);
             $tplBans = $tplBanStmt->fetchAll();
 
             $insBanner = $pdo->prepare("INSERT INTO `banners` (`tenant_id`, `title`, `subtitle`, `button_text`, `button_link`, `image`, `sort_order`, `status`)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'active')");
+
             if (!empty($tplBans)) {
                 foreach ($tplBans as $tb) {
                     $insBanner->execute([
@@ -660,63 +638,18 @@ function provision_saas_tenant($paymentOrderOrId, $transactionId = '', $gatewayR
                         (int)$tb['sort_order']
                     ]);
                 }
-            }
-
-            // 3. Seed Products from Superadmin template_products or source tenant
-            $tplProdStmt = $pdo->prepare("SELECT * FROM `template_products` WHERE `template_key` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
-            $tplProdStmt->execute([$tplFolderKey]);
-            $tplProds = $tplProdStmt->fetchAll();
-
-            $insProd = $pdo->prepare("INSERT INTO `products`
-                (`tenant_id`, `category_id`, `brand_id`, `product_type`, `title`, `slug`, `sku`, `unit_label`, `warranty_info`, `price`, `sale_price`, `tax_rate`, `stock_quantity`, `low_stock_threshold`, `max_purchase_quantity`, `stock_status`, `short_description`, `description`, `highlights`, `main_image`, `gallery_images`, `is_featured`, `is_trending`, `is_new`, `is_cod_allowed`, `rating`, `reviews_count`, `status`)
-                VALUES (?, ?, 0, 'simple', ?, ?, ?, ?, '', ?, ?, 10.00, 35, 5, 10, 'in_stock', ?, ?, '', ?, ?, 1, 1, 1, 1, ?, ?, 'published')");
-
-            if (!empty($tplProds)) {
-                foreach ($tplProds as $idx => $tp) {
-                    $catKey = strtolower(trim($tp['category_name'] ?? ''));
-                    $mappedCatId = $catNameMap[$catKey] ?? $defaultCatId;
-                    $pSlug = ($tp['slug'] ?: sanitize_store_slug($tp['name'])) . '-t' . $tenantId;
-                    $newSku = strtoupper(substr($chosenTemplate, 0, 3)) . '-' . ($idx + 101) . '-T' . $tenantId;
-                    $galleryJson = !empty($tp['hover_image']) ? json_encode([$tp['hover_image']]) : json_encode([$tp['image']]);
-                    $salePrice = (!empty($tp['sale_price']) && (float)$tp['sale_price'] > 0) ? (float)$tp['sale_price'] : null;
-                    $insProd->execute([
-                        $tenantId,
-                        $mappedCatId,
-                        $tp['name'],
-                        $pSlug,
-                        $newSku,
-                        $tp['unit_label'] ?? '',
-                        (float)$tp['price'],
-                        $salePrice,
-                        $tp['short_desc'] ?? $tp['name'],
-                        $tp['short_desc'] ?? $tp['name'],
-                        $tp['image'],
-                        $galleryJson,
-                        (float)($tp['rating'] ?? 0),
-                        0
-                    ]);
-                }
             } else {
-                $srcProds = $pdo->prepare("SELECT * FROM `products` WHERE `tenant_id` = ? AND `status` = 'published' ORDER BY `id` ASC LIMIT 12");
-                $srcProds->execute([$sourceTenantId]);
-                foreach ($srcProds->fetchAll() as $idx => $sp) {
-                    $pSlug = $sp['slug'] . '-t' . $tenantId;
-                    $newSku = strtoupper(substr($chosenTemplate, 0, 3)) . '-' . ($idx + 101) . '-T' . $tenantId;
-                    $insProd->execute([
+                $srcBans = $pdo->prepare("SELECT * FROM `banners` WHERE `tenant_id` = ? AND `status` = 'active' ORDER BY `sort_order` ASC");
+                $srcBans->execute([$sourceTenantId]);
+                foreach ($srcBans->fetchAll() as $sb) {
+                    $insBanner->execute([
                         $tenantId,
-                        $defaultCatId,
-                        $sp['title'],
-                        $pSlug,
-                        $newSku,
-                        $sp['unit_label'] ?? '',
-                        (float)$sp['price'],
-                        $sp['sale_price'],
-                        $sp['short_description'] ?? $sp['title'],
-                        $sp['description'] ?? $sp['title'],
-                        $sp['main_image'],
-                        $sp['gallery_images'],
-                        (float)($sp['rating'] ?? 0),
-                        0
+                        $sb['title'],
+                        $sb['subtitle'] ?? '',
+                        $sb['button_text'] ?: 'Shop Now',
+                        $sb['button_link'] ?: 'shop',
+                        $sb['image'],
+                        (int)$sb['sort_order']
                     ]);
                 }
             }
