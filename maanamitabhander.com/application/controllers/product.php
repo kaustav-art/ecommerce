@@ -120,6 +120,56 @@ class product extends MY_Controller {
         $this->render('product/detail', $data);
     }
 
+    public function reviews($slug = 'common')
+    {
+        $all_products = Static_template_data::get('products');
+        $product      = NULL;
+
+        $clean_slug = trim((string) $slug);
+        if ($clean_slug !== '' && $clean_slug !== 'common' && !empty($all_products)) {
+            foreach ($all_products as $p) {
+                if ((!empty($p['slug']) && strcasecmp($p['slug'], $clean_slug) === 0) || (is_numeric($clean_slug) && (int) $p['id'] === (int) $clean_slug)) {
+                    $product = $p;
+                    break;
+                }
+            }
+        }
+
+        if (!$this->is_user_project && $this->active_template === 'grocery') {
+            $grc_products = $this->get_dynamic_template_products('template3');
+            if (!empty($grc_products)) {
+                $matched_grc = null;
+                foreach ($grc_products as $gp) {
+                    if (!empty($gp['slug']) && strcasecmp($gp['slug'], $clean_slug) === 0) {
+                        $matched_grc = $gp;
+                        break;
+                    }
+                }
+                if ($matched_grc) {
+                    $product = $product ? array_merge($product, $matched_grc) : $matched_grc;
+                }
+            }
+        }
+
+        if (!$product) {
+            $product = Static_template_data::get('common_product');
+        }
+
+        $tpl_key = $this->template_registry->get_tpl_key($this->active_template);
+        if (!empty($product['main_image'])) {
+            $product['primary_image'] = $this->normalize_tpl_image($product['main_image'], $tpl_key);
+            $product['image']         = $product['primary_image'];
+        }
+
+        $data = [
+            'title'       => 'All Reviews - ' . ($product['title'] ?? ($product['name'] ?? 'Product')) . ' - ' . $this->site_name,
+            'active_page' => 'shop',
+            'product'     => $product,
+        ];
+
+        $this->render('product/reviews', $data);
+    }
+
     public function get_variant_ajax()
     {
         $variant_id   = (int) $this->input->get('variant_id');
@@ -170,7 +220,44 @@ class product extends MY_Controller {
 
     public function review()
     {
-        $slug = $this->input->post('product_slug', TRUE) ?: 'common';
+        $slug = trim((string) ($this->input->post('product_slug', TRUE) ?: 'common'));
+        $product_id = (int) $this->input->post('product_id');
+        $tid = (int) $this->tenant_id;
+
+        if ($product_id <= 0 && $slug !== '' && $slug !== 'common') {
+            $prod_row = $this->db->select('id')
+                                 ->where('tenant_id', $tid)
+                                 ->where('slug', $slug)
+                                 ->get('products')
+                                 ->row_array();
+            if ($prod_row) {
+                $product_id = (int) $prod_row['id'];
+            }
+        }
+
+        if ($product_id > 0 && $this->input->method() === 'post') {
+            $this->load->model('product_model');
+            $user_id = !empty($this->current_user['id']) ? (int) $this->current_user['id'] : null;
+            $rating  = max(1, min(5, (int) ($this->input->post('rating') ?: 5)));
+            $title   = trim((string) $this->input->post('title', TRUE));
+            $review  = trim((string) ($this->input->post('review', TRUE) ?: $this->input->post('comment', TRUE)));
+            $name    = trim((string) ($this->input->post('name', TRUE) ?: ($this->current_user['name'] ?? 'Verified Customer')));
+            $email   = trim((string) ($this->input->post('email', TRUE) ?: ($this->current_user['email'] ?? '')));
+
+            $this->product_model->add_review([
+                'product_id'     => $product_id,
+                'user_id'        => $user_id,
+                'customer_name'  => $name !== '' ? $name : 'Verified Customer',
+                'customer_email' => $email,
+                'rating'         => $rating,
+                'title'          => $title !== '' ? $title : null,
+                'review'         => $review,
+                'status'         => 'approved',
+                'created_at'     => date('Y-m-d H:i:s')
+            ]);
+            Static_template_data::clear_cache();
+        }
+
         $this->session->set_flashdata('success', 'Thank you! Your review has been submitted.');
         redirect('product/' . $slug);
     }

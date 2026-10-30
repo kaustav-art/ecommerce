@@ -721,13 +721,15 @@
             toast.className = 'position-fixed bottom-0 end-0 p-3';
             toast.style.zIndex = '99999';
             toast.innerHTML = 
-                '<div class="toast show align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert">' +
-                    '<div class="d-flex">' +
-                        '<div class="toast-body d-flex align-items-center gap-2">' +
-                            '<i class="fa-solid ' + icon + ' fs-5 text-warning"></i>' +
+                '<div class="toast show ' + bgClass + ' border-0 shadow-lg rounded-3" role="alert" style="max-width: 400px;">' +
+                    '<div class="d-flex align-items-center justify-content-between py-2 ps-3 pe-2 gap-2">' +
+                        '<div class="toast-body d-flex align-items-center gap-2 p-0 flex-grow-1" style="font-size: 13.5px; line-height: 1.45;">' +
+                            '<i class="fa-solid ' + icon + ' fs-5 text-warning flex-shrink-0"></i>' +
                             '<span>' + message + '</span>' +
                         '</div>' +
-                        '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest(\'#cart-toast-notice\').remove()"></button>' +
+                        '<button type="button" class="fk-toast-close-btn" aria-label="Close" onclick="this.closest(\'#cart-toast-notice\').remove()" style="position: static !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; border-radius: 6px !important; background: transparent !important; color: inherit !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; opacity: 0.85 !important; cursor: pointer !important; box-shadow: none !important; transform: none !important;">' +
+                            '<i class="fa-solid fa-xmark" style="font-size: 15px; line-height: 1;"></i>' +
+                        '</button>' +
                     '</div>' +
                 '</div>';
             document.body.appendChild(toast);
@@ -1083,7 +1085,7 @@
             }
 
             // Badges
-            document.querySelectorAll('#cart-counter, .count-box, .count-cart, .side-cart-count').forEach(function(badge) {
+            document.querySelectorAll('#cart-counter, .cart-count, .count-box.cart-count, .count-cart, .side-cart-count').forEach(function(badge) {
                 badge.textContent = count !== undefined ? count : (summary.item_count || 0);
             });
         }
@@ -1094,9 +1096,9 @@
 
             if (!window.IS_USER_LOGGED_IN) {
                 if (typeof window.openLoginModal === 'function') {
-                    window.openLoginModal('<?= site_url("checkout"); ?>', 'Please sign in or enter your mobile/email to proceed to checkout.');
+                    window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in to proceed to buy.');
                 } else {
-                    window.location.href = '<?= site_url("login"); ?>';
+                    window.location.href = '<?= site_url("auth/login?redirect=" . urlencode("cart")); ?>';
                 }
                 return false;
             }
@@ -1110,7 +1112,7 @@
             window.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {
                     if (typeof window.openLoginModal === 'function') {
-                        window.openLoginModal('<?= site_url("checkout"); ?>', 'Please sign in to complete your order.');
+                        window.openLoginModal('<?= site_url("cart"); ?>', 'Please sign in to proceed to buy.');
                     }
                 }, 350);
             });

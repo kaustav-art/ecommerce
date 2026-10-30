@@ -43,11 +43,16 @@ $hover_img = !empty($p['gallery_images_decoded'][0]) ? $p['gallery_images_decode
         </div> 
     </div>
     <div class="card-product-info">
+        <?php
+        $p_rev_cnt = (isset($p['reviews']) && is_array($p['reviews'])) ? count($p['reviews']) : (int)($p['reviews_count'] ?? 0);
+        $p_rating  = $p_rev_cnt > 0 ? (float)($p['rating'] ?? 0) : 0.0;
+        $p_stars   = (int)round($p_rating);
+        ?>
         <div class="d-flex align-items-center gap-1 mb-1 small text-warning">
             <?php for ($s = 1; $s <= 5; $s++): ?>
-                <i class="fa-<?= ($s <= round($p['rating'] ?? 0)) ? 'solid' : 'regular'; ?> fa-star" style="font-size: 11px;"></i>
+                <i class="fa-<?= ($s <= $p_stars) ? 'solid' : 'regular'; ?> fa-star" style="font-size: 11px;"></i>
             <?php endfor; ?>
-            <span class="text-muted ms-1" style="font-size: 11px;">(<?= $p['reviews_count'] ?? 0; ?>)</span>
+            <span class="text-muted ms-1" style="font-size: 11px;">(<?= $p_rev_cnt; ?>)</span>
         </div>
         <a href="<?= site_url('product/' . $p['slug']); ?>" class="title link"><?= html_escape($p['title']); ?></a>
         <div class="price">

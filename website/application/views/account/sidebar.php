@@ -4,6 +4,18 @@ $display_name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? 
 if (empty($display_name)) {
     $display_name = 'Valued Customer';
 }
+$raw_user_avatar = trim((string)($user['avatar'] ?? ''));
+$has_user_avatar = ($raw_user_avatar !== '' && !in_array(strtolower($raw_user_avatar), ['default-user.png', 'user-default.jpg', 'default.png'], true));
+$user_avatar_url = '';
+if ($has_user_avatar) {
+    $clean_u_av = ltrim($raw_user_avatar, '/');
+    if (strpos($clean_u_av, 'assets/images/') === 0) {
+        $clean_u_av = substr($clean_u_av, strlen('assets/images/'));
+    }
+    $user_avatar_url = (strpos($clean_u_av, 'http://') === 0 || strpos($clean_u_av, 'https://') === 0)
+        ? $clean_u_av
+        : base_url('assets/images/' . $clean_u_av);
+}
 ?>
 
 <div class="fk-sidebar-wrapper">
@@ -11,9 +23,16 @@ if (empty($display_name)) {
     <div class="d-none d-md-block">
         <!-- User Greeting Card -->
         <div class="card border rounded-1 p-3 mb-3 bg-white d-flex flex-row align-items-center gap-3 shadow-sm" style="border-color: #f0f0f0 !important;">
-            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 50px; height: 50px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 20px; flex-shrink: 0;">
-                <i class="fa-solid fa-user"></i>
-            </div>
+            <?php if ($has_user_avatar): ?>
+                <img src="<?= $user_avatar_url; ?>" alt="<?= html_escape($display_name); ?>" class="rounded-circle shadow-sm border" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="rounded-circle align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 50px; height: 50px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 20px; flex-shrink: 0; display: none;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            <?php else: ?>
+                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 50px; height: 50px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 20px; flex-shrink: 0;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            <?php endif; ?>
             <div class="overflow-hidden">
                 <div class="text-muted" style="font-size: 12px;">Hello,</div>
                 <div class="fw-bold text-dark text-truncate" style="font-size: 16px;" title="<?= html_escape($display_name); ?>">
@@ -100,9 +119,16 @@ if (empty($display_name)) {
         <!-- Compact User Greeting -->
         <div class="card border rounded-2 p-2 px-3 mb-2 bg-white d-flex flex-row align-items-center justify-content-between shadow-sm" style="border-color: #e0e0e0 !important;">
             <div class="d-flex align-items-center gap-2 overflow-hidden">
-                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 38px; height: 38px; background: linear-gradient(135deg, #2874f0, #1b52b3); font-size: 15px;">
-                    <i class="fa-solid fa-user"></i>
-                </div>
+                <?php if ($has_user_avatar): ?>
+                    <img src="<?= $user_avatar_url; ?>" alt="<?= html_escape($display_name); ?>" class="rounded-circle shadow-sm border" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="rounded-circle align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 50px; height: 50px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 20px; flex-shrink: 0; display: none;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 50px; height: 50px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 20px; flex-shrink: 0;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                <?php endif; ?>
                 <div class="overflow-hidden">
                     <div class="text-muted" style="font-size: 11px; line-height: 1.1;">Hello,</div>
                     <div class="fw-bold text-dark text-truncate" style="font-size: 14px; max-width: 170px;">

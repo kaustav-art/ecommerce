@@ -117,13 +117,11 @@
 
                                     <!-- Framed Box matching rate_review_form.PNG -->
                                     <div class="card border rounded-1 p-3 bg-white" style="border-color: #d1d5db !important;">
-                                        <div class="text-secondary small mb-1" style="font-size: 12px;">Description</div>
-                                        <textarea name="review" id="review-description" rows="6" class="form-control border-0 shadow-none p-0" placeholder="Description..." required style="resize: vertical; font-size: 14px; line-height: 1.5;"><?= html_escape($existing_review['review'] ?? ''); ?></textarea>
+                                        <div class="text-secondary small fw-semibold mb-1" style="font-size: 12px;">Description</div>
+                                        <textarea name="review" id="review-description" rows="6" class="form-control rounded-1" placeholder="Description..." required style="height: auto !important; min-height: 136px !important; resize: vertical; font-size: 14px; line-height: 1.5 !important; border: 1px solid #d1d5db !important; padding: 10px 12px !important; background-color: #ffffff !important;"><?= html_escape($existing_review['review'] ?? ''); ?></textarea>
 
-                                        <hr class="my-3" style="border-color: #f0f0f0;">
-
-                                        <div class="text-secondary small mb-1" style="font-size: 12px;">Title (optional)</div>
-                                        <input type="text" name="title" id="review-title-input" class="form-control border-0 shadow-none p-0" placeholder="Review title..." value="<?= html_escape($existing_review['title'] ?? ''); ?>" style="font-size: 14px;">
+                                        <div class="text-secondary small fw-semibold mt-3 mb-1" style="font-size: 12px;">Title (optional)</div>
+                                        <input type="text" name="title" id="review-title-input" class="form-control rounded-1" placeholder="Review title..." value="<?= html_escape($existing_review['title'] ?? ''); ?>" style="font-size: 14px; height: 44px !important; line-height: 1.5 !important; border: 1px solid #d1d5db !important; padding: 8px 12px !important; background-color: #ffffff !important;">
                                     </div>
 
                                     <!-- Camera Upload Button -->
@@ -181,6 +179,30 @@
         }
         .star-clickable:hover {
             transform: scale(1.1);
+        }
+        #review-description {
+            height: auto !important;
+            min-height: 136px !important;
+            line-height: 1.5 !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            padding: 10px 12px !important;
+            background-color: #ffffff !important;
+        }
+        #review-title-input {
+            height: 44px !important;
+            line-height: 1.5 !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            padding: 8px 12px !important;
+            background-color: #ffffff !important;
+        }
+        #review-description:focus,
+        #review-title-input:focus {
+            border-color: var(--bs-primary, #108910) !important;
+            box-shadow: 0 0 0 3px rgba(16, 137, 16, 0.12) !important;
         }
         </style>
 

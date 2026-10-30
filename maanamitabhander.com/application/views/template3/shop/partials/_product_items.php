@@ -116,12 +116,18 @@ if (!empty($shop_products)):
             <span class="grc-unit-pill"><?= html_escape($p_unit); ?></span>
          </div>
          <h4 class="aq-product-title"><a href="<?= $p_url; ?>"><?= html_escape($p_name); ?></a></h4>
-         <div class="aq-product-ratting text-warning small mb-1">
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
-            <i class="fa-solid fa-star"></i>
+         <?php
+         $p_rev_cnt = (isset($p['reviews']) && is_array($p['reviews'])) ? count($p['reviews']) : (int)($p['reviews_count'] ?? 0);
+         $p_rating  = $p_rev_cnt > 0 ? (float)($p['rating'] ?? 0) : 0.0;
+         $p_stars   = (int)round($p_rating);
+         ?>
+         <div class="aq-product-ratting text-warning small mb-1 d-flex align-items-center gap-1">
+            <span>
+               <?php for ($si = 1; $si <= 5; $si++): ?>
+                  <i class="fa-<?= ($si <= $p_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+               <?php endfor; ?>
+            </span>
+            <span class="text-muted" style="font-size:12px;">(<?= $p_rev_cnt; ?>)</span>
          </div>
          <div class="aq-product-price">
             <ins><span class="aq-product-new-price"><?= html_escape($curr) . number_format($p_sal, 2); ?></span></ins>

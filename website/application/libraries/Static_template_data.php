@@ -271,7 +271,11 @@ class Static_template_data {
                 $specsByProd[(int)$sp['product_id']][] = $sp;
             }
             // Reviews
-            $revStmt = $pdo->prepare("SELECT * FROM `reviews` WHERE `tenant_id` = ? AND `product_id` IN ($inSql) AND `status` = 'approved' ORDER BY `id` DESC");
+            $revStmt = $pdo->prepare("SELECT r.*, u.avatar AS user_avatar
+                FROM `reviews` r
+                LEFT JOIN `users` u ON u.tenant_id = r.tenant_id AND (u.id = r.user_id OR (r.user_id IS NULL AND r.customer_email != '' AND LOWER(u.email) = LOWER(r.customer_email)))
+                WHERE r.tenant_id = ? AND r.product_id IN ($inSql) AND r.status = 'approved'
+                ORDER BY r.id DESC");
             $revStmt->execute([$tenantId]);
             foreach ($revStmt->fetchAll() as $rv) {
                 $reviewsByProd[(int)$rv['product_id']][] = $rv;
@@ -473,7 +477,15 @@ class Static_template_data {
             $p['colors']                      = $colorsList;
             $p['sizes']                       = $sizesList;
             $p['specifications']              = $specsByProd[$pid] ?? [];
-            $p['reviews']                     = $reviewsByProd[$pid] ?? [];
+            $pRevs                            = $reviewsByProd[$pid] ?? [];
+            $p['reviews']                     = $pRevs;
+            $revCnt                           = count($pRevs);
+            $revSum                           = 0;
+            foreach ($pRevs as $rv) {
+                $revSum += (float)($rv['rating'] ?? 0);
+            }
+            $p['reviews_count']               = $revCnt;
+            $p['rating']                      = $revCnt > 0 ? round($revSum / $revCnt, 1) : 0.0;
 
             $products[] = $p;
         }

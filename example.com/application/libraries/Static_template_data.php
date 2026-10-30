@@ -157,7 +157,7 @@ class Static_template_data {
 
         // 3. Categories (all_categories, root_categories, category_tree) with recursive descendant rollup
         $catStmt = $pdo->prepare("SELECT c.*, (SELECT COUNT(*) FROM `products` p WHERE p.category_id = c.id AND p.tenant_id = c.tenant_id AND p.status = 'published') AS direct_product_count
-            FROM `categories` c WHERE c.tenant_id = ? AND c.status = 'active' ORDER BY c.sort_order ASC, c.id ASC");
+            FROM `categories` c WHERE c.tenant_id = ? AND c.status = 'active' ORDER BY c.is_featured DESC, c.sort_order DESC, c.id DESC");
         $catStmt->execute([$tenantId]);
         $rawCats = $catStmt->fetchAll();
 
@@ -271,7 +271,11 @@ class Static_template_data {
                 $specsByProd[(int)$sp['product_id']][] = $sp;
             }
             // Reviews
-            $revStmt = $pdo->prepare("SELECT * FROM `reviews` WHERE `tenant_id` = ? AND `product_id` IN ($inSql) AND `status` = 'approved' ORDER BY `id` DESC");
+            $revStmt = $pdo->prepare("SELECT r.*, u.avatar AS user_avatar
+                FROM `reviews` r
+                LEFT JOIN `users` u ON u.tenant_id = r.tenant_id AND (u.id = r.user_id OR (r.user_id IS NULL AND r.customer_email != '' AND LOWER(u.email) = LOWER(r.customer_email)))
+                WHERE r.tenant_id = ? AND r.product_id IN ($inSql) AND r.status = 'approved'
+                ORDER BY r.id DESC");
             $revStmt->execute([$tenantId]);
             foreach ($revStmt->fetchAll() as $rv) {
                 $reviewsByProd[(int)$rv['product_id']][] = $rv;
@@ -299,6 +303,27 @@ class Static_template_data {
                 $v['values'] = $valsByVar[(int)$v['id']] ?? [];
                 $variantsByProd[(int)$v['product_id']][] = $v;
             }
+        }
+
+        // Preload active flash sale for this tenant
+        $activeFlashSale = null;
+        $fsProductIds = [];
+        $fsDiscountPct = 0.0;
+        try {
+            $nowStr = date('Y-m-d H:i:s');
+            $fsStmt = $pdo->prepare("SELECT * FROM `flash_sales` WHERE `tenant_id` = ? AND `status` != 'terminated' AND `start_time` <= ? AND `end_time` >= ? ORDER BY `start_time` ASC LIMIT 1");
+            $fsStmt->execute([$tenantId, $nowStr, $nowStr]);
+            $activeFlashSale = $fsStmt->fetch();
+            if ($activeFlashSale && !empty($activeFlashSale['id'])) {
+                $fsDiscountPct = (float)($activeFlashSale['discount_percent'] ?? 0);
+                $fspStmt = $pdo->prepare("SELECT product_id, sale_price FROM `flash_sale_products` WHERE `flash_sale_id` = ?");
+                $fspStmt->execute([$activeFlashSale['id']]);
+                foreach ($fspStmt->fetchAll() as $fspRow) {
+                    $fsProductIds[(int)$fspRow['product_id']] = (float)$fspRow['sale_price'];
+                }
+            }
+        } catch (\Exception $e) {
+            // Flash sale tables may not exist in some setups
         }
 
         $products = [];
@@ -368,46 +393,99 @@ class Static_template_data {
             }
             unset($attrInfo);
 
-            $regPrice = (float)$p['price'];
+            $primaryVar = null;
+            $isFlashSaleProd = isset($fsProductIds[$pid]);
+            $regPrice  = (float)$p['price'];
             $salePrice = (!empty($p['sale_price']) && (float)$p['sale_price'] > 0) ? (float)$p['sale_price'] : null;
             $unitLabel = trim((string)($p['unit_label'] ?? ''));
 
-            // If variable product has variants, enrich default unit_label and fallback sale_price from first variant
+            // Process variants for flash sale & pricing
             if (!empty($pVars)) {
-                if ($unitLabel === '' && !empty($pVars[0]['variant_label'])) {
-                    $unitLabel = $pVars[0]['variant_label'];
-                }
-                if ($salePrice === null && !empty($pVars[0]['sale_price']) && (float)$pVars[0]['sale_price'] > 0) {
-                    $salePrice = (float)$pVars[0]['sale_price'];
-                    if (!empty($pVars[0]['price']) && (float)$pVars[0]['price'] > 0) {
-                        $regPrice = (float)$pVars[0]['price'];
+                foreach ($pVars as &$pvItem) {
+                    $vReg = (!empty($pvItem['price']) && (float)$pvItem['price'] > 0) ? (float)$pvItem['price'] : $regPrice;
+                    $vSelling = (!empty($pvItem['sale_price']) && (float)$pvItem['sale_price'] > 0) ? (float)$pvItem['sale_price'] : $vReg;
+                    if ($isFlashSaleProd && $fsDiscountPct > 0) {
+                        $vFlashPrice = round($vSelling * (1 - ($fsDiscountPct / 100)), 2);
+                        $vTotalPct   = ($vReg > 0 && $vFlashPrice < $vReg) ? round((($vReg - $vFlashPrice) / $vReg) * 100) : 0;
+                        $pvItem['original_selling_price'] = $vSelling;
+                        $pvItem['original_regular_price'] = $vReg;
+                        $pvItem['price']                  = $vReg;
+                        $pvItem['regular_price']          = $vReg;
+                        $pvItem['sale_price']             = $vFlashPrice;
+                        $pvItem['final_price']            = $vFlashPrice;
+                        $pvItem['total_discount_percent'] = $vTotalPct;
+                        $pvItem['is_flash_sale']          = 1;
+                    } else {
+                        $vTotalPct = ($vReg > 0 && $vSelling < $vReg) ? round((($vReg - $vSelling) / $vReg) * 100) : 0;
+                        $pvItem['original_selling_price'] = $vSelling;
+                        $pvItem['price']                  = $vReg;
+                        $pvItem['regular_price']          = $vReg;
+                        $pvItem['sale_price']             = ($vSelling < $vReg) ? $vSelling : null;
+                        $pvItem['total_discount_percent'] = $vTotalPct;
+                        $pvItem['is_flash_sale']          = 0;
                     }
                 }
+                unset($pvItem);
+
+                // Select primary variant: prefer '1 kg' if present, else first variant
+                $primaryVar = $pVars[0];
+                foreach ($pVars as $pvCandidate) {
+                    if (stripos($pvCandidate['variant_label'] ?? '', '1 kg') !== false || stripos($pvCandidate['variant_label'] ?? '', '1kg') !== false) {
+                        $primaryVar = $pvCandidate;
+                        break;
+                    }
+                }
+                if ($unitLabel === '' && !empty($primaryVar['variant_label'])) {
+                    $unitLabel = $primaryVar['variant_label'];
+                }
+                $regPrice = (float)$primaryVar['price'];
+                $salePrice = (!empty($primaryVar['sale_price']) && (float)$primaryVar['sale_price'] > 0) ? (float)$primaryVar['sale_price'] : null;
+            } elseif ($isFlashSaleProd && $fsDiscountPct > 0) {
+                // Simple product under flash sale
+                $prodSelling = ($salePrice !== null && $salePrice > 0) ? $salePrice : $regPrice;
+                $salePrice   = round($prodSelling * (1 - ($fsDiscountPct / 100)), 2);
             }
 
-            $p['id']                     = $pid;
-            $p['name']                   = $p['title'];
-            $p['main_image']             = $mainImg;
-            $p['primary_image']          = $mainImg;
-            $p['image']                  = $mainImg;
-            $p['hover_image']            = $hoverImg;
-            $p['regular_price']          = $regPrice;
-            $p['price']                  = $regPrice;
-            $p['sale_price']             = $salePrice;
-            $p['unit_label']             = $unitLabel;
-            $p['unit_value']             = $unitLabel;
-            $p['badge_text']             = $salePrice ? 'Sale' : 'Featured';
-            $p['is_bestseller']          = (int)($p['is_trending'] ?? 1);
-            $p['is_sale']                = $salePrice ? 1 : 0;
-            $p['gallery_images_decoded'] = $galNormalized;
-            $p['highlights_decoded']     = $hlDecoded;
-            $p['variants']               = $pVars;
-            $p['attributes']             = $pAttrs;
-            $p['color_swatches']         = $colorSwatches;
-            $p['colors']                 = $colorsList;
-            $p['sizes']                  = $sizesList;
-            $p['specifications']         = $specsByProd[$pid] ?? [];
-            $p['reviews']                = $reviewsByProd[$pid] ?? [];
+            $totalDiscountPct = ($regPrice > 0 && $salePrice !== null && $salePrice < $regPrice)
+                ? round((($regPrice - $salePrice) / $regPrice) * 100)
+                : 0;
+
+            $p['id']                          = $pid;
+            $p['name']                        = $p['title'];
+            $p['main_image']                  = $mainImg;
+            $p['primary_image']               = $mainImg;
+            $p['image']                       = $mainImg;
+            $p['hover_image']                 = $hoverImg;
+            $p['regular_price']               = $regPrice;
+            $p['price']                       = $regPrice;
+            $p['sale_price']                  = $salePrice;
+            $p['unit_label']                  = $unitLabel;
+            $p['unit_value']                  = $unitLabel;
+            $p['badge_text']                  = $isFlashSaleProd ? 'SALE' : ($salePrice ? 'Sale' : 'Featured');
+            $p['is_bestseller']               = (int)($p['is_trending'] ?? 1);
+            $p['is_sale']                     = ($salePrice !== null) ? 1 : 0;
+            $p['is_flash_sale']               = $isFlashSaleProd ? 1 : 0;
+            $p['flash_sale_discount_percent'] = $isFlashSaleProd ? $fsDiscountPct : 0;
+            $p['total_discount_percent']      = $totalDiscountPct;
+            $p['primary_variant_id']          = !empty($primaryVar['id']) ? (int)$primaryVar['id'] : null;
+            $p['default_variant_id']          = !empty($primaryVar['id']) ? (int)$primaryVar['id'] : null;
+            $p['gallery_images_decoded']      = $galNormalized;
+            $p['highlights_decoded']          = $hlDecoded;
+            $p['variants']                    = $pVars;
+            $p['attributes']                  = $pAttrs;
+            $p['color_swatches']              = $colorSwatches;
+            $p['colors']                      = $colorsList;
+            $p['sizes']                       = $sizesList;
+            $p['specifications']              = $specsByProd[$pid] ?? [];
+            $pRevs                            = $reviewsByProd[$pid] ?? [];
+            $p['reviews']                     = $pRevs;
+            $revCnt                           = count($pRevs);
+            $revSum                           = 0;
+            foreach ($pRevs as $rv) {
+                $revSum += (float)($rv['rating'] ?? 0);
+            }
+            $p['reviews_count']               = $revCnt;
+            $p['rating']                      = $revCnt > 0 ? round($revSum / $revCnt, 1) : 0.0;
 
             $products[] = $p;
         }

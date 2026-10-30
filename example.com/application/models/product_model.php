@@ -28,16 +28,100 @@ class product_model extends CI_Model {
         if ($this->tax_multiplier !== null) {
             return $this->tax_multiplier;
         }
-        $tax_enabled   = (int) $this->setting_model->get('tax_enabled', 0);
-        $tax_inclusive = (int) $this->setting_model->get('tax_inclusive', 0);
-        $tax_rate      = (float) ($this->setting_model->get('tax_rate') ?: $this->setting_model->get('tax_rate_percent', 0.00));
-
-        if ($tax_enabled && $tax_inclusive == 1 && $tax_rate > 0) {
-            $this->tax_multiplier = 1 + ($tax_rate / 100);
-        } else {
-            $this->tax_multiplier = 1.0;
-        }
+        // Catalog prices entered in the database are customer-facing display prices.
+        // Tax computation (inclusive or exclusive) is handled by the cart checkout summary.
+        $this->tax_multiplier = 1.0;
         return $this->tax_multiplier;
+    }
+
+    public function get_active_flash_sale_info()
+    {
+        static $cached_fs = null;
+        if ($cached_fs !== null) {
+            return $cached_fs;
+        }
+
+        $tid = $this->tid();
+        $now_str = date('Y-m-d H:i:s');
+        $fs = $this->db->where('tenant_id', $tid)
+                       ->where('status !=', 'terminated')
+                       ->where('start_time <=', $now_str)
+                       ->where('end_time >=', $now_str)
+                       ->order_by('start_time', 'ASC')
+                       ->get('flash_sales')
+                       ->row_array();
+
+        if ($fs && !empty($fs['id'])) {
+            $items = $this->db->select('product_id')->where('flash_sale_id', (int)$fs['id'])->get('flash_sale_products')->result_array();
+            $fs['product_ids'] = array_map('intval', array_column($items, 'product_id'));
+        } else {
+            $fs = false;
+        }
+
+        $cached_fs = $fs;
+        return $cached_fs;
+    }
+
+    public function apply_flash_sale_pricing(&$prod)
+    {
+        if (empty($prod) || !is_array($prod) || empty($prod['id'])) {
+            return;
+        }
+        $fs = $this->get_active_flash_sale_info();
+        if (!$fs || empty($fs['product_ids']) || !in_array((int)$prod['id'], $fs['product_ids'], true)) {
+            return;
+        }
+
+        $discount_pct = (float)($fs['discount_percent'] ?? 0);
+        if ($discount_pct <= 0) {
+            return;
+        }
+
+        $reg = (isset($prod['base_price']) && is_numeric($prod['base_price'])) ? (float)$prod['base_price'] : ((!empty($prod['price']) && (float)$prod['price'] > 0) ? (float)$prod['price'] : 0);
+        $selling = (isset($prod['base_sale_price']) && is_numeric($prod['base_sale_price']) && (float)$prod['base_sale_price'] > 0) ? (float)$prod['base_sale_price'] : ((!empty($prod['sale_price']) && (float)$prod['sale_price'] > 0) ? (float)$prod['sale_price'] : $reg);
+        $final_price = round($selling * (1 - ($discount_pct / 100)), 2);
+        $total_pct = ($reg > 0 && $final_price < $reg) ? round((($reg - $final_price) / $reg) * 100) : 0;
+
+        $prod['is_flash_sale'] = 1;
+        $prod['flash_sale_discount_percent'] = $discount_pct;
+        $prod['original_selling_price'] = $selling;
+        $prod['regular_price'] = $reg;
+        $prod['price'] = $reg;
+        $prod['sale_price'] = $final_price;
+        $prod['base_price'] = $reg;
+        $prod['base_sale_price'] = $final_price;
+        $prod['total_discount_percent'] = $total_pct;
+    }
+
+    public function apply_variant_flash_sale_pricing(&$v)
+    {
+        if (empty($v) || !is_array($v) || empty($v['product_id'])) {
+            return;
+        }
+        $fs = $this->get_active_flash_sale_info();
+        if (!$fs || empty($fs['product_ids']) || !in_array((int)$v['product_id'], $fs['product_ids'], true)) {
+            return;
+        }
+
+        $discount_pct = (float)($fs['discount_percent'] ?? 0);
+        if ($discount_pct <= 0) {
+            return;
+        }
+
+        $v_reg = (isset($v['base_price']) && is_numeric($v['base_price'])) ? (float)$v['base_price'] : ((!empty($v['price']) && (float)$v['price'] > 0) ? (float)$v['price'] : 0);
+        $v_selling = (isset($v['base_sale_price']) && is_numeric($v['base_sale_price']) && (float)$v['base_sale_price'] > 0) ? (float)$v['base_sale_price'] : ((!empty($v['sale_price']) && (float)$v['sale_price'] > 0) ? (float)$v['sale_price'] : $v_reg);
+        $v_final = round($v_selling * (1 - ($discount_pct / 100)), 2);
+        $total_pct = ($v_reg > 0 && $v_final < $v_reg) ? round((($v_reg - $v_final) / $v_reg) * 100) : 0;
+
+        $v['is_flash_sale'] = 1;
+        $v['flash_sale_discount_percent'] = $discount_pct;
+        $v['original_selling_price'] = $v_selling;
+        $v['regular_price'] = $v_reg;
+        $v['price'] = $v_reg;
+        $v['sale_price'] = $v_final;
+        $v['base_price'] = $v_reg;
+        $v['base_sale_price'] = $v_final;
+        $v['total_discount_percent'] = $total_pct;
     }
 
     public function apply_tax_pricing(&$prod)
@@ -54,7 +138,16 @@ class product_model extends CI_Model {
         if (!isset($prod['image']) && isset($prod['main_image'])) {
             $prod['image'] = $prod['main_image'];
         }
+        $rev_cnt = isset($prod['reviews_count']) ? (int)$prod['reviews_count'] : 0;
+        if ($rev_cnt <= 0) {
+            $prod['reviews_count'] = 0;
+            $prod['rating']        = 0.0;
+        } else {
+            $prod['reviews_count'] = $rev_cnt;
+            $prod['rating']        = isset($prod['rating']) ? round((float)$prod['rating'], 1) : 0.0;
+        }
         if (isset($prod['base_price'])) {
+            $this->apply_flash_sale_pricing($prod);
             return;
         }
         $mult = $this->get_tax_multiplier();
@@ -73,6 +166,7 @@ class product_model extends CI_Model {
                 $prod['sale_price'] = round($prod['base_sale_price'] * $mult, 2);
             }
         }
+        $this->apply_flash_sale_pricing($prod);
     }
 
     public function apply_variant_tax_pricing(&$v)
@@ -81,6 +175,7 @@ class product_model extends CI_Model {
             return;
         }
         if (isset($v['base_price'])) {
+            $this->apply_variant_flash_sale_pricing($v);
             return;
         }
         $mult = $this->get_tax_multiplier();
@@ -96,6 +191,7 @@ class product_model extends CI_Model {
                 $v['sale_price'] = round($v['base_sale_price'] * $mult, 2);
             }
         }
+        $this->apply_variant_flash_sale_pricing($v);
     }
 
     public function get_products($filters = [], $limit = 12, $offset = 0)
@@ -361,11 +457,15 @@ class product_model extends CI_Model {
 
     public function get_product_reviews($product_id)
     {
-        return $this->db->where('tenant_id', $this->tid())
-                        ->where('product_id', (int) $product_id)
-                        ->where('status', 'approved')
-                        ->order_by('id', 'DESC')
-                        ->get('reviews')
+        $tid = $this->tid();
+        return $this->db->select('r.*, u.avatar AS user_avatar')
+                        ->from('reviews r')
+                        ->join('users u', 'u.id = r.user_id AND u.tenant_id = r.tenant_id', 'left')
+                        ->where('r.tenant_id', $tid)
+                        ->where('r.product_id', (int) $product_id)
+                        ->where('r.status', 'approved')
+                        ->order_by('r.id', 'DESC')
+                        ->get()
                         ->result_array();
     }
 
@@ -388,7 +488,7 @@ class product_model extends CI_Model {
         $count = $this->db->where('tenant_id', $tid)->where('product_id', $data['product_id'])->where('status', 'approved')->count_all_results('reviews');
 
         $this->db->where('tenant_id', $tid)->where('id', $data['product_id'])->update('products', [
-            'rating'        => $stats['avg_rating'] ?: 5.0,
+            'rating'        => ($count > 0 && !empty($stats['avg_rating'])) ? round((float)$stats['avg_rating'], 1) : 0.0,
             'reviews_count' => $count
         ]);
 

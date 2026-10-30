@@ -438,10 +438,17 @@ $init_discount   = ($init_reg_price > $init_sale_price && $init_reg_price > 0)
     : 0;
 
 $actual_reviews = (!empty($product['reviews']) && is_array($product['reviews'])) ? $product['reviews'] : [];
-$rating_val     = isset($product['rating']) && (float)$product['rating'] > 0 ? (float)$product['rating'] : 4.9;
-$review_count   = !empty($actual_reviews)
-    ? count($actual_reviews)
-    : (isset($product['reviews_count']) ? (int)$product['reviews_count'] : (empty($is_user_project) ? 36 : 0));
+$rating_counts  = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+$sum_rating     = 0;
+foreach ($actual_reviews as $r_item) {
+    $r_score = max(1, min(5, (int)($r_item['rating'] ?? 5)));
+    $rating_counts[$r_score]++;
+    $sum_rating += $r_score;
+}
+$total_review_count = count($actual_reviews);
+$computed_avg       = $total_review_count > 0 ? round($sum_rating / $total_review_count, 1) : 0.0;
+$rating_val         = $computed_avg;
+$review_count       = $total_review_count;
 
 $short_desc = !empty($product['short_description']) && strpos($product['short_description'], 'linen') === false
     ? $product['short_description']
@@ -1285,19 +1292,21 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
                      </h2>
 
                      <!-- Rating, Reviews & Harvest Note -->
+                     <?php $hdr_stars = (int)round($rating_val); ?>
                      <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
                         <div class="d-inline-flex align-items-center gap-1 bg-warning bg-opacity-10 px-2 py-1 rounded">
-                           <span class="fw-bold text-dark" style="font-size:14px;"><?= number_format($rating_val, 1); ?></span>
+                           <?php if ($review_count > 0): ?>
+                              <span class="fw-bold text-dark" style="font-size:14px;"><?= number_format($rating_val, 1); ?></span>
+                           <?php endif; ?>
                            <span class="text-warning" style="font-size:13px;">
-                              <i class="fa-solid fa-star"></i>
-                              <i class="fa-solid fa-star"></i>
-                              <i class="fa-solid fa-star"></i>
-                              <i class="fa-solid fa-star"></i>
-                              <i class="fa-solid fa-star"></i>
+                              <?php for ($si = 1; $si <= 5; $si++): ?>
+                                 <i class="fa-<?= ($si <= $hdr_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                              <?php endfor; ?>
                            </span>
+                           <span class="text-muted fw-semibold" style="font-size:12.5px;">(<?= $review_count; ?>)</span>
                         </div>
                         <a href="#navPresentationTab" onclick="activateReviewTab()" class="text-secondary small text-decoration-none fw-semibold">
-                           (<?= $review_count; ?> Customer Reviews)
+                           (<?= $review_count; ?> Customer <?= $review_count === 1 ? 'Review' : 'Reviews'; ?>)
                         </a>
                         <span class="text-muted">|</span>
                         <span class="small fw-semibold" style="color:#108910;">
@@ -1659,30 +1668,181 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
                         <div class="tab-pane fade" id="nav-review" role="tabpanel">
                            <div class="product-details-tab-item pt-4">
                               <div class="row g-4">
-                                 <div class="col-lg-7">
-                                    <h4 class="fw-bold mb-3" style="color:#003D29;">Verified Buyer Reviews</h4>
-                                    <?php if (!empty($actual_reviews)): ?>
-                                       <?php foreach ($actual_reviews as $rev):
-                                          $r_name  = $rev['customer_name'] ?? ($rev['name'] ?? 'Verified Customer');
-                                          $r_stars = max(1, min(5, (int)($rev['rating'] ?? 5)));
-                                          $r_text  = $rev['comment'] ?? ($rev['review'] ?? '');
+                                 <!-- Left Column: Product Rating Summary & Breakdown Bar -->
+                                 <div class="col-lg-4 col-md-5">
+                                    <div class="p-4 rounded-3 border bg-white" style="border-color:#e5e7eb !important;">
+                                       <h5 class="fw-bold mb-3" style="color:#003D29; font-size:17px;">Customer Ratings</h5>
+                                       <?php
+                                       $bar_total = $total_review_count;
+                                       $bar_avg   = $computed_avg;
+                                       $bar_counts = $rating_counts;
+                                       if ($bar_total === 0 && empty($is_user_project)) {
+                                           $bar_total  = max(1, (int)$review_count);
+                                           $bar_avg    = (float)$rating_val;
+                                           $bar_counts = [
+                                               5 => (int)round($bar_total * 0.78),
+                                               4 => (int)round($bar_total * 0.16),
+                                               3 => max(0, $bar_total - (int)round($bar_total * 0.78) - (int)round($bar_total * 0.16)),
+                                               2 => 0,
+                                               1 => 0
+                                           ];
+                                       }
+                                       $bar_avg_round = round($bar_avg * 2) / 2;
                                        ?>
-                                       <div class="p-3 mb-3 rounded-3 border bg-white">
-                                          <div class="d-flex justify-content-between align-items-center mb-1">
-                                             <strong><?= html_escape($r_name); ?> <span class="badge bg-success-subtle text-success ms-1">Verified Purchase</span></strong>
-                                             <span class="text-warning small">
+                                       <div class="d-flex align-items-center gap-3">
+                                          <div class="text-center px-2">
+                                             <div class="fw-bold" style="font-size:38px; line-height:1.1; color:#003D29;">
+                                                <?= number_format($bar_avg, 1); ?>
+                                             </div>
+                                             <div class="text-warning my-1" style="font-size:14px;">
+                                                <?php for ($s = 1; $s <= 5; $s++): ?>
+                                                   <?php if ($bar_avg > 0 && $s <= floor($bar_avg_round)): ?>
+                                                      <i class="fa-solid fa-star"></i>
+                                                   <?php elseif ($bar_avg > 0 && ($s - 0.5) == $bar_avg_round): ?>
+                                                      <i class="fa-solid fa-star-half-stroke"></i>
+                                                   <?php else: ?>
+                                                      <i class="fa-regular fa-star" style="color:#d1d5db;"></i>
+                                                   <?php endif; ?>
+                                                <?php endfor; ?>
+                                             </div>
+                                             <div class="text-muted small" style="font-size:12px;">
+                                                <?= number_format($bar_total); ?> <?= ($bar_total === 1) ? 'Rating' : 'Ratings'; ?>
+                                             </div>
+                                          </div>
+
+                                          <div class="flex-grow-1 ps-2 border-start">
+                                             <?php
+                                             $bar_colors = [
+                                                 5 => '#108910',
+                                                 4 => '#26a541',
+                                                 3 => '#26a541',
+                                                 2 => '#ff9f00',
+                                                 1 => '#ff6161'
+                                             ];
+                                             for ($star = 5; $star >= 1; $star--):
+                                                 $s_cnt = (int)($bar_counts[$star] ?? 0);
+                                                 $s_pct = $bar_total > 0 ? round(($s_cnt / $bar_total) * 100, 1) : 0;
+                                                 $s_col = $bar_colors[$star];
+                                             ?>
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                   <div class="d-inline-flex align-items-center gap-1 fw-semibold text-dark" style="width:32px; font-size:12px;">
+                                                      <span><?= $star; ?></span>
+                                                      <i class="fa-solid fa-star" style="font-size:10px; color:#f59e0b;"></i>
+                                                   </div>
+                                                   <div class="flex-grow-1 rounded-pill overflow-hidden" style="height:8px; background-color:#f1f5f9;">
+                                                      <div class="h-100 rounded-pill" style="width:<?= $s_pct; ?>%; background-color:<?= $s_col; ?>; transition:width 0.3s ease;"></div>
+                                                   </div>
+                                                   <div class="text-muted text-end" style="width:32px; font-size:12px;">
+                                                      <?= number_format($s_cnt); ?>
+                                                   </div>
+                                                </div>
+                                             <?php endfor; ?>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+
+                                 <!-- Right Column: Customer Reviews & Customer Images (Latest 5) -->
+                                 <div class="col-lg-8 col-md-7">
+                                    <h4 class="fw-bold mb-3" style="color:#003D29; font-size:18px;">
+                                       Customer Reviews (<?= number_format($bar_total); ?>)
+                                    </h4>
+                                    <?php if (!empty($actual_reviews)):
+                                       $latest_reviews = array_slice($actual_reviews, 0, 5);
+                                    ?>
+                                       <?php foreach ($latest_reviews as $rev):
+                                          $r_name   = $rev['customer_name'] ?? ($rev['name'] ?? 'Customer');
+                                          $r_stars  = max(1, min(5, (int)($rev['rating'] ?? 5)));
+                                          $r_title  = trim((string)($rev['title'] ?? ''));
+                                          $r_text   = trim((string)($rev['comment'] ?? ($rev['review'] ?? '')));
+                                          $r_date   = !empty($rev['created_at']) ? date('d M, Y', strtotime($rev['created_at'])) : '';
+                                          $r_images = [];
+                                          if (!empty($rev['images'])) {
+                                              $decoded_imgs = is_array($rev['images']) ? $rev['images'] : json_decode($rev['images'], true);
+                                              if (is_array($decoded_imgs)) {
+                                                  $r_images = array_values(array_filter($decoded_imgs));
+                                              }
+                                          }
+                                          $raw_r_avatar = trim((string)($rev['user_avatar'] ?? ($rev['avatar'] ?? '')));
+                                          $has_r_avatar = ($raw_r_avatar !== '' && !in_array(strtolower($raw_r_avatar), ['default-user.png', 'user-default.jpg', 'default.png'], true));
+                                          $r_avatar_url = '';
+                                          if ($has_r_avatar) {
+                                              $clean_r_av = ltrim($raw_r_avatar, '/');
+                                              if (strpos($clean_r_av, 'assets/images/') === 0) {
+                                                  $clean_r_av = substr($clean_r_av, strlen('assets/images/'));
+                                              }
+                                              $r_avatar_url = (strpos($clean_r_av, 'http://') === 0 || strpos($clean_r_av, 'https://') === 0)
+                                                  ? $clean_r_av
+                                                  : base_url('assets/images/' . $clean_r_av);
+                                          }
+                                       ?>
+                                       <div class="p-3 mb-3 rounded-3 border bg-white" style="border-color:#e5e7eb !important;">
+                                          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                             <div class="d-flex align-items-center gap-2">
+                                                <?php if ($has_r_avatar): ?>
+                                                   <img src="<?= $r_avatar_url; ?>" alt="<?= html_escape($r_name); ?>" class="rounded-circle shadow-sm border" style="width: 30px; height: 30px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                                   <div class="rounded-circle align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0; display: none;">
+                                                      <i class="fa-solid fa-user"></i>
+                                                   </div>
+                                                <?php else: ?>
+                                                   <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" style="width: 30px; height: 30px; background: linear-gradient(135deg, #108910, #1b52b3); font-size: 13px; flex-shrink: 0;">
+                                                      <i class="fa-solid fa-user"></i>
+                                                   </div>
+                                                <?php endif; ?>
+                                                <div class="fw-semibold text-dark" style="font-size:14px;"><?= html_escape($r_name); ?></div>
+                                             </div>
+                                             <?php if ($r_date !== ''): ?>
+                                                <span class="text-muted small ms-auto text-nowrap" style="font-size:12px;"><?= html_escape($r_date); ?></span>
+                                             <?php endif; ?>
+                                          </div>
+
+                                          <div class="d-flex align-items-center gap-1 flex-wrap mb-2">
+                                             <span class="d-inline-flex align-items-center gap-1" style="color:#f59e0b; font-size:13px;">
                                                 <?php for ($si = 1; $si <= 5; $si++): ?>
                                                    <i class="fa-<?= $si <= $r_stars ? 'solid' : 'regular'; ?> fa-star"></i>
                                                 <?php endfor; ?>
+                                                <span class="fw-bold text-dark ms-1" style="font-size:13.5px;"><?= number_format($r_stars, 1); ?></span>
                                              </span>
+                                             <?php if ($r_title !== ''): ?>
+                                                <span class="text-muted mx-1" style="font-size:14px; line-height:1;">&bull;</span>
+                                                <strong class="text-dark" style="font-size:14px;"><?= html_escape($r_title); ?></strong>
+                                             <?php endif; ?>
                                           </div>
-                                          <p class="mb-1 text-secondary small"><?= nl2br(html_escape($r_text)); ?></p>
+
+                                          <?php if ($r_text !== ''): ?>
+                                             <p class="mb-2 text-secondary" style="font-size:13.5px; line-height:1.55;"><?= nl2br(html_escape($r_text)); ?></p>
+                                          <?php endif; ?>
+
+                                          <?php if (!empty($r_images)): ?>
+                                             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                                                <?php foreach ($r_images as $img_rel):
+                                                   $clean_rel = ltrim(trim((string)$img_rel), '/');
+                                                   if (strpos($clean_rel, 'assets/images/') === 0) {
+                                                       $clean_rel = substr($clean_rel, strlen('assets/images/'));
+                                                   }
+                                                   $img_full_url = base_url('assets/images/' . $clean_rel);
+                                                   $img_fallback = base_url('website/assets/images/' . $clean_rel);
+                                                ?>
+                                                   <a href="<?= $img_full_url; ?>" target="_blank" class="d-inline-block border rounded-2 overflow-hidden" style="width:120px; height:120px; border-color:#e5e7eb !important;">
+                                                      <img src="<?= $img_full_url; ?>" alt="Review photo" style="width:120px; height:120px; object-fit:cover;" onerror="this.onerror=null;this.src='<?= $img_fallback; ?>';">
+                                                   </a>
+                                                <?php endforeach; ?>
+                                             </div>
+                                          <?php endif; ?>
                                        </div>
                                        <?php endforeach; ?>
+
+                                       <?php if (count($actual_reviews) > 5): ?>
+                                          <div class="mt-3">
+                                             <a href="<?= site_url('product/reviews/' . $prod_slug . $grc_qs); ?>" class="btn btn-outline-success fw-semibold px-4 py-2 rounded-2" style="border-color:#108910; color:#108910; font-size:14px;">
+                                                Show All Reviews (<?= number_format(count($actual_reviews)); ?>) <i class="fa-solid fa-arrow-right ms-1"></i>
+                                             </a>
+                                          </div>
+                                       <?php endif; ?>
                                     <?php elseif (empty($is_user_project)): ?>
                                        <div class="p-3 mb-3 rounded-3 border bg-white">
                                           <div class="d-flex justify-content-between align-items-center mb-1">
-                                             <strong>Ananya Sharma <span class="badge bg-success-subtle text-success ms-1">Verified Purchase • 400g Punnet</span></strong>
+                                             <strong>Ananya Sharma</strong>
                                              <span class="text-warning small"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></span>
                                           </div>
                                           <p class="mb-1 text-secondary small">Super fresh, firm, and naturally sweet! Delivered chilled in under 2 hours. Love that the page clearly shows the per-kg and per-pc price so comparing pack sizes is effortless.</p>
@@ -1690,26 +1850,9 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
                                     <?php else: ?>
                                        <div class="p-4 rounded-3 border bg-white text-center text-muted">
                                           <i class="fa-regular fa-comment-dots fs-2 mb-2 text-success"></i>
-                                          <p class="mb-0">No customer reviews yet for <strong><?= html_escape($prod_title); ?></strong>. Be the first to share your review!</p>
+                                          <p class="mb-0">No customer reviews yet for <strong><?= html_escape($prod_title); ?></strong>.</p>
                                        </div>
                                     <?php endif; ?>
-                                 </div>
-                                 <div class="col-lg-5">
-                                    <div class="p-4 rounded-3" style="background:#f4fbf6; border:1px solid #d1fae5;">
-                                       <h5 class="fw-bold mb-3" style="color:#003D29;">Write a Customer Review</h5>
-                                       <form action="<?= site_url('product/review'); ?>" method="POST">
-                                          <input type="hidden" name="product_slug" value="<?= html_escape($prod_slug); ?>">
-                                          <div class="mb-3">
-                                             <label class="form-label small fw-semibold">Your Name</label>
-                                             <input type="text" class="form-control" name="name" placeholder="Enter your name" required>
-                                          </div>
-                                          <div class="mb-3">
-                                             <label class="form-label small fw-semibold">Your Review</label>
-                                             <textarea class="form-control" rows="3" name="comment" placeholder="How was the freshness and quality?" required></textarea>
-                                          </div>
-                                          <button type="submit" class="btn w-100 text-white fw-bold" style="background:#108910; border-radius:999px;">Submit Review</button>
-                                       </form>
-                                    </div>
                                  </div>
                               </div>
                            </div>
@@ -1802,6 +1945,19 @@ if (!empty($product['specifications']) && is_array($product['specifications'])) 
                         <h4 class="aq-product-title">
                            <a href="<?= site_url('product/' . $rp_slug . $grc_qs); ?>"><?= html_escape($rp_name); ?></a>
                         </h4>
+                        <?php
+                        $rp_rev_cnt = (isset($rp['reviews']) && is_array($rp['reviews'])) ? count($rp['reviews']) : (int)($rp['reviews_count'] ?? 0);
+                        $rp_rating  = $rp_rev_cnt > 0 ? (float)($rp['rating'] ?? 0) : 0.0;
+                        $rp_stars   = (int)round($rp_rating);
+                        ?>
+                        <div class="aq-product-ratting text-warning small mb-1 d-flex align-items-center gap-1">
+                           <span>
+                              <?php for ($si = 1; $si <= 5; $si++): ?>
+                                 <i class="fa-<?= ($si <= $rp_stars) ? 'solid' : 'regular'; ?> fa-star"></i>
+                              <?php endfor; ?>
+                           </span>
+                           <span class="text-muted" style="font-size:12px;">(<?= $rp_rev_cnt; ?>)</span>
+                        </div>
                         <div class="aq-product-price mb-1">
                            <ins><span class="aq-product-new-price"><?= html_escape($currency_symbol) . number_format($rp_sal, 2); ?></span></ins>
                            <?php if ($rp_sal < $rp_reg): ?>
